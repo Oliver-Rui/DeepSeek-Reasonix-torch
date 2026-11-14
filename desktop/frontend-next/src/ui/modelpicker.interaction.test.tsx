@@ -59,7 +59,11 @@ describe("model picker", () => {
     expect(heads()).toEqual(["deepseek", "moonshot", "relay", "gw"]);
     expect(rows()).toHaveLength(16);
     expect(document.querySelectorAll(".studio-model-menu .mi.head .mi-mono")).toHaveLength(4);
-    expect(document.querySelectorAll(".studio-model-menu button.mi .mi-mono")).toHaveLength(16);
+    // Rows whose ids name a family carry that family's mark; the relay and the
+    // gateway name nobody, so their rows keep the letter chip.
+    expect(document.querySelectorAll(".studio-model-menu button.mi .mi-mono")).toHaveLength(8);
+    expect(document.querySelectorAll(".studio-model-menu button.mi .vendor-mark[data-mark='deepseek']")).toHaveLength(4);
+    expect(document.querySelectorAll(".studio-model-menu button.mi .vendor-mark[data-mark='kimi']")).toHaveLength(4);
   });
 
   it("gives a provider the same service icon and tone every time it is drawn", () => {
