@@ -36,6 +36,39 @@ export function hasVendorMark(slug: string | undefined): slug is string {
   return !!slug && SOURCE.has(slug);
 }
 
+// The family a model id names, by the keywords in it. A relay's models read as
+// the family they name — deepseek-chat behind a magpie door is DeepSeek — so
+// the mark follows the model and not the door it came through. One table, one
+// place to add a family; a slug without artwork falls back to the door's mark,
+// so a new family needs nothing but its svg to start working.
+const FAMILY_KEYS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/deepseek/i, "deepseek"],
+  [/glm|chatglm|zhipu|bigmodel/i, "zhipu"],
+  [/qwen|qwq|qvq|tongyi/i, "qwen"],
+  [/kimi|moonshot/i, "kimi"],
+  [/doubao|seed[-_]?\d/i, "doubao"],
+  [/hunyuan/i, "hunyuan"],
+  [/minimax|abab/i, "minimax"],
+  [/gemini|google/i, "google"],
+  [/claude/i, "anthropic"],
+  [/gpt|chatgpt|davinci|\bo[134]\b/i, "openai"],
+  [/llama/i, "meta"],
+  [/mistral|mixtral|codestral/i, "mistral"],
+  [/nemotron/i, "nvidia"],
+  [/sonar/i, "perplexity"],
+  [/(^|[-_/])mimo/i, "mimo"],
+  [/longcat/i, "longcat"],
+  [/stepfun|step-\d/i, "stepfun"],
+];
+
+export function markForModelId(modelId: string | undefined): string | undefined {
+  if (!modelId) return undefined;
+  for (const [re, slug] of FAMILY_KEYS) {
+    if (re.test(modelId) && SOURCE.has(slug)) return slug;
+  }
+  return undefined;
+}
+
 export function vendorName(slug: string): string {
   return MARKS[slug]?.name ?? slug;
 }

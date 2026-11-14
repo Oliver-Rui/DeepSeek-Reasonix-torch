@@ -106,3 +106,31 @@ it("names the session's model by alias, then short form, then the id without its
   expect(modelLabel(models, null)).toBe("—");
   expect(modelLabel(models, { modelRef: UNCONFIGURED_REF })).toBe("未连接");
 });
+
+// A relay's models read as the family their ids name: deepseek-chat behind a
+// magpie door shows DeepSeek, and an id nobody names keeps the door's mark.
+it("marks a routed model by the family its id names, not the relay it came through", () => {
+  const models: ModelEntry[] = [
+    { ref: "magpie/deepseek-chat", provider: "magpie", vendor: "magpie.example", model: "deepseek-chat", mark: "magpie", serviceMark: "magpie" },
+    { ref: "magpie/glm-4.6", provider: "magpie", vendor: "magpie.example", model: "glm-4.6", mark: "magpie", serviceMark: "magpie" },
+    { ref: "magpie/qwen-max", provider: "magpie", vendor: "magpie.example", model: "qwen-max", mark: "magpie" },
+    { ref: "magpie/kimi-latest", provider: "magpie", vendor: "magpie.example", model: "kimi-latest" },
+    { ref: "magpie/my-custom-8b", provider: "magpie", vendor: "magpie.example", model: "my-custom-8b", mark: "magpie" },
+  ];
+  const items = modelMenu(models);
+  const markOf = (ref: string) => items.find((item) => item.value === ref)?.mark;
+  expect(markOf("magpie/deepseek-chat")).toBe("deepseek");
+  expect(markOf("magpie/glm-4.6")).toBe("zhipu");
+  expect(markOf("magpie/qwen-max")).toBe("qwen");
+  expect(markOf("magpie/kimi-latest")).toBe("kimi");
+  expect(markOf("magpie/my-custom-8b")).toBe("magpie");
+});
+
+it("lets the id name the family even when the preset declares another mark", () => {
+  const items = modelMenu([
+    { ref: "relay/deepseek-r1", provider: "relay", vendor: "relay.example", model: "deepseek-r1", mark: "openrouter", serviceMark: "openrouter" },
+    { ref: "relay/assistant-x", provider: "relay", vendor: "relay.example", model: "assistant-x", mark: "openrouter" },
+  ]);
+  expect(items.find((item) => item.value === "relay/deepseek-r1")?.mark).toBe("deepseek");
+  expect(items.find((item) => item.value === "relay/assistant-x")?.mark).toBe("openrouter");
+});

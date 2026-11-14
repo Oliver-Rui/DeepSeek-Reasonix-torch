@@ -2,6 +2,7 @@
 import type { ModelEntry } from "../port/port";
 import type { MenuItem } from "./Menu";
 import { groupVendors } from "./Models";
+import { markForModelId } from "./vendormarks";
 import { t } from "../i18n";
 import { UNCONFIGURED_REF } from "./ConnectNote";
 import { KIND_LABEL } from "./vendors";
@@ -44,7 +45,11 @@ export function modelMenu(models: ModelEntry[], order: readonly string[] = [], c
           meta: t(KIND_LABEL[kind] ?? kind),
           badge: m.vision ? t("common.reads_images") : undefined,
           providerIcon,
-          mark: m.mark,
+          // The id names the family, and the family owns the mark: a relay
+          // serving deepseek-chat shows DeepSeek even though the door is its
+          // own. No keyword match leaves the row to the door's declared mark,
+          // or to the letter chip when none was declared.
+          mark: markForModelId(m.model) ?? m.mark,
         });
       }
     }
