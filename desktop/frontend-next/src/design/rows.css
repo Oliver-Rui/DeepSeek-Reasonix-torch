@@ -77,3 +77,10 @@
 .ds-proj :is(.wsadd, .wsmore) .studio-icon { width: 16px; height: 16px; }
 .ds-proj :is(.wsadd, .wsmore):disabled { opacity: .4; cursor: default; }
 .ds-proj .wsacts > .unread-count { flex: none; min-width: 16px; height: 16px; margin-inline-end: 3px; padding-inline: 4px; box-sizing: border-box; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: var(--r-pill); color: var(--muted); font: var(--w-med) var(--fs-micro)/1 var(--ui); }
+
+/* The flat time reading: a conversation row carries a second line naming the
+   project it belongs to, so the folder rows can go without losing the map. */
+.ds-row[data-sub] { height: auto; min-height: 30px; padding-top: 3px; padding-bottom: 3px; }
+.ds-row[data-sub] .ds-title { display: flex; flex-direction: column; gap: 1px; }
+.ds-row .sessline { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-row .sessub { color: var(--faint); font: var(--w-reg) var(--fs-micro)/1.2 var(--ds-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

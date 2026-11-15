@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import "./testkit";
 import { SessionFilter } from "./SessionFilter";
 import { inScope } from "./sessionScope";
@@ -32,14 +32,34 @@ describe("the session filter", () => {
     expect(onScope).toHaveBeenCalledWith("unread");
   });
 
-  it("offers a one-press clear beside any filter but All", () => {
+  it("keeps no separate clear button: picking 全部 is the way back", () => {
     const onScope = vi.fn();
-    const { rerender } = render(<SessionFilter scope="all" counts={counts} onScope={onScope} />);
-    expect(screen.queryByRole("button", { name: "清除筛选" })).toBeNull();
-    rerender(<SessionFilter scope="live" counts={counts} onScope={onScope} />);
+    render(<SessionFilter scope="live" counts={counts} onScope={onScope} />);
     expect(trigger().textContent).toContain("进行中");
-    fireEvent.click(screen.getByRole("button", { name: "清除筛选" }));
+    expect(document.querySelector(".session-filter-clear")).toBeNull();
+    fireEvent.click(trigger());
+    fireEvent.click(row("all"));
     expect(onScope).toHaveBeenCalledWith("all");
+  });
+
+  it("marks exactly the chosen row as its own", () => {
+    render(<SessionFilter scope="live" counts={counts} onScope={vi.fn()} />);
+    fireEvent.click(trigger());
+    expect(row("live").getAttribute("data-on")).toBe("");
+    expect([...document.querySelectorAll('[data-action="session.filter"][data-on]')].map((el) => el.getAttribute("data-value"))).toEqual(["live"]);
+  });
+
+  it("flips the time-section reading from its clock, and it rests there", () => {
+    render(<SessionFilter scope="all" counts={counts} onScope={vi.fn()} />);
+    const clock = () => document.querySelector<HTMLButtonElement>(".session-filter-sort")!;
+    expect(clock().getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(clock());
+    expect(clock().getAttribute("aria-pressed")).toBe("true");
+    expect(localStorage.getItem("rx-rail-time-groups")).toBe("on");
+    fireEvent.click(clock());
+    expect(clock().getAttribute("aria-pressed")).toBe("false");
+    expect(localStorage.getItem("rx-rail-time-groups")).toBe("off");
+    localStorage.removeItem("rx-rail-time-groups");
   });
 });
 
