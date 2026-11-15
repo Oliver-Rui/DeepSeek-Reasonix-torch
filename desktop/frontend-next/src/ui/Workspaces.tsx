@@ -41,7 +41,7 @@ import type { WorkspacesProps } from "./workspaceprops";
 import { SessionBatch, useSelectedRows } from "./SessionBatch";
 import { ProjectsHeader } from "./ProjectsHeader";
 import { WorkspaceGroupHead, type GroupDragProps } from "./WorkspaceGroupHeaders";
-import { workspaceGroups, groupFold, togglePath, pickVisible } from "./workspaceGroups";
+import { workspaceGroups, groupFold, togglePath } from "./workspaceGroups";
 import { workspaceRemoval } from "./workspaceRemove";
 import { useWorkspaceDrag } from "./useWorkspaceDrag";
 import { SessionTail } from "./SessionAge";
@@ -235,7 +235,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
     return runtimes.filter((rt) => !rt.host && (workspace ? workspaceContains(workspace, rt.root) : rt.root === root)).map((rt) => rt.id);
   };
 
-  const { removeWorkspaceNow, removeAll: removeWorkspaces } = workspaceRemoval({
+  const { removeWorkspaceNow } = workspaceRemoval({
     hub, tree, panesOf, liveIds, onClose, reload, onError,
   });
 
@@ -389,7 +389,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
     ? ws.sessions : ws.sessions.filter((session, index) => index < previewLimit || session.runtimeId === active || session.path === opening);
   /** The project row's checkbox is the folder, not a fold control: picking it
    *  picks every row the folder shows, and picking it again clears them. */
-  const pickProject = (ws: TreeWorkspace) => setSelection((current) => pickVisible(current, visibleSessions(ws)));
   // Draw order: the two runs in the order a drag left them in.
   const groups = workspaceGroups(shownTree);
   const runOrder: ("projects" | "tasks")[] = groupOrder === "tasks-first" ? ["tasks", "projects"] : ["projects", "tasks"];
@@ -591,9 +590,9 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                     aria-expanded={hasChildren ? !shut : undefined}
                     aria-selected={selection ? visible.length > 0 && visible.every((s) => selection.has(s.path)) : undefined}
                     onClick={() => {
-                      // Picking a project picks what it holds: the checkbox on
-                      // its row is the whole folder, not a fold control.
-                      if (selection) { pickProject(ws); return; }
+                      // Picking is a session-only mode: a folder row takes no
+                      // part in it, and its click keeps folding the run.
+                      if (selection) return;
                       if (hasChildren) onFold(ws.root, !shut);
                     }}
                     onContextMenu={(ev) => {
@@ -610,11 +609,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                       openRowMenu(ws.root, ev.currentTarget);
                     }}
                   >
-                    {selection && <input type="checkbox" className="session-select" tabIndex={-1}
-                      aria-label={t("session.select_session_name", { name: ws.name })}
-                      data-action-change="session.selection" data-action-click="session.selection" data-target={ws.root}
-                      checked={visible.length > 0 && visible.every((s) => selection.has(s.path))}
-                      onClick={(ev) => ev.stopPropagation()} onChange={() => pickProject(ws)} />}
                     {/* The folder carries the fold itself: an open folder while
                         the run shows, a closed one while it is put away — the
                         row's edge carries no separate fold arrow. */}
@@ -725,8 +719,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       </Fragment>
     );
   };
-  // The projects a person chose, named for the batch bar's one removal question.
-  const rememberedProjects = tree.filter((w) => w.remembered).map((w) => ({ root: w.root, name: w.name }));
   // The time-section reading replaces the folder tree with one timeline: every
   // listed conversation, newest first, gathered under the day it last moved,
   // each row naming what it belongs to — a project's name, or 任务 for the
@@ -1060,7 +1052,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
           entry?.focus();
         }}
         onBusy={(pending) => { setBusy(pending ? "batch" : ""); if (pending) { setSessionMenu(""); setEditing(""); setConfirm(""); } }}
-        onClose={onClose} onArchive={onArchive} rememberedProjects={rememberedProjects} onRemoveWorkspaces={removeWorkspaces}
+        onClose={onClose} onArchive={onArchive} autoRoot={tree.find((w) => w.auto)?.root}
         liveIds={liveIds} reload={reload} onError={onError} />
     </>
   );

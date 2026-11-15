@@ -45,7 +45,7 @@ it.each(["{ContextMenu}", "{Shift>}{F10}{/Shift}"])("opens from %s and restores 
   await userEvent.keyboard(key);
   expect(screen.getByRole("menu", { name: "项目操作" })).toBeTruthy();
   await userEvent.keyboard("{End}");
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /从列表移除/ }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{Escape}");
   expect(screen.queryByRole("menu")).toBeNull();
   expect(document.activeElement).toBe(row("b"));
@@ -65,7 +65,7 @@ it("reuses the removal confirmation from the context menu", async () => {
   // Movement left the menu for the row's own drag (workspace-drag covers the
   // walk and its reload); the confirm stays the menu's own work.
   fireEvent.contextMenu(row("b"));
-  await userEvent.click(screen.getByRole("menuitem", { name: /从列表移除/ }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /移除/ }));
   expect(screen.getByRole("alertdialog").textContent).toContain("从列表移除「b」？");
   expect(removeWorkspace).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole("button", { name: "移除" }));
@@ -107,7 +107,7 @@ it("starts picking with the project's visible sessions from its menu", async () 
     b: [{ path: "/b/z.jsonl", name: "z", title: "Z" }],
   });
   fireEvent.contextMenu(pane.row("a"));
-  await userEvent.click(screen.getByRole("menuitem", { name: /批量选择会话/ }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /批量管理/ }));
   expect(screen.queryByRole("menu")).toBeNull();
   expect(screen.getByText("已选 2 个会话")).toBeTruthy();
   expect(screen.getByRole("treeitem", { name: "X" }).getAttribute("aria-selected")).toBe("true");
@@ -119,6 +119,6 @@ it("starts picking with the project's visible sessions from its menu", async () 
 it("offers no batch entry for a project with nothing to pick", () => {
   const pane = draw();
   fireEvent.contextMenu(pane.row("a"));
-  expect((screen.getByRole("menuitem", { name: /批量选择会话/ }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("menuitem", { name: /批量管理/ }) as HTMLButtonElement).disabled).toBe(true);
   expect(document.querySelector(".session-batch")).toBeNull();
 });
