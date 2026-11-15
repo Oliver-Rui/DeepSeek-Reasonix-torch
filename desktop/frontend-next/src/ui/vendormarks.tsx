@@ -24,12 +24,50 @@ const MARKS: Record<string, { file: string; name: string }> = {
   azure: { file: "azure-color", name: "Azure" },
   hunyuan: { file: "hunyuan-color", name: "Hunyuan" },
   doubao: { file: "doubao-color", name: "Doubao" },
+  magpie: { file: "magpie", name: "Magpie" },
+  xai: { file: "xai", name: "xAI" },
+  copilot: { file: "copilot", name: "GitHub Copilot" },
+  cursor: { file: "cursor", name: "Cursor" },
+  modelscope: { file: "modelscope-color", name: "ModelScope" },
+  groq: { file: "groq", name: "Groq" },
+  antigravity: { file: "antigravity-color", name: "Antigravity" },
+  baiducloud: { file: "baiducloud-color", name: "Baidu Cloud" },
+  huaweicloud: { file: "huaweicloud-color", name: "Huawei Cloud" },
+  tencentcloud: { file: "tencentcloud-color", name: "Tencent Cloud" },
 };
 
 const SOURCE = new Map<string, string>();
 for (const [slug, { file }] of Object.entries(MARKS)) {
   const raw = FILES[`../assets/vendor-marks/${file}.svg`];
   if (raw) SOURCE.set(slug, raw.replace(/<title>.*?<\/title>/, "").replace(/ style="[^"]*"/, ""));
+}
+
+// The door a person names is not the family its models belong to: an account
+// renamed magpie shows magpie's mark however its models read. One table for the
+// doors, matched on the account's own name — separate from FAMILY_KEYS above,
+// because a provider and a model vendor are two different labels.
+const PROVIDER_KEYS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/magpie|喜鹊/i, "magpie"],
+  [/copilot/i, "copilot"],
+  [/cursor/i, "cursor"],
+  [/modelscope|魔搭/i, "modelscope"],
+  [/groq/i, "groq"],
+  [/antigravity/i, "antigravity"],
+  [/baidu/i, "baiducloud"],
+  [/huawei/i, "huaweicloud"],
+  [/tencent/i, "tencentcloud"],
+  [/grok|xai/i, "xai"],
+  [/xiaomi|mimo/i, "mimo"],
+  [/openrouter/i, "openrouter"],
+  [/ollama/i, "ollama"],
+];
+
+export function markForProvider(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  for (const [re, slug] of PROVIDER_KEYS) {
+    if (re.test(name) && SOURCE.has(slug)) return slug;
+  }
+  return undefined;
 }
 
 export function hasVendorMark(slug: string | undefined): slug is string {
@@ -59,6 +97,7 @@ const FAMILY_KEYS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(^|[-_/])mimo/i, "mimo"],
   [/longcat/i, "longcat"],
   [/stepfun|step-\d/i, "stepfun"],
+  [/grok|xai/i, "xai"],
 ];
 
 export function markForModelId(modelId: string | undefined): string | undefined {
