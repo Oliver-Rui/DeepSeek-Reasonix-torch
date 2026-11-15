@@ -70,20 +70,39 @@ func TestUpdateModeRouteRefusesAModeItDoesNotOfferByCode(t *testing.T) {
 	}
 }
 
-func TestUpdateModeRoutesRefuseByNameWithoutAnInstall(t *testing.T) {
+func TestUpdateModeRoutesAnswerWithoutAnInstall(t *testing.T) {
+	// The fork's catalog reads GitHub without a declared install, and the
+	// background watch still needs its mode: the routes answer either way.
 	srv := studioServer(t, nil)
 	resp, err := http.Get(srv.URL + "/studio/update-mode")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if code := refusalCode(t, resp); code != codeNoInstall {
-		t.Fatalf("GET refused with %q, want %q", code, codeNoInstall)
+	var got struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got.Mode == "" {
+		t.Fatalf("GET answered no mode: %q", got.Mode)
 	}
 	resp, err = http.Post(srv.URL+"/studio/update-mode", "application/json", bytes.NewReader([]byte(`{"mode":"notify"}`)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if code := refusalCode(t, resp); code != codeNoInstall {
-		t.Fatalf("POST refused with %q, want %q", code, codeNoInstall)
+	var saved struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&saved); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if saved.Mode != "notify" {
+		t.Fatalf("POST answered mode %q", saved.Mode)
+	}
+	if got := updateMode(t, srv.URL); got != "notify" {
+		t.Fatalf("the saved mode read back %q", got)
 	}
 }
