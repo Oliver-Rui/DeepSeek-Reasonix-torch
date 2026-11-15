@@ -10,7 +10,7 @@
     "css-size": 8977,
     "doc-language": 0,
     "doc-owner": 27,
-    "doc-prose": 1426,
+    "doc-prose": 1432,
     "error-text": 9,
     "essay": 2536,
     "file-size": 18470,
@@ -123,11 +123,11 @@
     },
     "docs/GUIDE.md": {
       "doc-owner": 1,
-      "doc-prose": 360
+      "doc-prose": 364
     },
     "docs/GUIDE.zh-CN.md": {
       "doc-owner": 1,
-      "doc-prose": 172
+      "doc-prose": 174
     },
     "docs/HISTORY_SEARCH_CATALOG.md": {
       "doc-owner": 1,

@@ -2632,6 +2632,15 @@ enabled = true
 dispatch = true
 ```
 
+**Router and named crew.** A dispatching session works as a router: it hands each
+task to a member, the member's final answer comes back on its own, and the member
+can report mid-work with `send_peer_message`. Name members with the `role` field
+so the crew reads as people — `组员A：美术` (art), `组员B：开发` (dev) — one role per
+job; the same role always reaches the same waiting session. With the dispatch
+switch on, the model may set up and use such a crew on its own, without asking
+for each hand-off; every member still works under the sender's permissions and
+the target project's ask rules.
+
 **Consent and permissions.** Enabling dispatch is standing consent for tasks and
 replies between the paired sessions: there is no separate message-approval card
 for each one.
