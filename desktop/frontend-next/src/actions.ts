@@ -480,6 +480,7 @@ export const ACTIONS: UIAction[] = [
   { id: "workspace.fold", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.rename-start", kind: "view", target: "entity", proof: "interaction" },
   { id: "workspace.rename", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },
+  { id: "workspace.rename-close", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.pin", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },
   { id: "workspace.archive-sessions", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },
   { id: "workspace.copy-dir", kind: "view", target: "entity", proof: "interaction" },

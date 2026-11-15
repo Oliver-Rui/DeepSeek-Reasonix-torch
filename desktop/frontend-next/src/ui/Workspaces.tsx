@@ -682,18 +682,18 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         <div className="session-pop-group">
                           <button role="menuitem" data-action="workspace.rename-start" disabled={ws.missing}
                             onClick={() => { setRenameFor(ws); dismissMenu(); }}>
-                            <StudioIcon name="edit" /><span>{t("workspace.rename_project")}</span>
+                            <StudioIcon name="edit" /><span>{t("session.rename_project")}</span>
                           </button>
                           <button role="menuitem" data-action="workspace.pin" data-value={ws.pinned ? "off" : "on"}
                             onClick={() => { void hub.setWorkspacePinned(ws.root, !ws.pinned).then(reload).catch(onError); dismissMenu(); }}>
-                            <StudioIcon name="pin" /><span>{t(ws.pinned ? "workspace.unpin_project" : "workspace.pin_project")}</span>
+                            <StudioIcon name="pin" /><span>{t(ws.pinned ? "session.unpin_project" : "session.pin_project")}</span>
                           </button>
                           <button role="menuitem" data-action="workspace.archive-sessions" disabled={visible.length === 0}
                             onClick={() => {
                               for (const row of visibleSessions(ws)) { if (!row.runtimeId) void onArchive(row.path, true); }
                               dismissMenu();
                             }}>
-                            <StudioIcon name="archive" /><span>{t("workspace.archive_project_sessions")}</span>
+                            <StudioIcon name="archive" /><span>{t("session.archive_project_sessions")}</span>
                           </button>
                         </div>
                         <div className="session-pop-group">
@@ -706,7 +706,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         <div className="session-pop-group">
                           <button role="menuitem" data-action="workspace.copy-dir"
                             onClick={() => { void navigator.clipboard.writeText(ws.root).catch(onError); dismissMenu(); }}>
-                            <StudioIcon name="copy" /><span>{t("workspace.copy_project_dir")}</span>
+                            <StudioIcon name="copy" /><span>{t("session.copy_project_dir")}</span>
                           </button>
                         </div>
                         <div className="session-pop-group">
@@ -1055,16 +1055,16 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
         <BlankProjectDialog adder={adder} onDone={async () => { await reload(); }}
           onClose={() => setBlankOpen(false)} onError={onError} />, document.body)}
       {renameFor && createPortal(
-        <div className="workspace-blank" role="dialog" aria-label={t("workspace.rename_project")}>
+        <div className="workspace-blank" role="dialog" aria-label={t("session.rename_project")}>
           <div className="workspace-blank-head">
             <span className="workspace-blank-mark"><StudioIcon name="edit" /></span>
-            <button className="workspace-palette-close" aria-label={t("common.close")} onClick={() => setRenameFor(null)}><StudioIcon name="close" /></button>
+            <button className="workspace-palette-close" aria-label={t("common.close")} data-action="workspace.rename-close" onClick={() => setRenameFor(null)}><StudioIcon name="close" /></button>
           </div>
-          <h2>{t("workspace.rename_project")}</h2>
+          <h2>{t("session.rename_project")}</h2>
           <p className="picknote">{renameFor.root}</p>
           <label className="workspace-blank-field">
-            <span>{t("workspace.project_display_name")}</span>
-            <input autoFocus data-action-blur="workspace.rename" data-action-keydown="workspace.rename" value={renameFor.name} onChange={(ev) => setRenameFor({ ...renameFor, name: ev.currentTarget.value })}
+            <span>{t("session.project_display_name")}</span>
+            <input autoFocus data-action-blur="workspace.rename" data-action-change="workspace.rename" data-action-keydown="workspace.rename" value={renameFor.name} onChange={(ev) => setRenameFor({ ...renameFor, name: ev.currentTarget.value })}
               onKeyDown={(ev) => { if (ev.key === "Enter" && renameFor.name.trim()) void saveRename(); }} />
           </label>
           <div className="workspace-blank-go">
