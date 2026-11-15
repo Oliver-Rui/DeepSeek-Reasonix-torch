@@ -2,7 +2,7 @@
 owner: @Oliver-Rui
 backup: @esengine
 status: active
-reviewed: 2026-11-14
+reviewed: 2026-11-15
 ---
 
 # DeepSeek-Reasonix-torch — handoff
@@ -459,3 +459,152 @@ same route.
 No public network exists here and Copilot's coding agent is paid-only, so the
 key is the path. Until it lands, both jobs skip with a notice — and the repo's
 own model family builds its own features the day the key arrives.
+
+## 10. The 2.64.0 round in progress — timeline sidebar, drag everywhere, message times
+
+All work below sits **uncommitted-to-date on `studio`, local only**; the batch
+commit plan is at the end. `tsc --noEmit` passes on the whole tree (verified
+2026-11-15). What has *not* run yet: the full `vitest` suite, `vite build`,
+census, repolint, and the WebUI preview builds — that is the next session's
+first block, ahead of the user's UI review.
+
+### Sidebar as a timeline (`desktop/frontend-next`)
+
+- **Empty states**: the 项目 / 任务 labels are standing controls (`WorkspaceGroupHead`),
+  each with its own fold chevron beside the text (not the far edge), label in
+  `--text` at the 任务列表 font size, and gray 暂无项目 / 暂无任务 notes
+  (`session.no_projects_yet` / `no_tasks_yet`) that fold with their run.
+- **任务列表 folds both runs at once** (`data-action="workspace.fold-all"`
+  `data-value="both"`, keys `session.collapse/expand_all_groups`); the head's
+  arrow answers with the same two shapes.
+- **Group drag**: dragging the 项目 label onto 任务 (or back) swaps the two
+  runs; the choice rests in `state/railGroupOrder.ts`
+  (`localStorage "rx-rail-group-order"`, `projects-first` / `tasks-first`).
+  MIME kind `application/x-reasonix-group`; visuals on
+  `.rail .wsgroup[data-drop]` / `[data-dragging]` in `design/sidebar.css`.
+- **最近 moved out of the scope menu** into its own clock button left of 全部
+  (`SessionFilter.tsx`, `state/railTimeGroups.ts`, key
+  `"rx-rail-time-groups"`). Scope rows ink when chosen — no ✔, no
+  清除筛选 row (`session.filter-clear` action deleted from `actions.ts`).
+- **Flat timeline reading** (clock on): no folder tree — every listed
+  conversation is a two-line row (name on top, project name or 任务 below;
+  `.ds-row[data-sub]` `.sessline` / `.sessub` in `design/rows.css`), newest
+  first, gathered under 今天 / 昨天 / 7天内 / 30天内 / 更早
+  (`ui/timeBuckets.ts` — `dayBucket` walks the render order so a header can
+  never drift from the row it opens; no counts after headers). Right side
+  shows relative dates (刚刚 / 27分 / 19小时 style).
+- **SessionMenu trim**: no session-info head, no 上移/下移 (`onMove` / `canMove`
+  props gone, `onMoveTo` kept). Keyboard Alt+↑/↓ reorder stays
+  (`Workspaces.tsx` row keydown → `useSessionMove.move`).
+- **Session-row drag** (the replacement): rows are draggable in the folder
+  tree only — the flat reading sorts by clock, so its rows drag nothing, and
+  a search has no order to move within. MIME kind
+  `application/x-reasonix-session`, kept apart from the group kind so neither
+  gesture can land on the other's rows. A drop names a destination row:
+  `useSessionMove.moveTo` walks `hub.moveSession(path, ±1)` one swap at a
+  time and reloads **once** for the whole gesture. Valid targets are the same
+  project and the same archived flag (the same peers `canMove` uses).
+  Tests: `workspace-group-heads.interaction.test.tsx` (18 pass, two new: the
+  same-project walk, the cross-project refusal).
+
+### Composer and meter
+
+- 对话轮次 became a button with a repeat icon beside the cache chip
+  (`MeterRail.tsx`, `.studio-turns-anchor` / `.studio-turns-detail`), opening
+  an info card like the cache one (keys `composer.turn_count_about/explain`,
+  `turns_count_n`, `no_turns_data_yet`).
+- The composer's send / pause buttons shrank to 75% (24px, icons 13.5px) and
+  centre on the text row's Y (`design/composer.css`).
+
+### Vendor marks and the magpie adaptation
+
+- Ten SVGs copied from yetone/magpie into `assets/vendor-marks/`
+  (magpie, xai, copilot, cursor, modelscope, groq, antigravity, baiducloud,
+  huaweicloud, tencentcloud). `vendormarks.tsx` gains `PROVIDER_KEYS` +
+  `markForProvider(name)`; `ServiceMark.tsx` derives the mark from the door's
+  own `name ?? id` — a provider's mark is its own label, not the family its
+  models belong to (magpie shows magpie even when every model behind it reads
+  as somebody else).
+- Kernel: `internal/model/openai/fetch_models.go` parses `display_name` into
+  `ListedModel.DisplayName`; `internal/model/catalog/probe.go` carries the
+  names through the probe (`Probe.Names`); `POST /providers/refresh-models`
+  (`internal/frontend/serve/provider_refresh.go`, route in `providers.go`)
+  merges the fetched list into the entry and prefills blank aliases from the
+  custom names, refusing decision-kind entries with `codeProbeNotCompatible`.
+  Kernel tests: `provider_refresh_test.go` 4/4, `fetch_models_test.go`
+  display_name case green.
+- Frontend: `refreshModels()` through `port` / `sse_provider` / `mock_provider`,
+  a 刷新模型 button in `ProviderDetail.tsx` (with the refresh-done status row),
+  and `EditConn.tsx`'s refetch prefills blank aliases from the refreshed
+  names. Keys in `msg/models.ts` (`refresh_models`, `refreshing_models`,
+  `refresh_done`, `refresh_done_why`).
+- **隐藏共同前缀 retired** on the strength of the above: the EditConn field,
+  its state and its payload line are gone; `msg/models.ts` lost
+  `hide_the_shared_prefix`, `model_name_prefix_of_name`,
+  `the_same_prefix_a_routing`, and `en_settings.ts` their legacy fallback
+  lines. The `hideModelPrefix` field stays on both `ProviderEntry` and
+  `ProviderEdit` (`port/provider.ts`) with compat comments — stored configs
+  that carry it (the mimo entry does) still parse, the kernel's edit route
+  still accepts it, nothing acts on it. `ModelPrefix.test.tsx` now asserts a
+  stored choice rides along unread and the save sends no field.
+
+### Message timestamps (chat)
+
+- `say` items carry `at?: number` (`state/session_types.ts`) — when the
+  answer settled. Live paths stamp `Date.now()` in `sealSay` and in both
+  `foldMessage` settles (`state/say.ts`); the history rebuild
+  (`state/session.ts` `fromHistory`) derives
+  `closedAt = turnStart + m.workDurationMs` for the closing card only — the
+  kernel emits `createdAt` on user messages alone (its own
+  `history_thought_test` pins assistant `CreatedAt == 0`), so an untimed card
+  shows no stamp rather than an invented one.
+- Both cards reveal the stamp on hover: `SayCard` puts
+  `<time class="say-time">` at the end of its `.acts` row, `UserCard`'s
+  existing `user-time` is gated the same way; hover-reveal CSS sits next to
+  the `user-time` rule in `styles/studio.css` (`.call > .c:hover` lifts it).
+- The switch lives in 设置 → 对话显示, first card, as 「消息时间」
+  (`ui/MessageTimesSetting.tsx` + `ChatDisplaySettings.tsx`), backed by
+  `state/messagetimes.ts` (`localStorage "rx-message-times"`, default on).
+  Keys `settings.message_times` / `settings.message_times_hint`.
+
+### Verified / not verified
+
+| Check | Result |
+| --- | --- |
+| `tsc --noEmit` (whole tree, 2026-11-15) | clean |
+| `vitest run src/ui/workspace-group-heads.interaction.test.tsx` | 18/18 |
+| kernel `provider_refresh_test.go` + `fetch_models_test.go` (earlier) | green |
+| Full `vitest`, `vite build`, census, census:verify, repolint | **not yet run** |
+| WebUI preview rebuild (ports 8787 / 8788) | **not yet done** — build, then serve with `--auth none --no-open --workspace-switch --page dist`; the per-restart token goes in via `POST /auth/token` from the page (a `#token=` fragment exchanges only on a full reload) |
+
+### What the next session owes
+
+1. `npm run build`; reload both local previews and let the user review —
+   timestamps on hover, row drag, label drag, the timeline reading, the
+   retired prefix toggle.
+2. Full `vitest` + `npm run census` + `census:verify` + `repolint -changed`.
+3. Batch commits (next block), `release-notes/studio/2.64.0.md` (≤320-column
+   paragraphs, SHA refs, single summary), tag `studio-v2.64.0`, push through
+   the Git Data API pipeline (`push_robust.py` + `release_publish.py`), then
+   attach the installer **from a runner** (`attach-studio-asset.yml`) — never
+   from this machine, whose proxy mangles multipart bodies.
+4. Cosmetic: the forged 更早 demo session inherited the title 123 — rename it
+   in the demo dir or leave it; it is review data, not product data.
+
+### Commit batch plan (files that share no other batch)
+
+1. kernel models: `internal/…/{providers.go,probe.go,fetch_models.go,fetch_models_test.go}`
+2. providers UI + marks + retired toggle: `vendor-marks/*.svg`, `vendormarks.tsx`,
+   `ServiceMark.tsx`, `port/{provider,port,sse_provider,mock_provider}.ts`,
+   `ui/{Providers,ProviderDetail,EditConn}.tsx`, `msg/models.ts`,
+   `en_settings.ts`, `ModelPrefix.test.tsx`
+3. sidebar round: `ui/{Workspaces,SessionMenu,SessionFilter,Sidebar,ProjectsHeader,WorkspaceGroupHeaders,useSessionMove}.tsx*`,
+   `ui/timeBuckets.test.ts`, `state/{railGroupOrder,railTimeGroups}.ts`,
+   `design/{sidebar,rows}.css`, `msg/session.ts`, `en_window.ts`, the six
+   sidebar interaction-test files
+4. composer/meter: `design/composer.css`, `ui/MeterRail.tsx`, `msg/composer.ts`
+5. timestamps: `state/{session_types,say,session,messagetimes}.ts`,
+   `ui/cards/{SayCard,UserCard}.tsx`, `ui/{ChatDisplaySettings,MessageTimesSetting}.tsx`,
+   `msg/settings.ts`, `styles/studio.css`
+6. registry: `src/actions.ts` (`session.sort`, `provider.refresh`)
+7. this document
