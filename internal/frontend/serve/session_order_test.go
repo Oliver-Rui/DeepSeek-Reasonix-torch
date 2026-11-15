@@ -1,9 +1,11 @@
 package serve
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,6 +13,7 @@ import (
 
 	"reasonix/internal/base/testenv"
 	"reasonix/internal/state/sessionstore"
+	"reasonix/internal/state/store"
 )
 
 func info(path string, at int, rank float64) sessionstore.SessionInfo {
@@ -192,5 +195,173 @@ func TestMovingRefusesAPathOutsideEveryWorkspaceAndABadDirection(t *testing.T) {
 	inside := filepath.Join(SessionDirFor(root), "session-000.jsonl")
 	if resp := moveSessionRequest(t, srv, inside, 2); resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("direction 2 = %d, want 400", resp.StatusCode)
+	}
+}
+
+// seedRunningSidecars leaves the disk the way a conversation mid-turn has it:
+// the pane's own lease on the not-yet-written transcript is already held, and
+// the inbox its steering writes to stands beside it. The listing never reads
+// these; they are what the disk really looks like while a first turn is in
+// flight.
+func seedRunningSidecars(t *testing.T, path string) {
+	t.Helper()
+	if _, err := os.Stat(path + ".lease.lock"); err != nil {
+		if err := os.WriteFile(path+".lease.lock", nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := os.Stat(path + ".lease.json"); err != nil {
+		info := sessionstore.SessionLeaseInfo{
+			SessionPath: path, WriterID: "test-writer", PID: os.Getpid(),
+			Hostname: "localhost", AcquiredAt: time.Now().UTC(),
+		}
+		b, err := json.MarshalIndent(info, "", "  ")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path+".lease.json", b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(store.SessionInboxDir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func rankOf(t *testing.T, path string) (float64, bool) {
+	t.Helper()
+	m, ok, err := sessionstore.LoadBranchMeta(path)
+	if err != nil {
+		t.Fatalf("read the sidecar of %s: %v", path, err)
+	}
+	return m.ManualRank, ok
+}
+
+// A conversation a pane is driving is the sidebar's first row before its
+// transcript exists — the listing has only the lease and inbox sidecars — and
+// the move endpoint used to refuse exactly that row. The rows a move works on
+// are the sidebar's: the in-flight conversation is moved without error (and
+// without a rank, there being no file to place yet), a dispatch transcript
+// takes part in nothing, and a listed conversation's step lands where the
+// sidebar shows it.
+func TestMovingAConversationTheSidebarShows(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	root := testenv.TempDir(t)
+	h := NewHub(HubOptions{})
+	rt := hubRuntime(t, h, root)
+	srv := httptest.NewServer(operatorHandler(h))
+	defer srv.Close()
+	paths := seedAged(t, root, 3)
+	live := filepath.Join(SessionDirFor(root), "20261115-160810-in-progress.jsonl")
+	rt.Server.Controller().SetSessionPath(live)
+	seedRunningSidecars(t, live)
+	dispatch := filepath.Join(SessionDirFor(root), "subagent-dispatch-202605171512.jsonl")
+	writeSessionAt(t, dispatch)
+
+	top := []string{"20261115-160810-in-progress", "session-002", "session-001", "session-000"}
+	if got := rowNames(treeFor(t, srv, "")); fmt.Sprint(got) != fmt.Sprint(top) {
+		t.Fatalf("the sidebar rows are %v, want %v", got, top)
+	}
+
+	if resp := moveSessionRequest(t, srv, live, 1); resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("moving the in-flight conversation = %d, want 204", resp.StatusCode)
+	}
+	if got := rowNames(treeFor(t, srv, "")); fmt.Sprint(got) != fmt.Sprint(top) {
+		t.Fatalf("after moving the in-flight conversation: %v, want %v", got, top)
+	}
+	if rank, _ := rankOf(t, live); rank != 0 {
+		t.Fatalf("the in-flight conversation grew a rank %v with no transcript to place", rank)
+	}
+
+	// Moving the oldest listed conversation up one renumbers its group; the
+	// dispatch transcript beside it stays out of the rows and out of the ranks.
+	if resp := moveSessionRequest(t, srv, paths[0], -1); resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("move = %d, want 204", resp.StatusCode)
+	}
+	if got := rowNames(treeFor(t, srv, "")); fmt.Sprint(got) != fmt.Sprint([]string{"20261115-160810-in-progress", "session-002", "session-000", "session-001"}) {
+		t.Fatalf("after moving the oldest up one the sidebar shows %v", got)
+	}
+	for path, want := range map[string]float64{paths[2]: 1024, paths[0]: 2048, paths[1]: 3072, dispatch: 0} {
+		if rank, _ := rankOf(t, path); rank != want {
+			t.Fatalf("%s carries rank %v, want %v", filepath.Base(path), rank, want)
+		}
+	}
+	if resp := moveSessionRequest(t, srv, dispatch, 1); resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("a transcript no row shows = %d, want 403", resp.StatusCode)
+	}
+
+	// The in-flight conversation is listed too, so the sidebar's own acts on it
+	// answer: pinning writes the sidecar, and a step upward is an edge, not an
+	// error.
+	pin := func(pinned bool) {
+		t.Helper()
+		body, err := json.Marshal(map[string]any{"path": live, "pinned": pinned})
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.Post(srv.URL+"/tree/sessions/pin", "application/json", strings.NewReader(string(body)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("pinning the in-flight conversation = %d, want 204", resp.StatusCode)
+		}
+	}
+	pin(true)
+	if m, ok, err := sessionstore.LoadBranchMeta(live); err != nil || !ok || !m.Pinned {
+		t.Fatalf("the pin on the in-flight conversation did not land: ok=%v err=%v", ok, err)
+	}
+	pin(false)
+	if resp := moveSessionRequest(t, srv, live, -1); resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("an edge step on the in-flight conversation = %d, want 204", resp.StatusCode)
+	}
+	if got := rowNames(treeFor(t, srv, "")); fmt.Sprint(got) != fmt.Sprint([]string{"20261115-160810-in-progress", "session-002", "session-000", "session-001"}) {
+		t.Fatalf("the edge step disturbed the order: %v", got)
+	}
+}
+
+// The archived conversations are a partition of their own in the rank math:
+// moving the active ones writes nothing to an archived sidecar, and moving
+// within the archived partition leaves the active ones alone.
+func TestMovingStaysInsideTheArchivedPartition(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	root := testenv.TempDir(t)
+	h := NewHub(HubOptions{})
+	hubRuntime(t, h, root)
+	srv := httptest.NewServer(operatorHandler(h))
+	defer srv.Close()
+	paths := seedAged(t, root, 4)
+	if err := sessionstore.SetSessionArchived(paths[0], true); err != nil {
+		t.Fatal(err)
+	}
+	if err := sessionstore.SetSessionArchived(paths[3], true); err != nil {
+		t.Fatal(err)
+	}
+	if got := rowNames(treeFor(t, srv, "")); fmt.Sprint(got) != fmt.Sprint([]string{"session-003", "session-002", "session-001", "session-000"}) {
+		t.Fatalf("the sidebar rows are %v", got)
+	}
+
+	// The newest conversation is archived: its step down renumbers the
+	// archived partition it belongs to and touches no active sidecar.
+	if resp := moveSessionRequest(t, srv, paths[3], 1); resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("move = %d, want 204", resp.StatusCode)
+	}
+	for path, want := range map[string]float64{paths[0]: 1024, paths[3]: 2048, paths[1]: 0, paths[2]: 0} {
+		if rank, _ := rankOf(t, path); rank != want {
+			t.Fatalf("%s carries rank %v, want %v", filepath.Base(path), rank, want)
+		}
+	}
+	tree := treeFor(t, srv, "")
+	// The comparator puts the never-placed first, so the two unplaced active
+	// conversations lead, and the archived pair follows in the rank it was given.
+	if got := rowNames(tree); fmt.Sprint(got) != fmt.Sprint([]string{"session-002", "session-001", "session-000", "session-003"}) {
+		t.Fatalf("after the archived step the sidebar shows %v", got)
+	}
+	if tree.Sessions[0].Archived || tree.Sessions[1].Archived {
+		t.Fatalf("an active conversation read back as archived: %+v %+v", tree.Sessions[0], tree.Sessions[1])
+	}
+	if !tree.Sessions[2].Archived || !tree.Sessions[3].Archived {
+		t.Fatalf("an archived conversation lost its state: %+v %+v", tree.Sessions[2], tree.Sessions[3])
 	}
 }

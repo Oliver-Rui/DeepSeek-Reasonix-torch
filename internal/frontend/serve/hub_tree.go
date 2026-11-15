@@ -272,17 +272,24 @@ func (h *Hub) syncPins(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// listedSessionPaths maps each conversation the kernel lists in a known
+// listedSessionPaths maps each conversation the sidebar lists in a known
 // workspace to the listed path, so a client-supplied path is only ever used
-// through the value the kernel itself reported.
+// through the value the kernel itself reported. The sidebar is the authority
+// on what is listed: a conversation a pane is driving counts before its first
+// transcript is on disk, and a trace or fork no row shows does not.
 func (h *Hub) listedSessionPaths() map[string]string {
 	out := map[string]string{}
+	seen := map[string]bool{}
 	for _, ref := range h.sessionRoots() {
-		infos, err := sessionstore.ListSessionOrder(SessionDirFor(ref.dir))
-		if err != nil {
+		if seen[SessionDirFor(ref.dir)] {
 			continue
 		}
-		for _, si := range infos {
+		seen[SessionDirFor(ref.dir)] = true
+		listed, unlisted := h.treeSessionRows(ref.dir)
+		for _, si := range listed {
+			out[sessionstore.CanonicalSessionPath(si.Path)] = si.Path
+		}
+		for _, si := range unlisted {
 			out[sessionstore.CanonicalSessionPath(si.Path)] = si.Path
 		}
 	}
@@ -712,16 +719,23 @@ func (h *Hub) ownsSessionDir(dir string) bool {
 // date (…/sessions/2026/11/14/) — any directory inside that tree. The boundary
 // a delete may not reach past is the tree, so everything under it is owned.
 func (h *Hub) knownSessionDir(dir string) string {
+	if root := h.sessionTreeRoot(dir); root != "" {
+		return SessionDirFor(root)
+	}
+	return ""
+}
+
+// sessionTreeRoot names the workspace whose sessions tree holds path — the
+// sessions folder itself or anything under it, dated task folders included —
+// or "" when no listed workspace answers for it.
+func (h *Hub) sessionTreeRoot(path string) string {
 	for _, ref := range h.sessionRoots() {
 		known, err := filepath.Abs(SessionDirFor(ref.dir))
 		if err != nil {
 			continue
 		}
-		if known == dir {
-			return known
-		}
-		if rel, err := filepath.Rel(known, dir); err == nil && filepath.IsLocal(rel) {
-			return known
+		if rel, err := filepath.Rel(known, path); err == nil && filepath.IsLocal(rel) {
+			return ref.dir
 		}
 	}
 	return ""
