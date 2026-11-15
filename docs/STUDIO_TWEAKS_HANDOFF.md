@@ -726,3 +726,11 @@ returned:
     flips, `.wstime` sections come and go) on the long list instead.
   - 4 further guard failures were load flakes of the local parallel run —
     each passes alone and on CI.
+
+- The Studio run's own frontend-next job then flaked once — the update-notice
+  test (the render-count-window one, retry×2 already) timed out 92s three
+  attempts on a 12-job parallel burst, while the same tree passed the full
+  suite on this machine twice. Rerun of the failed job: green. A follow-up
+  for its designed round: make the notice's window time- or
+  publish-event-based instead of render-count-based, and the flake dies with
+  it.
