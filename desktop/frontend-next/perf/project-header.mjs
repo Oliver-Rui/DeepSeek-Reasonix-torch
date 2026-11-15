@@ -45,22 +45,13 @@ try {
     check(`${scheme}: and expands them again`,
       await fold.getAttribute("aria-expanded") === "true"
         && await localKids.count() === localKidCount);
-    // The retired 最近 page orders the same list the filter scopes narrow, as a
-    // row inside the filter menu rather than a header entry.
+    // The scopes are all this menu holds now: the ordering the retired 最近
+    // page owned moved out of it, into the header's own clock.
     await filter.click();
     const filterMenu = page.locator(".session-filter-menu");
     await filterMenu.waitFor();
-    const recentRow = filterMenu.locator('[data-action="session.filter"][data-value="recent"]');
-    check(`${scheme}: the filter menu offers 最近 beside the scopes it reorders`, await recentRow.isVisible());
-    // One row cycles newest → oldest → off, ending where it started so the
-    // long-list section below reads the resting order.
-    for (const arrow of ["↑", "↓", "⇅"]) {
-      await recentRow.click();
-      // The arrow rides the row text itself, no .rt slot of its own any more.
-      const shown = (await recentRow.textContent())?.replace("最近", "").trim();
-      check(`${scheme}: picking 最近 cycles the order to ${arrow} and keeps the menu open`,
-        shown === arrow && await filterMenu.isVisible(), shown);
-    }
+    check(`${scheme}: the filter menu carries no ordering row`,
+      await filterMenu.locator('[data-action="session.filter"][data-value="recent"]').count() === 0);
     await page.keyboard.press("Escape");
     // Closing sets the hidden attribute; the element stays in the DOM, so the
     // wait is on the attribute, not on Playwright's visibility.
@@ -94,6 +85,20 @@ try {
     await page.keyboard.press("Home");
     check(`${scheme}: Home returns to the first project`,
       await rows.first().evaluate((row) => row === document.activeElement));
+    // The header's clock reads the tree as a timeline — age sections over the
+    // conversations — and clicks back to the resting order, ending where it
+    // started so nothing after this guard carries its state.
+    const sort = page.locator('.projects-header [data-action="session.sort"]');
+    await sort.waitFor();
+    const sections = page.locator(".rail .wstime");
+    check(`${scheme}: the clock starts at rest, the tree without age sections`,
+      (await sort.getAttribute("aria-pressed")) === "false" && await sections.count() === 0);
+    await sort.click();
+    check(`${scheme}: the clock reads the tree as a timeline`,
+      (await sort.getAttribute("aria-pressed")) === "true" && await sections.count() > 0);
+    await sort.click();
+    check(`${scheme}: the clock returns the resting order`,
+      (await sort.getAttribute("aria-pressed")) === "false" && await sections.count() === 0);
     await page.close();
   }
 } finally {
