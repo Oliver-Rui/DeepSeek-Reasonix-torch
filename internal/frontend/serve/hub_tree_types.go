@@ -11,6 +11,10 @@ type treeWorkspace struct {
 	RecentOffset    *int   `json:"recentOffset,omitempty"`
 	Root            string `json:"root"`
 	Name            string `json:"name"`
+	// DisplayName is the name the person gave the project in the sidebar;
+	// Name stays the folder's own.
+	DisplayName string `json:"displayName,omitempty"`
+	Pinned      bool   `json:"pinned,omitempty"`
 	// WorkspaceRoots are the working directories belonging to this project.
 	WorkspaceRoots []string `json:"workspaceRoots,omitempty"`
 	Isolated       bool     `json:"isolated,omitempty"`

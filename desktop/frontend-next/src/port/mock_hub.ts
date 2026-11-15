@@ -194,7 +194,15 @@ export class MockHub implements HubPort {
 
   onTreeChanged(_listener: () => void) { return () => {}; }
 
-    dispatchThreads(_path: string) {
+    setWorkspaceDisplayName(_path: string, _name: string) {
+    return Promise.resolve();
+  }
+
+  setWorkspacePinned(_path: string, _pinned: boolean) {
+    return Promise.resolve();
+  }
+
+  dispatchThreads(_path: string) {
     return Promise.resolve([]);
   }
 

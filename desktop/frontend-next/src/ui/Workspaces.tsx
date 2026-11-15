@@ -88,6 +88,8 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   // blank-project dialog the first item opens.
   const [projAdd, setProjAdd] = useState<{ x: number; y: number } | null>(null);
   const [blankOpen, setBlankOpen] = useState(false);
+  // 项目 rename: a small card asking for the name the sidebar reads by.
+  const [renameFor, setRenameFor] = useState<{ root: string; name: string } | null>(null);
   // The projects plus' menu dismisses on anything else: an outside click, a
   // scroll of the tree, Escape.
   useEffect(() => {
@@ -420,6 +422,18 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   // The tree at rest — no query or scope on: this is when an empty run speaks,
   // and its standing label folds what it says.
   const restEmpty = !needle && scope === "all" && treeRead && !otherRows;
+  const saveRename = async () => {
+    if (!renameFor) return;
+    const name = renameFor.name.trim();
+    if (!name) return;
+    try {
+      await hub.setWorkspaceDisplayName(renameFor.root, name);
+      setRenameFor(null);
+      await reload();
+    } catch (e) {
+      onError(e);
+    }
+  };
   const toggleRun = (group: "projects" | "tasks") => setRailRunFold((current) => {
     const next = new Set(current);
     if (next.has(group)) next.delete(group);
@@ -665,11 +679,34 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           <b>{ws.name}</b>
                           <small className="session-pop-path" title={ws.root}>{ws.root}</small>
                         </div>
-                        <WorkspaceReveal ws={ws} hub={hub} dismiss={dismissMenu} onError={onError} />
+                        <div className="session-pop-group">
+                          <button role="menuitem" data-action="workspace.rename-start" disabled={ws.missing}
+                            onClick={() => { setRenameFor(ws); dismissMenu(); }}>
+                            <StudioIcon name="edit" /><span>{t("workspace.rename_project")}</span>
+                          </button>
+                          <button role="menuitem" data-action="workspace.pin" data-value={ws.pinned ? "off" : "on"}
+                            onClick={() => { void hub.setWorkspacePinned(ws.root, !ws.pinned).then(reload).catch(onError); dismissMenu(); }}>
+                            <StudioIcon name="pin" /><span>{t(ws.pinned ? "workspace.unpin_project" : "workspace.pin_project")}</span>
+                          </button>
+                          <button role="menuitem" data-action="workspace.archive-sessions" disabled={visible.length === 0}
+                            onClick={() => {
+                              for (const row of visibleSessions(ws)) { if (!row.runtimeId) void onArchive(row.path, true); }
+                              dismissMenu();
+                            }}>
+                            <StudioIcon name="archive" /><span>{t("workspace.archive_project_sessions")}</span>
+                          </button>
+                        </div>
                         <div className="session-pop-group">
                           <button role="menuitem" data-action="session.selection" data-value="start" disabled={visible.length === 0}
                             onClick={() => { setSelection(new Set(visibleSessions(ws).map((s) => s.path))); dismissMenu(); }}>
                             <StudioIcon name="check" /><span>{t("session.batch_select_sessions")}</span>
+                          </button>
+                        </div>
+                        <WorkspaceReveal ws={ws} hub={hub} dismiss={dismissMenu} onError={onError} />
+                        <div className="session-pop-group">
+                          <button role="menuitem" data-action="workspace.copy-dir"
+                            onClick={() => { void navigator.clipboard.writeText(ws.root).catch(onError); dismissMenu(); }}>
+                            <StudioIcon name="copy" /><span>{t("workspace.copy_project_dir")}</span>
                           </button>
                         </div>
                         <div className="session-pop-group">
@@ -1017,6 +1054,24 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       {blankOpen && createPortal(
         <BlankProjectDialog adder={adder} onDone={async () => { await reload(); }}
           onClose={() => setBlankOpen(false)} onError={onError} />, document.body)}
+      {renameFor && createPortal(
+        <div className="workspace-blank" role="dialog" aria-label={t("workspace.rename_project")}>
+          <div className="workspace-blank-head">
+            <span className="workspace-blank-mark"><StudioIcon name="edit" /></span>
+            <button className="workspace-palette-close" aria-label={t("common.close")} onClick={() => setRenameFor(null)}><StudioIcon name="close" /></button>
+          </div>
+          <h2>{t("workspace.rename_project")}</h2>
+          <p className="picknote">{renameFor.root}</p>
+          <label className="workspace-blank-field">
+            <span>{t("workspace.project_display_name")}</span>
+            <input autoFocus data-action-blur="workspace.rename" data-action-keydown="workspace.rename" value={renameFor.name} onChange={(ev) => setRenameFor({ ...renameFor, name: ev.currentTarget.value })}
+              onKeyDown={(ev) => { if (ev.key === "Enter" && renameFor.name.trim()) void saveRename(); }} />
+          </label>
+          <div className="workspace-blank-go">
+            <button data-action="layer.dismiss" onClick={() => setRenameFor(null)}>{t("common.cancel")}</button>
+            <button className="pick" data-action="workspace.rename" disabled={!renameFor.name.trim()} onClick={() => void saveRename()}>{t("common.save")}</button>
+          </div>
+        </div>, document.body)}
       <ProjectsHeader bothFolded={bothFolded} searching={searching} onToggleBoth={() => toggleBothRuns()} />
       <div className="scroll">
         <div role="tree" aria-label={t("session.projects_and_conversations")} aria-multiselectable={selection !== null} inert={busy === "batch"} data-action-keydown="tree.navigate" ref={treeKeys.ref} onKeyDown={treeKeys.onKeyDown}>

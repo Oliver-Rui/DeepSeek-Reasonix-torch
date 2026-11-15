@@ -33,8 +33,11 @@ it("opens the existing project menu from a right click without folding or openin
   const { row, onFold, onOpen } = draw();
   expect(fireEvent.contextMenu(row("b"), { clientX: 120, clientY: 90 })).toBe(false);
   expect(screen.getByRole("menu", { name: "项目操作" })).toBeTruthy();
+  // The menu opens ON the rename row: it is the reference menu's own first
+  // word, and the focus starts where a rename would begin.
+  expect(screen.getByRole("menuitem", { name: "重命名项目" })).toBeTruthy();
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "重命名项目" }));
   expect(screen.getByRole("menuitem", { name: /在文件管理器中显示/ })).toBeTruthy();
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /在文件管理器中显示/ }));
   expect(onFold).not.toHaveBeenCalled();
   expect(onOpen).not.toHaveBeenCalled();
 });
