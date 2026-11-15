@@ -714,13 +714,14 @@ returned:
   verified the zero callers, removed it, and proved four serve-package
   failures unrelated via a pre-removal worktree.
 - `browser guards` ran its first honest lap in two rounds (the session-move
-  guard used to stop it early): control-icons found the send circle's
-  13.5px icon carrying lucide's 14-unit glyph at 7.875px — the app's icon
-  system is 16px, and the guard's ≥9 threshold was written for it. Back to
-  16px, fits and centering intact. Behind it sat a second stale guard:
-  project-header still walked the filter menu for the retired 最近 row; it
-  asserts the menu carries no ordering row and exercises the header's
-  timeline clock (aria-pressed flips, `.wstime` sections come and go) on
-  the long list instead.
-- 4 further guard failures were load flakes of the local parallel run —
-  each passes alone and on CI.
+  guard used to stop it early):
+  - control-icons found the send circle's 13.5px icon carrying lucide's
+    14-unit glyph at 7.875px — the app's icon system is 16px, and the
+    guard's ≥9 threshold was written for it. Back to 16px, fits and
+    centering intact.
+  - Behind it sat a second stale guard: project-header still walked the
+    filter menu for the retired 最近 row. It asserts the menu carries no
+    ordering row, and exercises the header's timeline clock (aria-pressed
+    flips, `.wstime` sections come and go) on the long list instead.
+  - 4 further guard failures were load flakes of the local parallel run —
+    each passes alone and on CI.
