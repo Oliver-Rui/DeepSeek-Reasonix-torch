@@ -244,13 +244,6 @@ export function Sidebar({
     else next.delete(root);
     setFolded(next);
   };
-  // A group head folds a whole run at once. The roots arrive already chosen —
-  // the view knows which of its rows can fold — so this only writes the set.
-  const foldGroup = (roots: string[], shut: boolean) => {
-    const next = new Set(folded);
-    for (const root of roots) { if (shut) next.add(root); else next.delete(root); }
-    setFolded(next);
-  };
 
   return (
     <>
@@ -305,7 +298,6 @@ export function Sidebar({
         runtimes={runtimes}
         active={active}
         folded={folded}
-        onFoldGroup={foldGroup}
         onFold={onFold}
         reload={reloadTree}
         retry={retryTree ? () => void retryTree() : undefined}

@@ -70,5 +70,7 @@ it("accepts a successful empty refresh as the new canonical tree", async () => {
   await act(async () => pending.resolve([]));
   expect(screen.queryByText("上一次的会话")).toBeNull();
   expect(screen.queryByText("my-website")).toBeNull();
-  expect(screen.getAllByText("尚无文件夹").length).toBeGreaterThan(0);
+  // An empty tree reads as two standing runs, each with its own empty note.
+  expect(screen.getByText("暂无项目")).toBeTruthy();
+  expect(screen.getByText("暂无任务")).toBeTruthy();
 });

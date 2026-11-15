@@ -24,18 +24,20 @@ function hubWithHeldTree() {
 }
 
 // Before the kernel has answered, an empty tree is an unread one, and saying
-// "no folders" there reads as data that was lost.
+// "no projects" there reads as data that was lost.
 it("says the folders are being read until the first tree read settles", async () => {
   const { hub, answer } = hubWithHeldTree();
   render(<App hub={hub} />);
 
   expect(await screen.findByText("正在读取文件夹…")).toBeTruthy();
-  expect(screen.queryByText("尚无文件夹")).toBeNull();
+  expect(screen.queryByText("暂无项目")).toBeNull();
+  expect(screen.queryByText("暂无任务")).toBeNull();
   expect(screen.queryByText("先打开一个项目")).toBeNull();
 
   await act(async () => answer([]));
 
-  expect(await screen.findByText("尚无文件夹")).toBeTruthy();
+  expect(await screen.findByText("暂无项目")).toBeTruthy();
+  expect(screen.getByText("暂无任务")).toBeTruthy();
   expect(screen.queryByText("正在读取文件夹…")).toBeNull();
 });
 

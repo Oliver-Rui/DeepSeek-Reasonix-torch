@@ -3,6 +3,9 @@ import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState, useSyncEx
 import { hidesLegacySessions, onHidesLegacySessionsChange } from "../state/prefs";
 import { onSessionQuickActionsChange, showsSessionQuickActions } from "../state/sessionQuick";
 import { onRecencySortChange, recencySort } from "../state/recencySort";
+import { onRailGroupOrderChange, railGroupOrder, setRailGroupOrder } from "../state/railGroupOrder";
+import { onRailTimeGroupsChange, railTimeGroups } from "../state/railTimeGroups";
+import { dayBucket, monthBuckets } from "./timeBuckets";
 import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import type { TreeSession, TreeWorkspace } from "../port/hub";
@@ -20,7 +23,7 @@ import { useTreeKeys } from "./tree";
 import { useDismiss } from "./dismiss";
 import { asksDelete } from "./keys";
 import { clearDraftForSession } from "./drafts";
-import { WorkspaceOrder, workspaceMenuKeys } from "./WorkspaceOrder";
+import { workspaceMenuKeys } from "./WorkspaceOrder";
 import { WorkspaceReveal } from "./WorkspaceReveal";
 import { SessionMenu } from "./SessionMenu";
 import { useSessionMove } from "./useSessionMove";
@@ -33,7 +36,7 @@ import { NO_PAGING, atCap, answers, unloaded } from "./treewindow";
 import type { WorkspacesProps } from "./workspaceprops";
 import { SessionBatch, useSelectedRows } from "./SessionBatch";
 import { ProjectsHeader } from "./ProjectsHeader";
-import { WorkspaceGroupHead } from "./WorkspaceGroupHeaders";
+import { WorkspaceGroupHead, type GroupDragProps } from "./WorkspaceGroupHeaders";
 import { workspaceGroups, groupFold, togglePath, pickVisible } from "./workspaceGroups";
 import { workspaceRemoval } from "./workspaceRemove";
 import { useWorkspaceDrag } from "./useWorkspaceDrag";
@@ -49,7 +52,14 @@ const parentOf = (root: string) => root.replace(/[/\\]+$/, "").split(/[/\\]/).sl
 const rowLabel = (session: TreeSession) =>
   session.title || (session.runtimeId && !session.turns ? t("common.new_session") : session.name);
 
-function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active, folded, reload, retry, paging = NO_PAGING, previewLimit = Infinity, onFold, onFoldGroup, opening = "", onOpen, onFocus, onClose, liveIds, listedIds = liveIds, runs, scope = "all", pinned = new Set(), onPin = () => {}, onPause = () => {}, onBranch, onArchive = async () => {}, onRename, onError, adder, children, hasOtherRows }: WorkspacesProps) {
+// The drag payload of a group-label reorder: only drags that carry it move a
+// run, the way the row reorder carries its own kind.
+const GROUP_DRAG_KIND = "application/x-reasonix-group";
+// A conversation row carries its own kind, so a row can never drop onto a
+// group label or a label onto a row: the kinds keep the two gestures apart.
+const SESSION_DRAG_KIND = "application/x-reasonix-session";
+
+function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active, folded, reload, retry, paging = NO_PAGING, previewLimit = Infinity, onFold, opening = "", onOpen, onFocus, onClose, liveIds, listedIds = liveIds, runs, scope = "all", pinned = new Set(), onPin = () => {}, onPause = () => {}, onBranch, onArchive = async () => {}, onRename, onError, adder, children, hasOtherRows }: WorkspacesProps) {
   const [busy, setBusy] = useState("");
   const [confirm, setConfirm] = useState("");
   // The project whose folder an open just found gone: the question is asked about it, not about a removal chosen from the menu.
@@ -59,6 +69,10 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   };
   const [selection, setSelection] = useState<Set<string> | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // A run's label folds the whole run: the folder rows and every conversation
+  // under them — whether or not any folder holds a session. The per-folder
+  // chevrons keep their own, persisted fold; this one is the label's.
+  const [collapsedRuns, setCollapsedRuns] = useState<Set<"projects" | "tasks">>(new Set());
   // The row a Delete key asked about. The question replaces that row, so focus
   // goes back to it once the question is gone, or a keyboard is left nowhere.
   const askedByKey = useRef("");
@@ -71,6 +85,8 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   const hideLegacy = useSyncExternalStore(onHidesLegacySessionsChange, hidesLegacySessions, hidesLegacySessions);
   const quickActions = useSyncExternalStore(onSessionQuickActionsChange, showsSessionQuickActions, showsSessionQuickActions);
   const recency = useSyncExternalStore(onRecencySortChange, recencySort, recencySort);
+  const groupOrder = useSyncExternalStore(onRailGroupOrderChange, railGroupOrder, railGroupOrder);
+  const timeGroups = useSyncExternalStore(onRailTimeGroupsChange, railTimeGroups, railTimeGroups);
   const [sessionMenu, setSessionMenu] = useState("");
   const order = useSessionMove(hub, reload, onError, !!needle);
   const moveTo = useSessionMoveTo(hub, tree, reload, rowLabel, () => adder.add());
@@ -284,9 +300,14 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
     const sessions = ws.sessions.filter(named);
     return sessions.length || ws.countsComplete === false ? { ...ws, sessions } : null;
   };
-  /** The newest stamp in a project, for ordering projects among themselves. */
-  const newest = (ws: TreeWorkspace) => ws.sessions.reduce((at, session) => Math.max(at, session.lastActiveAt ?? 0), 0);
+  /** The newest stamp in a project, for ordering projects among themselves. A
+   *  conversation without one is being written right now, which makes its
+   *  project the most recent thing in the column. */
+  const newest = (ws: TreeWorkspace) => ws.sessions.reduce((at, session) => Math.max(at, session.lastActiveAt ?? Date.now()), 0);
   const searchedTree = needle ? (tree.map(hit).filter(Boolean) as TreeWorkspace[]) : tree;
+  // The time-section reading sorts newest first, whichever way the sort
+  // control last leaned: the sections themselves are the order.
+  const recencyUsed = timeGroups ? "newest" : recency;
   const shownTree = searchedTree
     .map((ws) => ({
       ...ws,
@@ -296,7 +317,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
         // round; pinned rows still lead. Unsorted leaves the kernel's order be.
         .sort((a, b) => {
           const d = (b.lastActiveAt ?? 0) - (a.lastActiveAt ?? 0);
-          return recency === "newest" ? d : recency === "oldest" ? -d : 0;
+          return recencyUsed === "newest" ? d : recencyUsed === "oldest" ? -d : 0;
         }), pinned),
     }))
     .filter((ws) => scope === "all" || ws.sessions.length > 0 || ws.countsComplete === false)
@@ -304,7 +325,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
     // a project is as recent as the last thing said in it.
     .sort((a, b) => {
       const d = newest(b) - newest(a);
-      return recency === "newest" ? d : recency === "oldest" ? -d : 0;
+      return recencyUsed === "newest" ? d : recencyUsed === "oldest" ? -d : 0;
     });
   // A fold is a resting-state preference: while a word is being typed it would
   // hide the very rows that word just found.
@@ -329,39 +350,113 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   /** The project row's checkbox is the folder, not a fold control: picking it
    *  picks every row the folder shows, and picking it again clears them. */
   const pickProject = (ws: TreeWorkspace) => setSelection((current) => pickVisible(current, visibleSessions(ws)));
-  // Draw order: the chosen folders as one run, the window's own folder after it.
+  // Draw order: the two runs in the order a drag left them in.
   const groups = workspaceGroups(shownTree);
-  const ordered = [...groups.projects, ...groups.tasks];
+  const runOrder: ("projects" | "tasks")[] = groupOrder === "tasks-first" ? ["tasks", "projects"] : ["projects", "tasks"];
+  const ordered = runOrder.flatMap((group) => groups[group]);
+  // The time-section reading: each run's rows gather under the month of their
+  // latest activity — the projects among themselves, the tasks among
+  // themselves. The sections are cut here so the render only asks where one
+  // begins.
+  const projectBuckets = timeGroups ? monthBuckets(groups.projects.map((w) => ({ key: w.root, at: newest(w) }))) : null;
+  const taskBuckets = timeGroups
+    ? monthBuckets(groups.tasks.flatMap((w) => visibleSessions(w).map((s) => ({ key: s.path, at: s.lastActiveAt ?? Date.now() }))))
+    : null;
+  const sectionHead = (label: string) => (
+    <div className="wstime" role="presentation">{label}</div>
+  );
   // The group head and the row must read foldability the same way, or a click
   // on the label can disagree with the chevrons it just moved.
   const hasKids = (ws: TreeWorkspace) => ws.sessions.length > 0 || ws.countsComplete === false || ws.listingState === "degraded" || (pagedScope && unloaded(ws, loadedRows(ws.root)) > 0);
   const projectsFold = groupFold(groups.projects, folded, hasKids);
   const tasksFold = groupFold(groups.tasks, folded, hasKids);
+  // A count still in flight is not an empty run: the notes wait for the tree
+  // to settle before saying a run holds nothing.
+  const settled = tree.every((ws) => ws.countsComplete !== false);
+  const tasksEmpty = settled && (groups.tasks.length === 0 || groups.tasks.every((ws) => ws.sessions.length === 0));
   const displayed = ordered.filter((ws) => needle || !folded.has(ws.root))
     .flatMap(visibleSessions);
   const selected = useSelectedRows(displayed, selection, setSelection);
   const otherRows = hasOtherRows ? hasOtherRows(needle, hideLegacy) : !!children;
-  // The projects a person chose, named for the batch bar's one removal question.
-  const rememberedProjects = tree.filter((w) => w.remembered).map((w) => ({ root: w.root, name: w.name }));
-
-  return (
-    <>
-      {moveTo.dialog}
-      <SessionBatch hub={hub} selection={selection} selected={selected} displayed={displayed} onSelect={setSelection}
-        onExit={() => {
-          // Back to the tree's own standing control. The menu entries that
-          // start picking live inside closed menus, so the head is the way in;
-          // a folded-everything head still answers with itself for the keyboard.
-          const entry = document.querySelector<HTMLElement>('[data-action="workspace.fold-all"][data-value="projects"]');
-          entry?.focus();
-        }}
-        onBusy={(pending) => { setBusy(pending ? "batch" : ""); if (pending) { setSessionMenu(""); setEditing(""); setConfirm(""); } }}
-        onClose={onClose} onArchive={onArchive} rememberedProjects={rememberedProjects} onRemoveWorkspaces={removeWorkspaces}
-        liveIds={liveIds} reload={reload} onError={onError} />
-      <ProjectsHeader />
-      <div className="scroll">
-        <div role="tree" aria-label={t("session.projects_and_conversations")} aria-multiselectable={selection !== null} inert={busy === "batch"} data-action-keydown="tree.navigate" ref={treeKeys.ref} onKeyDown={treeKeys.onKeyDown}>
-          {ordered.map((ws, at) => {
+  // The tree at rest — no query or scope on: this is when an empty run speaks,
+  // and its standing label folds what it says.
+  const restEmpty = !needle && scope === "all" && treeRead && !otherRows;
+  const toggleRun = (group: "projects" | "tasks") => setCollapsedRuns((current) => {
+    const next = new Set(current);
+    if (next.has(group)) next.delete(group);
+    else next.add(group);
+    return next;
+  });
+  const bothFolded = collapsedRuns.has("projects") && collapsedRuns.has("tasks");
+  // The 任务列表 head folds both runs at once: folder rows and conversations
+  // alike, leaving only the two labels.
+  const toggleBothRuns = () => {
+    const shut = !bothFolded;
+    setCollapsedRuns(shut ? new Set(["projects", "tasks"]) : new Set());
+  };
+  // Dragging one group's label onto the other swaps the two runs; the label is
+  // the handle, and the swap rests in the group-order store.
+  const [groupDrag, setGroupDrag] = useState<{ from: "projects" | "tasks"; over: "projects" | "tasks" | null } | null>(null);
+  // The same gesture one level down: a conversation row dragged onto a
+  // neighbour of its own project asks for the row's place in that project's
+  // order. `root` keeps a row from dropping into another project's list, and
+  // `archived` keeps the two orderings from mixing — the move walks one class.
+  const [sessDrag, setSessDrag] = useState<{ from: string; root: string; archived: boolean; over: string } | null>(null);
+  const groupDragProps = (group: "projects" | "tasks"): GroupDragProps => ({
+    draggable: true,
+    onDragStart: (e) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData(GROUP_DRAG_KIND, group);
+      setGroupDrag({ from: group, over: null });
+    },
+    onDragOver: (e) => {
+      if (!groupDrag || groupDrag.from === group) return;
+      if (![...(e.dataTransfer?.types ?? [])].includes(GROUP_DRAG_KIND)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setGroupDrag((was) => (was?.over === group ? was : was ? { ...was, over: group } : was));
+    },
+    onDragLeave: () => setGroupDrag((was) => (was?.over === group ? { ...was, over: null } : was)),
+    onDrop: (e) => {
+      if (!groupDrag || groupDrag.from === group) return;
+      if (![...(e.dataTransfer?.types ?? [])].includes(GROUP_DRAG_KIND)) return;
+      e.preventDefault();
+      const from = groupDrag.from;
+      setGroupDrag(null);
+      setRailGroupOrder(from === "tasks" ? "tasks-first" : "projects-first");
+    },
+    onDragEnd: () => setGroupDrag(null),
+  });
+  // One run of the tree: its label, the note an empty run says at rest, and —
+  // unless the label folded them away — its rows. The label folds the whole
+  // run, folder rows and conversations alike, whether or not any folder holds
+  // a session. While a query or scope is on the label stands unclickable, and
+  // TreeEmpty says what the view holds instead.
+  const renderRun = (group: "projects" | "tasks") => {
+    const list = groups[group];
+    const fold = group === "projects" ? projectsFold : tasksFold;
+    const collapsed = collapsedRuns.has(group);
+    return (
+      <Fragment key={group}>
+        {restEmpty ? (
+          <WorkspaceGroupHead group={group} folded={collapsed} canFold onToggle={() => toggleRun(group)} dragProps={groupDragProps(group)}
+            dropping={groupDrag?.over === group} dragging={groupDrag?.from === group} />
+        ) : (
+          <WorkspaceGroupHead group={group} folded={fold.folded} searching={searching} dragProps={groupDragProps(group)} />
+        )}
+        {restEmpty && !collapsed && group === "projects" && list.length === 0 && (
+          <>
+            <div className="ws-none">{t("session.no_projects_yet")}</div>
+            {tree.length === 0 && (
+              <button className="projects-open" data-action="workspace.add"
+                disabled={adder.busy} onClick={() => adder.add()}><StudioIcon name="folder" />{t("session.open_your_first_project")}</button>
+            )}
+          </>
+        )}
+        {restEmpty && !collapsed && group === "tasks" && (list.length === 0 || tasksEmpty) && (
+          <div className="ws-none">{t("session.no_tasks_yet")}</div>
+        )}
+        {!collapsed && list.map((ws) => {
             // A fold is a resting-state preference; while a query is on it would hide
             // the very rows the query just found.
             const hasChildren = hasKids(ws);
@@ -371,14 +466,14 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
             // Only while the question is on screen: panesOf walks every runtime.
             const doomed = confirm === ws.root ? panesOf(ws.root) : [];
             const busyPanes = liveIds(doomed).length;
+            // The section this row opens, when the time reading is on: the
+            // first row of its day-bucket in its own run, under the run's label.
+            const section = group === "projects"
+              ? projectBuckets?.marks.get(ws.root)
+              : undefined;
             return (
-              <div className="wsnode" key={ws.root} data-current={panesOf(ws.root).includes(active) ? "" : undefined} data-missing={ws.missing ? "" : undefined}>
-                {/* Each label sits on its run's first row: 项目 above the projects,
-                    任务 above the folder the window itself opened in. */}
-                {at === 0 && groups.projects.length > 0 && <WorkspaceGroupHead group="projects" folded={projectsFold.folded} canFold={projectsFold.canFold} searching={searching}
-                  onToggle={onFoldGroup && (() => onFoldGroup(projectsFold.roots, !projectsFold.folded))} />}
-                {at === groups.projects.length && <WorkspaceGroupHead group="tasks" folded={tasksFold.folded} canFold={tasksFold.canFold} searching={searching}
-                  onToggle={onFoldGroup && (() => onFoldGroup(tasksFold.roots, !tasksFold.folded))} />}
+                <div className="wsnode" key={ws.root} data-current={panesOf(ws.root).includes(active) ? "" : undefined} data-missing={ws.missing ? "" : undefined}>
+                {section && sectionHead(section)}
                 {/* The 任务 area has no folder row of its own: the head is the label,
                     and its conversations hang directly beneath it. */}
                 {!ws.auto && (confirm === ws.root ? (
@@ -495,8 +590,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           <small className="session-pop-path" title={ws.root}>{ws.root}</small>
                         </div>
                         <WorkspaceReveal ws={ws} hub={hub} dismiss={dismissMenu} onError={onError} />
-                        {ws.remembered && <WorkspaceOrder root={ws.root} position={tree.filter((w) => w.remembered).findIndex((w) => w.root === ws.root)} total={tree.filter((w) => w.remembered).length}
-                          hub={hub} reload={reload} dismiss={dismissMenu} onError={onError} />}
                         <div className="session-pop-group">
                           <button role="menuitem" data-action="session.selection" data-value="start" disabled={visible.length === 0}
                             onClick={() => { setSelection(new Set(visibleSessions(ws).map((s) => s.path))); dismissMenu(); }}>
@@ -518,7 +611,55 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                     两级差 18px，扫一眼只读得出“有点错位”。 */}
                 {!shut && hasChildren && (
                   <div className="kids">
-                {visible.map((session) => {
+                {visible.map((session) => sessionRow(session, ws))}
+
+                <ListingProgress workspace={ws} searching={searching} onRetry={retry} />
+                {pagedScope && (hidden > 0 || unloaded(ws, loadedRows(ws.root)) > 0) && (
+                  hidden === 0 && atCap(loadedRows(ws.root)) ? (
+                    <small className="sessnote">{ws.countsComplete === false ? t("session.search_to_find_more_conversations") : t("session.n_older_conversations_use_search", { n: unloaded(ws, loadedRows(ws.root)) })}</small>
+                  ) : (
+                    <button
+                      className="sessmore"
+                      disabled={paged[ws.root] === "loading"}
+                      data-action="session.more"
+                      onClick={() => {
+                        setExpanded((current) => new Set(current).add(ws.root));
+                        if (unloaded(ws, loadedRows(ws.root)) > 0 && !atCap(loadedRows(ws.root))) void more(ws.root);
+                      }}
+                    >
+                      {paged[ws.root] === "loading"
+                        ? t("session.loading")
+                        : paged[ws.root] === "failed"
+                          ? t("common.failed_to_load_retry")
+                          : ws.countsComplete === false ? t("session.show_more") : t("common.show_more_n_left", { n: hidden + unloaded(ws, loadedRows(ws.root)) })}
+                    </button>
+                  )
+                )}
+                  </div>
+                )}
+              </div>
+            );
+        })}
+      </Fragment>
+    );
+  };
+  // The projects a person chose, named for the batch bar's one removal question.
+  const rememberedProjects = tree.filter((w) => w.remembered).map((w) => ({ root: w.root, name: w.name }));
+  // The time-section reading replaces the folder tree with one timeline: every
+  // listed conversation, newest first, gathered under the day it last moved,
+  // each row naming what it belongs to — a project's name, or 任务 for the
+  // window's own.
+  const flatRows = timeGroups
+    ? shownTree
+        .flatMap((ws) => visibleSessions(ws).map((session) => ({ session, ws })))
+        .sort((a, b) => (b.session.lastActiveAt ?? Date.now()) - (a.session.lastActiveAt ?? Date.now()))
+    : [];
+
+  // One conversation row, shared by the folder tree and the flat time
+  // reading alike: the flat timeline adds the line naming what the
+  // conversation belongs to — a project's name, or 任务 for the window's own.
+  const sessionRow = (session: TreeSession, ws: TreeWorkspace, subtitle?: string) => {
+
                     const on = opening ? session.path === opening : session.runtimeId === active;
                     const run = session.runtimeId ? runs[session.runtimeId]?.run : undefined;
                     if (confirm === session.path) {
@@ -539,8 +680,14 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                     const copies = session.copies ?? [];
                     const kept = [...versions.map((s) => ({ s, version: true })), ...copies.map((s) => ({ s, version: false }))];
                     const open = spread.has(session.path);
+                    // The month section this conversation opens, when the time
+                    // reading is on.
+                    // The flat reading cuts its own sections from the render
+                    // order; only the folder view marks rows here.
+                    const section = subtitle ? undefined : taskBuckets?.marks.get(session.path);
                     return (
                       <Fragment key={session.path}>
+                        {section && sectionHead(section)}
                       <div
                         ref={sessionMenu === session.path ? sessionMenuBox : undefined}
                         data-action-click={selection ? "session.selection" : "session.open"}
@@ -549,6 +696,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         data-action-keydown={selection ? ["session.selection"] : ["session.open", "session.delete", "session.menu", "session.move"]}
                         data-target={session.path}
                         className="sessrow sessrow-context ds-row"
+                        data-sub={subtitle ? "" : undefined}
                         role="treeitem"
                         aria-level={2}
                         aria-label={rowLabel(session)}
@@ -559,6 +707,9 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         data-unread={session.unread ? "" : undefined}
                         data-just-done={session.runtimeId && justDone.has(session.runtimeId) ? "" : undefined}
                         data-busy={opening === session.path || mutations.pending.has(session.path) ? "" : undefined}
+                        data-drop={sessDrag?.over === session.path ? "over" : undefined}
+                        data-dragging={sessDrag?.from === session.path ? "" : undefined}
+                        draggable={subtitle || selection || !!needle ? undefined : true}
                         onClick={(ev) => { if (selection) toggleSelection(session.path); else if (ev.detail < 2 && mutations.pending.get(session.path) !== "archive") void pick(ws, session); }}
                         data-action-dblclick={selection ? undefined : "session.rename"}
                         onDoubleClick={(ev) => {
@@ -572,6 +723,36 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           ev.stopPropagation();
                           openRowMenu(session.path, ev.currentTarget, { x: ev.clientX, y: ev.clientY });
                         }}
+                        // Dragging a conversation onto a neighbour reorders it
+                        // within its own project — the walk the Alt+arrow keys
+                        // already ask for, aimed by where the pointer let go.
+                        // The flat time reading sorts by clock, so its rows
+                        // drag nothing; a search has no order to move within.
+                        onDragStart={subtitle ? undefined : (ev) => {
+                          ev.dataTransfer.effectAllowed = "move";
+                          ev.dataTransfer.setData(SESSION_DRAG_KIND, session.path);
+                          setSessDrag({ from: session.path, root: ws.root, archived: !!session.archived, over: "" });
+                        }}
+                        onDragOver={subtitle ? undefined : (ev) => {
+                          if (!sessDrag || sessDrag.from === session.path || sessDrag.root !== ws.root) return;
+                          if (![...(ev.dataTransfer?.types ?? [])].includes(SESSION_DRAG_KIND)) return;
+                          if (!!session.archived !== sessDrag.archived) return;
+                          ev.preventDefault();
+                          ev.dataTransfer.dropEffect = "move";
+                          setSessDrag((was) => (was?.over === session.path ? was : was ? { ...was, over: session.path } : was));
+                        }}
+                        onDragLeave={subtitle ? undefined : () => setSessDrag((was) => (was?.over === session.path ? { ...was, over: "" } : was))}
+                        onDrop={subtitle ? undefined : (ev) => {
+                          if (!sessDrag || sessDrag.from === session.path || sessDrag.root !== ws.root) return;
+                          if (![...(ev.dataTransfer?.types ?? [])].includes(SESSION_DRAG_KIND)) return;
+                          ev.preventDefault();
+                          const drag = sessDrag;
+                          setSessDrag(null);
+                          const dragged = ws.sessions.find((s) => s.path === drag.from);
+                          if (!dragged || !!dragged.archived !== !!session.archived) return;
+                          void order.moveTo(dragged, ws.sessions.filter((s) => !!s.archived === !!session.archived), session);
+                        }}
+                        onDragEnd={() => setSessDrag(null)}
                         tabIndex={0}
                         onKeyDown={(ev) => {
                           if (ev.target !== ev.currentTarget) return;
@@ -624,15 +805,17 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                             }} />
                         ) : (
                           <span className="sesstitle ds-title" title={rowLabel(session)}>
-                            <span><Hit text={rowLabel(session)} needle={needle} /></span>{session.isolated && <em className="sessarch" title={session.workspaceRoot}>{t("common.isolated")}</em>}{session.archived && <em className="sessarch">{t("common.archived")}</em>}
+                            <span className="sessline"><Hit text={rowLabel(session)} needle={needle} />{session.isolated && <em className="sessarch" title={session.workspaceRoot}>{t("common.isolated")}</em>}{session.archived && <em className="sessarch">{t("common.archived")}</em>}
                             {session.metadataState === "pending" && <em className="sessarch">{t("session.reading_summary")}</em>}
                             {session.metadataState === "error" && <em className="sessarch">{t("session.summary_unavailable")}</em>}
+                            </span>
+                            {subtitle && <span className="sessub">{subtitle}</span>}
                           </span>
                         )}
                         {!selection && <SessionPinAction target={session.path} title={rowLabel(session)}
                           pinned={pinned.has(session.path)} enabled={quickActions} disabled={mutations.pending.has(session.path)} onPin={() => mutate(session, "pin")} />}
                         <PeerThreadMark path={session.path} />
-                        <SessionTail run={run} at={session.lastActiveAt} unread={session.unread} dot={false} />
+                        <SessionTail run={run} at={session.lastActiveAt ?? Date.now()} unread={session.unread} dot={false} />
                         {!selection && <SessionMoreAction target={session.path} disabled={mutations.pending.has(session.path)}
                           onOpen={(trigger) => openRowMenu(session.path, trigger)} />}
                         {quickActions && !selection && <SessionArchiveAction target={session.path} title={rowLabel(session)} archived={!!session.archived}
@@ -663,8 +846,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                             onBatchSelect={(picked) => { setSessionMenu(""); setSelection(new Set([picked.path])); }}
                             keptCount={kept.length} keptOpen={open} onKept={() => { setSpread((prev) => { const next = new Set(prev); if (open) next.delete(session.path); else next.add(session.path); return next; }); setSessionMenu(""); }}
                             onDelete={() => { askDelete(session.path); setSessionMenu(""); }}
-                            onMove={(direction) => { setSessionMenu(""); void order.move(session, direction); }}
-                            canMove={order.canMove(ws, session)}
                             onMoveTo={() => { setSessionMenu(""); moveTo.request(session, ws.root); }}
                           />
                         )}
@@ -727,47 +908,46 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           ),
                         )}
                       </Fragment>
-                    );
-                  })}
+  );
+  };
 
-                <ListingProgress workspace={ws} searching={searching} onRetry={retry} />
-                {pagedScope && (hidden > 0 || unloaded(ws, loadedRows(ws.root)) > 0) && (
-                  hidden === 0 && atCap(loadedRows(ws.root)) ? (
-                    <small className="sessnote">{ws.countsComplete === false ? t("session.search_to_find_more_conversations") : t("session.n_older_conversations_use_search", { n: unloaded(ws, loadedRows(ws.root)) })}</small>
-                  ) : (
-                    <button
-                      className="sessmore"
-                      disabled={paged[ws.root] === "loading"}
-                      data-action="session.more"
-                      onClick={() => {
-                        setExpanded((current) => new Set(current).add(ws.root));
-                        if (unloaded(ws, loadedRows(ws.root)) > 0 && !atCap(loadedRows(ws.root))) void more(ws.root);
-                      }}
-                    >
-                      {paged[ws.root] === "loading"
-                        ? t("session.loading")
-                        : paged[ws.root] === "failed"
-                          ? t("common.failed_to_load_retry")
-                          : ws.countsComplete === false ? t("session.show_more") : t("common.show_more_n_left", { n: hidden + unloaded(ws, loadedRows(ws.root)) })}
-                    </button>
-                  )
-                )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {/* The 任务 label stands even when nothing lives in it: the bar is the
-              standing answer to where a session outside any project would go. */}
-          {groups.tasks.length === 0 && groups.projects.length > 0 &&
-            <WorkspaceGroupHead group="tasks" folded={tasksFold.folded} searching={searching} />}
-          {!otherRows && shownTree.length === 0 && (tree.length > 0 || treeRead && (!!needle || scope !== "all")) && <TreeEmpty settled={tree.every((ws) => ws.countsComplete !== false) && answers(answered, { scope: kernelScope, q: asked })} onRetry={retry} />}
-          {tree.length === 0 && (!treeRead || !otherRows && !needle && scope === "all") && (treeRead ? (
-            <div className="ws-empty">{t("session.no_folders_yet")}<button className="projects-open" data-action="workspace.add"
-              disabled={adder.busy} onClick={() => adder.add()}><StudioIcon name="folder" />{t("session.open_your_first_project")}</button></div>
-          ) : (
-            <TreeReading onRetry={retry} />
-          ))}
+  return (
+    <>
+      {moveTo.dialog}
+      <SessionBatch hub={hub} selection={selection} selected={selected} displayed={displayed} onSelect={setSelection}
+        onExit={() => {
+          // Back to the tree's own standing control. The menu entries that
+          // start picking live inside closed menus, so the head is the way in;
+          // a folded-everything head still answers with itself for the keyboard.
+          const entry = document.querySelector<HTMLElement>('[data-action="workspace.fold-all"][data-value="projects"]');
+          entry?.focus();
+        }}
+        onBusy={(pending) => { setBusy(pending ? "batch" : ""); if (pending) { setSessionMenu(""); setEditing(""); setConfirm(""); } }}
+        onClose={onClose} onArchive={onArchive} rememberedProjects={rememberedProjects} onRemoveWorkspaces={removeWorkspaces}
+        liveIds={liveIds} reload={reload} onError={onError} />
+      <ProjectsHeader bothFolded={bothFolded} searching={searching} onToggleBoth={() => toggleBothRuns()} />
+      <div className="scroll">
+        <div role="tree" aria-label={t("session.projects_and_conversations")} aria-multiselectable={selection !== null} inert={busy === "batch"} data-action-keydown="tree.navigate" ref={treeKeys.ref} onKeyDown={treeKeys.onKeyDown}>
+          {/* The first run's label stands before its rows even when the run is
+              empty, so an empty tree reads as two runs — one for each kind of
+              folder — and not as a missing column. */}
+          {timeGroups && (() => {
+            let section = "";
+            return flatRows.map(({ session, ws }) => {
+              const bucket = dayBucket(session.lastActiveAt ?? Date.now());
+              const opens = bucket.key !== section;
+              section = bucket.key;
+              return (
+                <Fragment key={session.path}>
+                  {opens && sectionHead(bucket.label)}
+                  {sessionRow(session, ws, ws.auto ? t("session.tasks") : ws.name)}
+                </Fragment>
+              );
+            });
+          })()}
+          {!timeGroups && runOrder.map((group) => renderRun(group))}
+          {!otherRows && shownTree.length === 0 && (tree.length > 0 || treeRead && (!!needle || scope !== "all")) && <TreeEmpty settled={settled && answers(answered, { scope: kernelScope, q: asked })} onRetry={retry} />}
+          {tree.length === 0 && !treeRead && <TreeReading onRetry={retry} />}
           {children}
         </div>
       </div>

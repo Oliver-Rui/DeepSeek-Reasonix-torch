@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { useState } from "react";
 import { afterEach, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "./testkit";
 import { Workspaces } from "./Workspaces";
@@ -39,17 +39,17 @@ const head = (group: "projects" | "tasks") =>
 const row = (name: string) =>
   [...document.querySelectorAll<HTMLElement>(".wsrow")].find((el) => el.querySelector(".wsname")?.textContent === name)!;
 
-it("folds every project from the 项目 head and leaves the task group alone", async () => {
+it("folds the whole projects run from the 项目 head and leaves the task group alone", async () => {
   draw();
   const projects = head("projects");
   expect(projects.getAttribute("aria-expanded")).toBe("true");
   expect(projects.getAttribute("aria-label")).toBe("收起所有项目");
   await userEvent.click(projects);
+  // The folder rows fold away with their conversations; the task run stays.
   expect(screen.queryByRole("treeitem", { name: "one" })).toBeNull();
   expect(screen.queryByRole("treeitem", { name: "two" })).toBeNull();
   expect(screen.getByRole("treeitem", { name: "three" })).toBeTruthy();
-  expect(row("a").getAttribute("aria-expanded")).toBe("false");
-  expect(row("b").getAttribute("aria-expanded")).toBe("false");
+  expect(row("a")).toBeUndefined();
   expect(projects.getAttribute("aria-expanded")).toBe("false");
   expect(projects.getAttribute("aria-label")).toBe("展开所有项目");
   await userEvent.click(projects);
@@ -77,13 +77,236 @@ it("hangs task conversations directly under the 任务 head with no folder row",
   expect(screen.getByRole("treeitem", { name: "three" })).toBeTruthy();
 });
 
-it("renders a group with nothing to fold as a label, not a control", () => {
+it("folds a run whose folder holds no session at all", () => {
   const tree: TreeWorkspace[] = [{ root: "/empty", name: "empty", remembered: true, sessions: [] }];
+  render(<Workspaces hub={{} as never} tree={tree} treeRead runtimes={[]} active="" folded={new Set()}
+    onFold={() => {}} reload={async () => {}} onOpen={async () => {}}
+    onFocus={() => {}} onClose={async () => {}} liveIds={() => []} runs={{}} onRename={() => {}}
+    onError={() => {}} adder={{ add: () => {}, close: () => {}, at: null } as never} />);
+  const projects = head("projects");
+  expect(projects.disabled).toBe(false);
+  expect(projects.getAttribute("aria-expanded")).toBe("true");
+});
+
+// The empty column used to answer with the lone 任务 bar alone; now both runs
+// read as runs, each label standing and each saying what it holds.
+const labels = () => [...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent);
+const notes = () => [...document.querySelectorAll(".ws-none")].map((el) => el.textContent);
+
+function drawTree(tree: TreeWorkspace[]) {
   render(<Workspaces hub={{} as never} tree={tree} treeRead runtimes={[]} active="" folded={new Set()}
     onFold={() => {}} onFoldGroup={() => {}} reload={async () => {}} onOpen={async () => {}}
     onFocus={() => {}} onClose={async () => {}} liveIds={() => []} runs={{}} onRename={() => {}}
     onError={() => {}} adder={{ add: () => {}, close: () => {}, at: null } as never} />);
+}
+
+it("stands both labels with their empty notes when only the window's own folder exists", () => {
+  drawTree([{ root: "/auto", name: "auto", remembered: false, auto: true, sessions: [] }]);
+  expect(labels()).toEqual(["项目", "任务"]);
+  expect(notes()).toEqual(["暂无项目", "暂无任务"]);
+  expect(document.querySelector('[data-action="workspace.add"]')).toBeNull();
+});
+
+it("offers the first project under 暂无项目 when no folder exists at all", () => {
+  drawTree([]);
+  expect(labels()).toEqual(["项目", "任务"]);
+  expect(notes()).toEqual(["暂无项目", "暂无任务"]);
+  expect(document.querySelector('[data-action="workspace.add"]')).toBeTruthy();
+});
+
+it("says 暂无任务 under the standing bar when only projects exist", () => {
+  drawTree([{ root: "/a", name: "a", remembered: true, sessions: [{ path: "/a/1.jsonl", name: "one", title: "one" }] }]);
+  expect(labels()).toEqual(["项目", "任务"]);
+  expect(notes()).toEqual(["暂无任务"]);
+});
+
+it("waits for the counts before saying the task run is empty", () => {
+  drawTree([{ root: "/auto", name: "auto", remembered: false, auto: true, sessions: [], countsComplete: false }]);
+  expect(labels()).toEqual(["项目", "任务"]);
+  expect(notes()).toEqual(["暂无项目"]);
+});
+
+it("folds the empty task run's note from its standing label", async () => {
+  drawTree([{ root: "/auto", name: "auto", remembered: false, auto: true, sessions: [] }]);
+  const tasks = head("tasks");
+  expect(tasks.disabled).toBe(false);
+  expect(tasks.getAttribute("aria-expanded")).toBe("true");
+  await userEvent.click(tasks);
+  expect(notes()).toEqual(["暂无项目"]);
+  expect(tasks.getAttribute("aria-expanded")).toBe("false");
+  await userEvent.click(tasks);
+  expect(notes()).toEqual(["暂无项目", "暂无任务"]);
+});
+
+it("folds 暂无项目 and the first-project offer from the 项目 label", async () => {
+  drawTree([]);
   const projects = head("projects");
-  expect(projects.disabled).toBe(true);
-  expect(projects.getAttribute("aria-expanded")).toBeNull();
+  expect(projects.disabled).toBe(false);
+  await userEvent.click(projects);
+  expect(notes()).toEqual(["暂无任务"]);
+  expect(document.querySelector('[data-action="workspace.add"]')).toBeNull();
+  await userEvent.click(projects);
+  expect(document.querySelector('[data-action="workspace.add"]')).toBeTruthy();
+  expect(notes()).toEqual(["暂无项目", "暂无任务"]);
+});
+
+const both = () => document.querySelector<HTMLButtonElement>('[data-action="workspace.fold-all"][data-value="both"]')!;
+
+it("shows each label's arrow folded to the right and open pointing down", () => {
+  draw();
+  const projectsChev = head("projects").querySelector(".wschev")!;
+  expect(projectsChev.getAttribute("data-open")).toBe("");
+  expect(projectsChev.getAttribute("data-leaf")).toBeNull();
+  const tasksChev = head("tasks").querySelector(".wschev")!;
+  expect(tasksChev.getAttribute("data-open")).toBe("");
+});
+
+it("shows the arrow open on a run the label can fold", () => {
+  drawTree([{ root: "/empty", name: "empty", remembered: true, sessions: [] }]);
+  const chev = head("projects").querySelector(".wschev")!;
+  expect(chev.getAttribute("data-open")).toBe("");
+  expect(chev.getAttribute("data-leaf")).toBeNull();
+});
+
+it("folds both runs at once from the 任务列表 head", async () => {
+  draw();
+  const bar = both();
+  expect(bar.getAttribute("aria-expanded")).toBe("true");
+  await userEvent.click(bar);
+  expect(screen.queryByRole("treeitem", { name: "one" })).toBeNull();
+  expect(screen.queryByRole("treeitem", { name: "three" })).toBeNull();
+  expect(notes()).toEqual([]);
+  expect(bar.getAttribute("aria-expanded")).toBe("false");
+  expect(head("projects").getAttribute("aria-expanded")).toBe("false");
+  expect(head("tasks").getAttribute("aria-expanded")).toBe("false");
+  expect(head("projects").querySelector(".wschev")!.getAttribute("data-open")).toBeNull();
+  await userEvent.click(bar);
+  expect(screen.getByRole("treeitem", { name: "one" })).toBeTruthy();
+  expect(screen.getByRole("treeitem", { name: "three" })).toBeTruthy();
+  expect(bar.getAttribute("aria-expanded")).toBe("true");
+});
+
+it("folds both empty runs' notes from the 任务列表 head", async () => {
+  drawTree([]);
+  await userEvent.click(both());
+  expect(notes()).toEqual([]);
+  expect(document.querySelector('[data-action="workspace.add"]')).toBeNull();
+  await userEvent.click(both());
+  expect(notes()).toEqual(["暂无项目", "暂无任务"]);
+  expect(document.querySelector('[data-action="workspace.add"]')).toBeTruthy();
+});
+
+const GROUP_KIND = "application/x-reasonix-group";
+const dragTransfer = () => {
+  const transfer = {
+    data: "",
+    types: [GROUP_KIND],
+    effectAllowed: "",
+    dropEffect: "",
+    setData(_kind: string, value: string) { this.data = value; },
+    getData(_kind: string) { return this.data; },
+  };
+  return transfer;
+};
+
+it("swaps the two runs when one label is dragged onto the other", async () => {
+  draw();
+  const transfer = dragTransfer();
+  const tasks = head("tasks");
+  const projects = head("projects");
+  fireEvent.dragStart(tasks, { dataTransfer: transfer });
+  await waitFor(() => expect(tasks.getAttribute("data-dragging")).toBe(""));
+  fireEvent.dragOver(projects, { dataTransfer: transfer });
+  await waitFor(() => expect(projects.getAttribute("data-drop")).toBe("over"));
+  fireEvent.drop(projects, { dataTransfer: transfer });
+  expect([...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent)).toEqual(["任务", "项目"]);
+  expect(localStorage.getItem("rx-rail-group-order")).toBe("tasks-first");
+  // The run the drag carried no longer fades, and no head reads as a target.
+  expect(tasks.getAttribute("data-dragging")).toBeNull();
+  expect(projects.getAttribute("data-drop")).toBeNull();
+  // The first run is now the tasks run: its conversations lead the tree.
+  expect(screen.getAllByRole("treeitem", { name: "three" })[0]!.compareDocumentPosition(screen.getAllByRole("treeitem", { name: "one" })[0]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  // Dragging back restores the standing order.
+  fireEvent.dragStart(projects, { dataTransfer: transfer });
+  fireEvent.drop(tasks, { dataTransfer: transfer });
+  expect([...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent)).toEqual(["项目", "任务"]);
+  expect(localStorage.getItem("rx-rail-group-order")).toBe("projects-first");
+  localStorage.removeItem("rx-rail-group-order");
+});
+
+it("drags the standing labels of an empty tree the same way", () => {
+  drawTree([]);
+  const transfer = dragTransfer();
+  const tasks = head("tasks");
+  const projects = head("projects");
+  fireEvent.dragStart(tasks, { dataTransfer: transfer });
+  fireEvent.drop(projects, { dataTransfer: transfer });
+  expect([...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent)).toEqual(["任务", "项目"]);
+  expect(notes()).toEqual(["暂无任务", "暂无项目"]);
+  localStorage.removeItem("rx-rail-group-order");
+});
+
+// A conversation row carries its own kind, so the two drags never cross: the
+// label drag swaps runs, the row drag walks the row to where the drop lands.
+const SESSION_KIND = "application/x-reasonix-session";
+const sessionTransfer = () => {
+  const transfer = {
+    data: "",
+    types: [SESSION_KIND],
+    effectAllowed: "",
+    dropEffect: "",
+    setData(_kind: string, value: string) { this.data = value; },
+    getData(_kind: string) { return this.data; },
+  };
+  return transfer;
+};
+
+function drawMoving(hub: unknown, reload: () => Promise<void> = async () => {}) {
+  const tree: TreeWorkspace[] = [
+    { root: "/a", name: "a", remembered: true, sessions: [
+      { path: "/a/1.jsonl", name: "one", title: "one" },
+      { path: "/a/2.jsonl", name: "two", title: "two" },
+      { path: "/a/3.jsonl", name: "three", title: "three" },
+    ] },
+    { root: "/b", name: "b", remembered: true, sessions: [{ path: "/b/9.jsonl", name: "nine", title: "nine" }] },
+  ];
+  render(<Workspaces hub={hub as never} tree={tree} treeRead runtimes={[]} active="" folded={new Set()}
+    onFold={() => {}} onFoldGroup={() => {}} reload={reload} onOpen={async () => {}}
+    onFocus={() => {}} onClose={async () => {}} liveIds={() => []} runs={{}} onRename={() => {}}
+    onError={() => {}} adder={{ add: () => {}, close: () => {}, at: null } as never} />);
+}
+
+it("moves a conversation onto its neighbour inside the same project", async () => {
+  const moves: string[] = [];
+  let reloaded = 0;
+  drawMoving({
+    moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); },
+  }, () => { reloaded++; return Promise.resolve(); });
+  const transfer = sessionTransfer();
+  const one = screen.getByRole("treeitem", { name: "one" });
+  const three = screen.getByRole("treeitem", { name: "three" });
+  fireEvent.dragStart(one, { dataTransfer: transfer });
+  await waitFor(() => expect(one.getAttribute("data-dragging")).toBe(""));
+  fireEvent.dragOver(three, { dataTransfer: transfer });
+  await waitFor(() => expect(three.getAttribute("data-drop")).toBe("over"));
+  fireEvent.drop(three, { dataTransfer: transfer });
+  fireEvent.dragEnd(one, { dataTransfer: transfer });
+  // Two places down is two kernel swaps, then one reload for the whole gesture.
+  await waitFor(() => expect(moves).toEqual(["/a/1.jsonl:1", "/a/1.jsonl:1"]));
+  expect(reloaded).toBe(1);
+  expect(one.getAttribute("data-dragging")).toBeNull();
+  expect(three.getAttribute("data-drop")).toBeNull();
+});
+
+it("ignores a conversation dropped into another project's list", async () => {
+  const moves: string[] = [];
+  drawMoving({ moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); } });
+  const transfer = sessionTransfer();
+  const one = screen.getByRole("treeitem", { name: "one" });
+  const nine = screen.getByRole("treeitem", { name: "nine" });
+  fireEvent.dragStart(one, { dataTransfer: transfer });
+  fireEvent.dragOver(nine, { dataTransfer: transfer });
+  fireEvent.drop(nine, { dataTransfer: transfer });
+  expect(moves).toEqual([]);
+  expect(nine.getAttribute("data-drop")).toBeNull();
 });

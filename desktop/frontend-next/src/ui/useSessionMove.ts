@@ -18,5 +18,21 @@ export function useSessionMove(hub: HubPort, reload: () => Promise<void>, onErro
       onError(e);
     }
   }, [hub, reload, onError]);
-  return { canMove, move };
+  /** Drag-and-drop names a destination row rather than a step: the row the
+   *  drop lands on is where the dragged one should sit. The kernel swaps one
+   *  place at a time, so the walk repeats it — one reload after the whole
+   *  gesture, not one per step. */
+  const moveTo = useCallback(async (session: TreeSession, peers: TreeSession[], target: TreeSession) => {
+    const from = peers.indexOf(session);
+    const to = peers.indexOf(target);
+    const steps = to - from;
+    if (from < 0 || to < 0 || steps === 0) return;
+    try {
+      for (let n = 0; n < Math.abs(steps); n++) await hub.moveSession(session.path, steps > 0 ? 1 : -1);
+      await reload();
+    } catch (e) {
+      onError(e);
+    }
+  }, [hub, reload, onError]);
+  return { canMove, move, moveTo };
 }

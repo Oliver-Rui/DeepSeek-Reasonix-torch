@@ -71,12 +71,37 @@
 .rail .wsnode { padding: 0; }
 .rail .wsgroup {
   display: flex; align-items: center; gap: 4px; height: 28px; margin-top: 6px; padding: 0 8px;
-  box-sizing: border-box; width: 100%; color: var(--faint); font: var(--w-med) var(--fs-micro)/1 var(--ui);
+  box-sizing: border-box; width: 100%; color: var(--text); font: var(--w-med) var(--fs-meta)/1.3 var(--ui);
 }
 .rail button.wsgroup { border: 0; background: transparent; text-align: left; cursor: pointer; }
-.rail button.wsgroup:hover:not(:disabled) { color: var(--muted); }
+.rail button.wsgroup:hover:not(:disabled) { background: var(--overlay); }
 .rail button.wsgroup:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .rail button.wsgroup:disabled { opacity: .4; cursor: default; }
+/* The label is the handle that drags its run above the other: the one under
+   the pointer lights up, and the one being carried fades. */
+.rail .wsgroup[data-drop] { background: var(--overlay); }
+.rail .wsgroup[data-dragging] { opacity: .4; }
+/* A conversation row carries the same two states on its own drag: the row the
+   drop would land on lights up, the carried one fades. Only the tree rows
+   drag — the flat time reading sorts by clock, so it shows neither. */
+.rail .sessrow[data-drop] { background: var(--overlay); }
+.rail .sessrow[data-dragging] { opacity: .4; }
 .rail .wsgroup .wschev { width: 12px; height: 12px; flex: none; color: var(--faint); transform: rotate(-90deg); transition: transform var(--m-line); }
 .rail .wsgroup .wschev[data-open] { transform: none; }
 .rail .wsgroup .wschev[data-leaf] { visibility: hidden; }
+/* The arrow rides right beside the label's own words, not the far edge. */
+/* The 任务列表 head is a fold control too: its arrow answers with the same
+   two shapes the group labels' arrows do. */
+.rail button.vtab { display: inline-flex; align-items: center; cursor: pointer; text-align: left; }
+.rail .vtab .wschev { width: 12px; height: 12px; flex: none; color: var(--faint); transform: rotate(-90deg); transition: transform var(--m-line); }
+.rail .vtab .wschev[data-open] { transform: none; }
+.rail .vtab .wschev[data-leaf] { visibility: hidden; }
+.rail button.vtab:hover:not(:disabled) { background: var(--overlay); }
+.rail button.vtab:disabled { opacity: .4; cursor: default; }
+/* The line an empty run says under its standing label: one quiet row in the
+   label's own inset, at the label's own reading size. */
+.rail .ws-none { padding: 2px 8px 7px; color: var(--faint); font: var(--w-reg) var(--fs-meta)/1.4 var(--ui); }
+/* A month section in the time reading: the row that opens it carries the
+   section's name and its count, quiet enough to skim past. */
+.rail .wstime { display: flex; align-items: baseline; gap: 5px; margin: 4px 0 0; padding: 2px 8px; color: var(--faint); font: var(--w-med) var(--fs-micro)/1.3 var(--ui); }
+.rail .wstime i { font: var(--w-reg) var(--fs-micro)/1 var(--ui); color: var(--ghost); font-style: normal; }

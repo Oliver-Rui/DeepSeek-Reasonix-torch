@@ -14,7 +14,7 @@ function menu(over: Partial<SessionMenuProps> = {}, session: Partial<TreeSession
     label: "上一次的会话", live: false, pinned: false, exporting: false, autoNaming: false,
     onPin: vi.fn(), onMarkRead: vi.fn(), onRename: vi.fn(), onAutoName: vi.fn(), onPause: vi.fn(), onClose: vi.fn(),
     onArchive: vi.fn(), onBranch: vi.fn(), onCopyInfo: vi.fn(), onExport: vi.fn(), onBatchSelect: vi.fn(), onDelete: vi.fn(),
-    onMove: vi.fn(), canMove: { up: true, down: true }, onMoveTo: vi.fn(), ...over,
+    onMoveTo: vi.fn(), ...over,
   };
   render(<SessionMenu {...props} />);
   return props;
@@ -27,7 +27,7 @@ describe("the session menu", () => {
   it("sorts what can be done into position, name, content, picking, destination and ending", () => {
     menu();
     expect(groups()).toEqual([
-      ["session.pin", "session.move:-1", "session.move:1"],
+      ["session.pin"],
       ["session.rename-start", "session.auto-name", "session.mark-read"],
       ["session.branch", "session.copy-info", "session.export:md", "session.export:json"],
       ["session.selection:start"],

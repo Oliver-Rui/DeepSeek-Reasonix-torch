@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { t } from "../i18n";
 import { Picker, type MenuItem } from "./Menu";
 import type { SessionScope } from "./sessionScope";
-import { nextRecencySort, onRecencySortChange, recencySort, setRecencySort } from "../state/recencySort";
+import { onRailTimeGroupsChange, railTimeGroups, setRailTimeGroups } from "../state/railTimeGroups";
 import { StudioIcon } from "./StudioIcon";
 
 export interface ScopeCounts { all: number; live: number; waiting: number; unread: number; pinned: number }
@@ -11,36 +11,32 @@ export interface ScopeCounts { all: number; live: number; waiting: number; unrea
 // is waiting on an answer.
 const NAME: Record<string, string> = { all: "common.all", live: "plan.step.now", waiting: "session.scope_waiting", unread: "common.unread", pinned: "session.pinned_2", archived: "common.archived" };
 
-/** The filter menu: which conversations are listed, and — right under 全部 —
- *  which way round they are ordered. Ordering lives here because it acts on the
- *  same list the scopes narrow, and a row of its own up on the toolbar made it
- *  look like a second view.
+/** The two header controls, side by side at the row's right edge: which
+ *  conversations are listed is 全部's menu; the clock beside it flips the
+ *  time-section reading, where each run gathers its rows under the month of
+ *  their latest activity — the projects' rows among themselves, the tasks'
+ *  among themselves.
  *
- *  最近 is one word with an arrow, not a switch: a switch can only say on or
- *  off, and the same order read the other way round is a thing people ask for.
- *  Picking it cycles newest → oldest → unsorted. */
+ *  The clock is a toggle, not a switch with a third state: a sidebar either
+ *  reads as the sections months make or as the order the kernel keeps. */
 export function SessionFilter({ scope, counts, onScope }: { scope: SessionScope; counts: ScopeCounts; onScope: (next: SessionScope) => void }) {
-  const sort = useSyncExternalStore(onRecencySortChange, recencySort, recencySort);
+  const timeGroups = useSyncExternalStore(onRailTimeGroupsChange, railTimeGroups, railTimeGroups);
   const scopes = ["all", "live", "waiting", "unread", "pinned", "archived"] as const;
-  // The arrow rides the label, not the count column: the menu's right edge is
-  // numbers only — every other row counts something, and 最近 orders instead.
-  // Up is newest first, down is oldest first, and ⇅ means unsorted.
-  const arrow = sort === "newest" ? "↑" : sort === "oldest" ? "↓" : "⇅";
-  const order: MenuItem = {
-    value: "recent",
-    label: `${t("session.sort_by_recent")} ${arrow}`,
-  };
-  const items: MenuItem[] = scopes.flatMap((value) => {
-    const row: MenuItem = {
-      value,
-      label: t(NAME[value]!),
-      right: value === "archived" ? undefined : String(counts[value]),
-      divide: value === "archived",
-    };
-    return value === "all" ? [row, order] : [row];
-  });
+  // The menu's right edge is numbers only — every row counts something.
+  const items: MenuItem[] = scopes.map((value) => ({
+    value,
+    label: t(NAME[value]!),
+    right: value === "archived" ? undefined : String(counts[value]),
+    divide: value === "archived",
+  }));
   return (
     <div className="session-filter">
+      <button type="button" className="session-filter-sort" data-action="session.sort"
+        aria-pressed={timeGroups}
+        title={t("session.sort_by_recent")} aria-label={t("session.sort_by_recent")}
+        onClick={() => setRailTimeGroups(!timeGroups)}>
+        <StudioIcon name="clock" />
+      </button>
       <Picker
         className="session-filter-trigger"
         data-action="session.filter"
@@ -51,14 +47,8 @@ export function SessionFilter({ scope, counts, onScope }: { scope: SessionScope;
         menuClassName="session-filter-menu"
         ariaLabel={t("session.session_scope")}
         label={<><span>{t(NAME[scope]!)}</span><StudioIcon name="down" /></>}
-        stayOpen={(value) => value === "recent"}
-        onPick={(value) => (value === "recent" ? setRecencySort(nextRecencySort(sort)) : onScope(value as SessionScope))}
+        onPick={(value) => onScope(value as SessionScope)}
       />
-      {scope !== "all" && (
-        <button type="button" className="session-filter-clear" data-action="session.filter-clear" aria-label={t("session.clear_filter")} onClick={() => onScope("all")}>
-          <StudioIcon name="close" />
-        </button>
-      )}
     </div>
   );
 }
