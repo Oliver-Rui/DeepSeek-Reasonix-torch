@@ -662,3 +662,36 @@ preview (port 8787) and shown to the user as it landed.
    `msg/settings.ts`, `styles/studio.css`
 6. registry: `src/actions.ts` (`session.sort`, `provider.refresh`)
 7. this document
+
+### The CI round that followed the push (2026-11-15 night)
+
+The user said push; the 21-commit delta went up byte-identical, the tag was
+cut, the release published, and the runner attached the installer — and the
+push's own CI caught four things the machine had not run since the batch
+rework. Each fixed at its root:
+
+- `select.test` parsed a sheet's comments out once and then re-execed the
+  raw text for every following rule, so a comment's own words (" select" in
+  the picking bar's prose) surfaced as a selector. The whole walk now reads
+  the stripped text.
+- The picking bar's rework left six `workspace.*` keys in the session table
+  and three removed `session.remove_*` keys behind. The six now spell
+  `session.*`; the three are gone.
+- The rename dialog's close button and its input's onChange were unnamed
+  inputs — the two that pushed the census to 217 over its 215 ceiling. The
+  button is `workspace.rename-close`, the input declares
+  `data-action-change="workspace.rename"`, and the ceiling holds at 215.
+- The worktree test still asked for a 从列表移除 menu item; it reads the
+  menu's own 移除 now.
+- Kernel: `probe_test.go` followed `describe`'s `names` argument (nil at all
+  three call sites), `provider_model_short_test` asserts the fixed
+  last-segment short instead of the retired gate, and `/dispatch-threads`
+  joined vite's ROUTES.
+- `perf/session-move.mjs` still right-clicked for 上移/下移 menu items the
+  slimmed menu no longer renders; it moves with Alt+Arrow on the focused row.
+- The Range.getClientRects stub moved into `testkit.ts` (the shared floor),
+  retiring the four per-file copies; the occlusion hit-test stops logging
+  unhandled TypeErrors in every tooltip-adjacent test.
+- repolint baseline widened for the last three commits' growth (actions +5,
+  Workspaces 286→333, hub_tree +63, the 2.64.0 notes) — same deliberate
+  carry-forward as above.
