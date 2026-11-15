@@ -23,9 +23,9 @@ describe("the input box's toolbar controls", () => {
     expect(rule(`${PICKERS}:hover:not(:disabled)`)).toMatch(/background:\s*var\(--overlay\)/);
   });
 
-  it("leave the send and stop buttons at 32px circles", () => {
-    expect(px(rule(".compose .btn.send, .compose .btn.stop"), "width")).toBe(32);
-    expect(px(rule(".compose .btn.send, .compose .btn.stop"), "height")).toBe(32);
+  it("leave the send and stop buttons at 24px circles on the text row's height", () => {
+    expect(px(rule(".compose .btn.send, .compose .btn.stop"), "width")).toBe(24);
+    expect(px(rule(".compose .btn.send, .compose .btn.stop"), "height")).toBe(24);
     expect(rule(".compose .btn.send, .compose .btn.stop")).toMatch(/border-radius:\s*50%/);
   });
 });
