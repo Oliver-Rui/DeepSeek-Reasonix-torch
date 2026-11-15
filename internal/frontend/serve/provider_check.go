@@ -35,9 +35,9 @@ type providerCheck struct {
 	// Matches is whether that answer is consistent with the kind the entry
 	// declares. Protocols sharing a listing shape are consistent with each
 	// other, so a Responses source answering the OpenAI listing is not a change.
-	Matches   bool     `json:"matches"`
-	Models    []string `json:"models,omitempty"`
-	Vision    []string `json:"vision,omitempty"`
+	Matches bool     `json:"matches"`
+	Models  []string `json:"models,omitempty"`
+	Vision  []string `json:"vision,omitempty"`
 	// Names is what the endpoint itself calls each model, where that differs
 	// from the id. Display material only: routing and everything drawn from
 	// ids keeps reading Models.

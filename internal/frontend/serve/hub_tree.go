@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	"reasonix/internal/state/workspacelist"
 	"os"
 	"path/filepath"
 	"reasonix/internal/base/workspaceid"
 	"reasonix/internal/state/sessionstore"
+	"reasonix/internal/state/workspacelist"
 	"slices"
 	"strings"
 
@@ -33,9 +33,9 @@ func (h *Hub) registerTreeRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /history/search", historySearch)
 	mux.HandleFunc("GET /tree/events", h.treeEvents)
 	mux.HandleFunc("GET /tree/events/replay", h.treeEventsReplay)
-		mux.HandleFunc("POST /tree/workspaces/display-name", h.setWorkspaceDisplayName)
+	mux.HandleFunc("POST /tree/workspaces/display-name", h.setWorkspaceDisplayName)
 	mux.HandleFunc("POST /tree/workspaces/pin", h.setWorkspacePinned)
-mux.HandleFunc("POST /tree/workspaces", h.addWorkspace)
+	mux.HandleFunc("POST /tree/workspaces", h.addWorkspace)
 	mux.HandleFunc("POST /tree/workspaces/remove", h.removeWorkspace)
 	mux.HandleFunc("POST /tree/workspaces/move", h.moveWorkspace)
 	mux.HandleFunc("POST /tree/sessions/remove", h.removeSession)

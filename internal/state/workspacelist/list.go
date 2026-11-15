@@ -30,9 +30,9 @@ type List struct {
 	Launch string   `json:"launch,omitempty"`
 	// Names are the display names a project reads by in the sidebar: a folder
 	// renamed there keeps its on-disk path and its files whole.
-	Names  map[string]string `json:"names,omitempty"`
+	Names map[string]string `json:"names,omitempty"`
 	// Pinned are the projects that lead the list, in the order they pinned.
-	Pinned []string          `json:"pinned,omitempty"`
+	Pinned []string `json:"pinned,omitempty"`
 }
 
 // SetName records the display name a project reads by; empty clears it.

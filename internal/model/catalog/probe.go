@@ -28,11 +28,11 @@ type Probe struct {
 	// id — a relay's own display naming (magpie's per-client names land here).
 	// It is display material for the person picking, never an identity: routing
 	// and everything drawn from ids keeps reading Models.
-	Names    map[string]string // id → display name; absent when the listing names nothing
-	Default  string            // suggested default — the first chat model
-	Efforts  []string          // /effort levels Default exposes, "auto" first; empty = none
-	Effort   string            // level "auto" resolves to
-	Vision   []string          // models that look like they accept image input
+	Names   map[string]string // id → display name; absent when the listing names nothing
+	Default string            // suggested default — the first chat model
+	Efforts []string          // /effort levels Default exposes, "auto" first; empty = none
+	Effort  string            // level "auto" resolves to
+	Vision  []string          // models that look like they accept image input
 	// Ambiguous marks a listing that more than one protocol answered. A model
 	// list cannot separate an OpenAI gateway from an Anthropic one that also
 	// takes Bearer, so the guess is presented as a guess instead of a fact.
