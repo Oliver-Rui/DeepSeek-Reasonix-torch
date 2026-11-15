@@ -749,6 +749,7 @@ type rootRef struct {
 
 // roots returns the sidebar's folders: everything remembered, plus whatever a
 // pane is driving, so an open workspace can never be missing from the tree.
+// A folder the user removed stays out of both until they ask for it again.
 func (h *Hub) roots() []rootRef {
 	paths := Workspaces()
 	saved := map[string]bool{}
@@ -765,6 +766,9 @@ func (h *Hub) roots() []rootRef {
 			return
 		}
 		seen[dir] = true
+		if workspaceRemoved(dir) {
+			return
+		}
 		out = append(out, rootRef{dir: dir, remembered: saved[dir]})
 	}
 	for _, dir := range paths {

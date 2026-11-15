@@ -1,0 +1,215 @@
+package serve
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"slices"
+	"testing"
+
+	"reasonix/internal/base/testenv"
+	"reasonix/internal/contract/config"
+)
+
+func postRemoveWorkspace(t *testing.T, srv *httptest.Server, path string) *http.Response {
+	t.Helper()
+	body, err := json.Marshal(map[string]string{"path": path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.Post(srv.URL+"/tree/workspaces/remove", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return resp
+}
+
+func treeRoots(t *testing.T, srv *httptest.Server) []treeWorkspace {
+	t.Helper()
+	return hubGet[[]treeWorkspace](t, srv, "/tree")
+}
+
+func treeRowFor(rows []treeWorkspace, dir string) *treeWorkspace {
+	for i := range rows {
+		if sameFolder(rows[i].Root, dir) {
+			return &rows[i]
+		}
+	}
+	return nil
+}
+
+// The pane a launch opens in a folder nobody picked lists that folder once
+// something was said there. The user removing the row is the last word: the
+// removal is recorded, no later launch puts the row back, nothing on disk is
+// touched, and the standing rows — the remembered projects and the 任务
+// group — are unaffected.
+func TestARemovedFolderStaysRemovedAcrossALaunch(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	implicit := testenv.TempDir(t)
+	writeSessionAt(t, filepath.Join(SessionDirFor(implicit), "held.jsonl"))
+	if ensureAutoWorkspace() == "" {
+		t.Fatal("the auto workspace could not be created")
+	}
+
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	hubRuntime(t, hub, implicit) // the pane a launch opens there
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+
+	if row := treeRowFor(treeRoots(t, srv), implicit); row == nil {
+		t.Fatal("a folder a conversation was held in showed no row to open it from")
+	}
+	resp := postRemoveWorkspace(t, srv, implicit)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d, want 204", resp.StatusCode)
+	}
+	if rows := treeRoots(t, srv); treeRowFor(rows, implicit) != nil {
+		t.Fatalf("the row survived its removal: %+v", rows)
+	}
+
+	// The removal outlives the session that recorded it.
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(list.Removed, projectIdentity(implicit)) {
+		t.Fatalf("no removal on record: %+v", list.Removed)
+	}
+	if slices.Contains(list.Paths, implicit) {
+		t.Error("a removed folder stayed in the remembered list")
+	}
+	if _, err := os.Stat(filepath.Join(SessionDirFor(implicit), "held.jsonl")); err != nil {
+		t.Errorf("the removal touched the conversation on disk: %v", err)
+	}
+
+	// The next launch opens a pane there again; the row must not come back.
+	hub2 := NewHub(HubOptions{})
+	defer hub2.Shutdown()
+	hubRuntime(t, hub2, implicit)
+	srv2 := httptest.NewServer(operatorHandler(hub2))
+	defer srv2.Close()
+	rows := treeRoots(t, srv2)
+	if treeRowFor(rows, implicit) != nil {
+		t.Fatalf("a removed folder came back with the next launch: %+v", rows)
+	}
+	// The 任务 group stands, as does a project the user picked.
+	if row := treeRowFor(rows, config.AutoWorkspaceDir()); row == nil {
+		t.Fatal("the auto workspace lost its standing row")
+	}
+	remembered := testenv.TempDir(t)
+	if err := addRememberedWorkspace(t.Context(), remembered); err != nil {
+		t.Fatal(err)
+	}
+	if row := treeRowFor(treeRoots(t, srv2), remembered); row == nil || !row.Remembered {
+		t.Fatalf("a remembered project did not list as one: %+v", treeRoots(t, srv2))
+	}
+}
+
+// Asking for the folder again — the add the sidebar offers — is what lifts a
+// removal: the row returns and the removal is no longer on record.
+func TestAskingForARemovedFolderListsItAgain(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	dir := testenv.TempDir(t)
+	forgetWorkspace(dir)
+
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(list.Removed, projectIdentity(dir)) {
+		t.Fatalf("no removal on record after forget: %+v", list.Removed)
+	}
+	if slices.Contains(Workspaces(), dir) {
+		t.Errorf("a removed folder still reads as remembered")
+	}
+
+	if err := addRememberedWorkspace(t.Context(), dir); err != nil {
+		t.Fatal(err)
+	}
+	list, err = readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(list.Removed, projectIdentity(dir)) {
+		t.Error("the removal stood over the user asking for the folder back")
+	}
+	if !slices.Contains(Workspaces(), dir) {
+		t.Error("the folder the user asked for does not read as remembered")
+	}
+}
+
+// A folder a conversation now lives in is listed behind the remembered ones —
+// unless the user removed it, which stands over that the way it stands over
+// the launch itself.
+func TestKeepUsedWorkspaceHonorsARemoval(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	first, removed := testenv.TempDir(t), testenv.TempDir(t)
+	if err := addRememberedWorkspace(t.Context(), first); err != nil {
+		t.Fatal(err)
+	}
+	forgetWorkspace(removed)
+
+	keepUsedWorkspace(first)
+	keepUsedWorkspace(removed)
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(list.Paths, first) {
+		t.Errorf("the folder a conversation lives in was not listed: %+v", list.Paths)
+	}
+	if slices.Contains(list.Paths, removed) {
+		t.Errorf("a removed folder was listed again by a conversation moving in: %+v", list.Paths)
+	}
+	if !slices.Contains(list.Removed, projectIdentity(removed)) {
+		t.Errorf("the removal was dropped from the record: %+v", list.Removed)
+	}
+}
+
+// The auto workspace is the app's own folder and the standing 任务 group, not
+// a project: removing it removes nothing, and its row never loses its place.
+func TestForgetDoesNotRecordARemovalOfTheAutoWorkspace(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	if ensureAutoWorkspace() == "" {
+		t.Fatal("the auto workspace could not be created")
+	}
+	auto := config.AutoWorkspaceDir()
+	forgetWorkspace(auto)
+
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Removed) != 0 {
+		t.Errorf("the auto workspace was tombstoned: %+v", list.Removed)
+	}
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	hubRuntime(t, hub, testenv.TempDir(t))
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+	if row := treeRowFor(treeRoots(t, srv), auto); row == nil || !row.Auto {
+		t.Fatalf("the auto workspace lost its row: %+v", treeRoots(t, srv))
+	}
+}
+
+// The removal is keyed by identity, so a folder spelled differently — a pane's
+// absolute real path against the list's own spelling — still counts as removed.
+func TestARemovalMatchesAnySpellingOfTheFolder(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	dir := testenv.TempDir(t)
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	forgetWorkspace(abs)
+	recast := filepath.Clean(filepath.Join(abs, ".", "sub", ".."))
+	if !workspaceRemoved(recast) {
+		t.Fatalf("a removal recorded for %q does not match %q", abs, recast)
+	}
+}
