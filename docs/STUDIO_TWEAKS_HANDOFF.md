@@ -734,3 +734,65 @@ returned:
   - A follow-up for its designed round: make the notice's window time- or
     publish-event-based instead of render-count-based, and the flake dies
     with it.
+
+## 12. 2.64.0 out the door — the shipped state (2026-11-16)
+
+This section supersedes §10's "Verified / not verified" and "What the next
+session owes" tables: they were the mid-round truth, and everything they
+list as owing has since been done.
+
+**Shipped.** Tag `studio-v2.64.0` sits at `4dba223`; the branch tip is
+`ab62ab6`, docs-only above the tag. The release carries the bilingual notes
+and the Windows installer attached from a GitHub runner (this machine's
+egress proxy corrupts multipart uploads — never upload binaries from here):
+<https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.64.0>.
+
+On the tagged tree every workflow is green:
+
+- Release Studio, Attach studio asset, Deploy Web Studio
+- CI: test/race/coverage/vet/gofmt/lint across the matrix
+- Studio: frontend-next 6883 tests, browser guards
+
+Local previews on :8787 (real data) and :8788 (empty demo) run the final
+build.
+
+**The git record, in one breath.** e4f77d3 closed the seven-commit 2.64.0
+round; fourteen review commits followed (drag lines, folder folds, plus
+menus, peers chip and hover card, magpie door names, batch bar, project
+menu).
+
+Then the push's own CI caught what the machine had stopped running: five
+commits of root-cause fixes (81bcce5..a048e7d), and its re-run caught four
+more (d731dff..9a73624, via three parallel subagents); docs carry the rest.
+
+Thirty-one commits cross the 2.63.1..2.64.0 span, every one byte-identical
+on the remote — local SHAs are valid citations.
+
+**Debts and follow-ups, consolidated:**
+
+- The update-notice test's render-count window flaked once under a 12-job
+  runner burst; make the window time- or publish-event-based in its designed
+  round.
+- `Workspaces.tsx` (~1100 lines) is a deliberate baseline carry; splitting
+  it is the extraction that earns the ceiling back.
+- The MiMo roster gaps: busy/purpose fields on session workers, sync-wait
+  semantics for talk, an external-agent roster, a purpose tool
+  (update_session's equivalent).
+- 更改文件夹位置 stays deferred — session history is keyed by path hash, so
+  a move orphans sessions; it needs its own designed round.
+- This machine alone fails 5 config scoping tests, part of
+  `internal/session/control`, `workspacelease`, and builtin's
+  `TestGrepSkipsVendorDirs`.
+  - No runner reproduces any of them — machine noise, do not chase.
+- The GitHub token seen in chat on 2026-11-14 is still unrotated.
+
+**Publishing recipe** (scripts in `%TEMP%\reasonix-api-push`, token via
+`git credential fill`):
+
+- push_robust.py with `WALK_BASE` = the remote tip's full sha, feat
+  fast-forwarded to studio.
+- To move a tag, delete `git/refs/tags/<tag>` first and let release_2.64.py
+  recreate it — the release POST 422s and reuses, the attach run
+  re-dispatches.
+- TIP_SHA always comes from `git rev-parse studio`, never from memory. All
+  the pipeline's scars are in the pitfalls notes.
