@@ -13,7 +13,7 @@
     "doc-prose": 1426,
     "error-text": 9,
     "essay": 2536,
-    "file-size": 18355,
+    "file-size": 18470,
     "flat-view": 0,
     "frontend-parity": 13,
     "function-size": 2348,
@@ -24,7 +24,7 @@
     "orphan": 61,
     "process-input": 96,
     "refusal-path": 0,
-    "release-note": 661,
+    "release-note": 706,
     "stray-file": 0,
     "struct-state": 30,
     "temp-dir": 0,
@@ -69,6 +69,9 @@
       "doc-owner": 1,
       "doc-prose": 21
     },
+    "desktop/frontend-next/src/actions.ts": {
+      "file-size": 5
+    },
     "desktop/frontend-next/src/styles/LAYOUT.md": {
       "doc-owner": 1,
       "doc-prose": 111
@@ -86,7 +89,7 @@
       "css-size": 3721
     },
     "desktop/frontend-next/src/ui/Workspaces.tsx": {
-      "file-size": 286
+      "file-size": 333
     },
     "desktop/internal/winuninstall/registry_windows.go": {
       "essay": 1
@@ -756,6 +759,9 @@
     },
     "internal/frontend/serve/auth.go": {
       "essay": 2
+    },
+    "internal/frontend/serve/hub_tree.go": {
+      "file-size": 63
     },
     "internal/frontend/serve/provider_setup.go": {
       "essay": 1
@@ -1565,6 +1571,9 @@
     },
     "release-notes/studio/2.6.0.md": {
       "release-note": 31
+    },
+    "release-notes/studio/2.64.0.md": {
+      "release-note": 45
     },
     "release-notes/studio/2.7.0.md": {
       "release-note": 26
