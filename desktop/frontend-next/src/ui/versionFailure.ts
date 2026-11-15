@@ -55,5 +55,5 @@ export function deltaSkippedCopy(code: string): string {
 
 // The release page carries every platform's full installer.
 export function releasePage(v: string): string {
-  return `https://github.com/esengine/DeepSeek-Reasonix/releases/tag/studio-v${v.replace(/^v/, "")}`;
+  return `https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v${v.replace(/^v/, "")}`;
 }

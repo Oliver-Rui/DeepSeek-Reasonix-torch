@@ -261,6 +261,7 @@ export function Versions({ port }: { port: Port }) {
   // A shell that answers null (or an older one that omits the field) must not
   // be able to take the window down with it.
   const list = hub.versions ?? [];
+  const studio = hub.studio === true;
   const dev = !hub.current || hub.current === "dev";
   const moving = progress !== null && MOVING.has(progress.phase) ? progress.version : "";
   const ready = progress?.phase === "ready" ? progress.version : "";
@@ -422,14 +423,32 @@ export function Versions({ port }: { port: Port }) {
               <button className="sa lnk" data-keep="" data-action="versions.restart" onClick={() => { setLater(""); void restart(v.version, false); }}>
                 {t("about.restart_to_finish")}
               </button>
+            ) : studio && v.url ? (
+              <a
+                className="sa lnk"
+                href={v.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                data-action="versions.download"
+                onClick={(e) => {
+                  // The window's own browser does not save files, so the shell
+                  // hands the URL out; a plain browser follows the href itself.
+                  const url = v.url;
+                  if (!port.openExternal || !url) return;
+                  e.preventDefault();
+                  void port.openExternal(url).catch(() => {});
+                }}
+              >
+                {t("about.download_the_installer")}
+              </a>
             ) : (
-              !v.current && (
+              !studio && !v.current && (
                 <button className="sa lnk" data-action="versions.activate" onClick={() => goTo(v.version)} disabled={locked}>
                   {t(v.older ? "about.roll_back_to_this_version" : "about.install_this_version")}
                 </button>
               )
             )}
-            {v.current && !hub.pinned && (
+            {v.current && !studio && !hub.pinned && (
               <button className="sa lnk" data-action="versions.pin" onClick={() => pin(v.version)} disabled={locked}>
                 {t("about.pin_here")}
               </button>

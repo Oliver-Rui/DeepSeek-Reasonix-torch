@@ -15,6 +15,7 @@ export const ABOUT: Messages = {
   "about.download": { zh: "自动下载", en: "Download" },
   "about.download_cancelled": { zh: "已取消下载", en: "Download cancelled" },
   "about.download_paused_the_connection_delivered": { zh: "下载暂停了：连接长时间没有数据，已重连 {n} 次…", en: "Download paused: the connection delivered nothing for a while, reconnected {n} time(s)…" },
+  "about.download_the_installer": { zh: "下载安装包", en: "Download the installer" },
   "about.download_the_full_installer": { zh: "下载完整安装包", en: "Download the full installer" },
   "about.downloaded_waiting_for_a_restart": { zh: "已下载，待重启", en: "Downloaded, waiting for a restart" },
   "about.downloading_got": { zh: "下载中 {got}", en: "Downloading {got}" },

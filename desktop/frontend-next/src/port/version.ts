@@ -6,6 +6,9 @@ export interface VersionEntry {
   hasNotes: boolean;
   current: boolean;
   older: boolean;
+  // The release's plain download, on a catalog that publishes files rather
+  // than a signed manifest — this fork's GitHub releases. Absent on a mirror.
+  url?: string;
 }
 
 // One release's notes. cached says only where they came from.
@@ -36,6 +39,9 @@ export interface VersionHub {
   versions: VersionEntry[];
   withdrawn?: WithdrawnNote;
   err?: string;
+  // A catalog of plain downloads (this fork's GitHub releases): the panel
+  // hands each row's file to the browser instead of the updater's install.
+  studio?: boolean;
 }
 
 // One report from an install in flight. received/total are meaningful only

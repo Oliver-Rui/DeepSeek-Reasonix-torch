@@ -47,6 +47,13 @@ func (h *Hub) registerStudioVersionRoutes(mux *http.ServeMux) {
 var notesReader = update.ReadNotes
 
 func (h *Hub) readStudioNotes(w http.ResponseWriter, r *http.Request) {
+	version := r.PathValue("version")
+	// The fork's notes are the release body itself; a mirror catalog answers
+	// through the upstream reader only when the releases list could not.
+	if body, ok := studioReleaseNotes(r.Context(), version, r.URL.Query().Get("retry") == "1"); ok {
+		writeJSON(w, update.VersionNotes{Version: version, Markdown: body, Cached: true})
+		return
+	}
 	if h.opts.Install == nil {
 		refuse(w, http.StatusNotFound, codeNoInstall, "no Studio install was declared for this kernel", nil)
 		return
@@ -55,7 +62,7 @@ func (h *Hub) readStudioNotes(w http.ResponseWriter, r *http.Request) {
 	if read == nil {
 		read = notesReader
 	}
-	notes, err := read(r.Context(), *h.opts.Install, r.PathValue("version"), r.URL.Query().Get("retry") == "1")
+	notes, err := read(r.Context(), *h.opts.Install, version, r.URL.Query().Get("retry") == "1")
 	switch {
 	case err == nil:
 		writeJSON(w, notes)
@@ -78,11 +85,18 @@ func (h *Hub) readStudioNotes(w http.ResponseWriter, r *http.Request) {
 // newer, pinned, latest, the order of the rows — is decided here, so two shells
 // cannot disagree about it.
 func (h *Hub) readStudioVersions(w http.ResponseWriter, r *http.Request) {
-	if h.opts.Install == nil {
-		refuse(w, http.StatusNotFound, codeNoInstall, "no Studio install was declared for this kernel", nil)
-		return
+	current := ""
+	if h.opts.Install != nil {
+		current = h.opts.Install.Version
 	}
-	writeJSON(w, update.HubRefreshing(r.Context(), *h.opts.Install, r.URL.Query().Get("refresh") == "1"))
+	// This fork publishes on GitHub, so the releases list is the catalog; the
+	// signed-mirror read stays as the fallback for a shell that declared an
+	// install and a catalog that came back unreadable.
+	hub := studioCatalog(r.Context(), current, r.URL.Query().Get("refresh") == "1")
+	if hub.Err != "" && h.opts.Install != nil {
+		hub = update.HubRefreshing(r.Context(), *h.opts.Install, r.URL.Query().Get("refresh") == "1")
+	}
+	writeJSON(w, hub)
 }
 
 func (h *Hub) pinStudioVersion(w http.ResponseWriter, r *http.Request) {
@@ -109,18 +123,10 @@ func (h *Hub) pinStudioVersion(w http.ResponseWriter, r *http.Request) {
 // readUpdateMode answers without touching the network: whether the window may
 // read the catalog in the background is decided from the user's file alone.
 func (h *Hub) readUpdateMode(w http.ResponseWriter, r *http.Request) {
-	if h.opts.Install == nil {
-		refuse(w, http.StatusNotFound, codeNoInstall, "no Studio install was declared for this kernel", nil)
-		return
-	}
 	writeJSON(w, map[string]string{"mode": update.Mode()})
 }
 
 func (h *Hub) saveUpdateMode(w http.ResponseWriter, r *http.Request) {
-	if h.opts.Install == nil {
-		refuse(w, http.StatusNotFound, codeNoInstall, "no Studio install was declared for this kernel", nil)
-		return
-	}
 	var req struct {
 		Mode string `json:"mode"`
 	}
