@@ -84,17 +84,17 @@
 .compose .studio-effort-reading .studio-icon { width: 12px; height: 12px; }
 
 .compose .btn.send, .compose .btn.stop {
-  width: 32px; height: 32px; padding: 0; flex: none; display: grid; place-items: center;
+  width: 24px; height: 24px; padding: 0; flex: none; display: grid; place-items: center;
   border-radius: 50%; box-shadow: none; transform: none;
 }
 .compose .btn.send { border: 0; background: var(--accent); color: var(--accent-fg); }
 .compose .btn.send:hover:not(:disabled) { background: var(--accent); filter: brightness(1.18); }
 .compose .btn.send:disabled { background: var(--overlay); color: var(--ghost); filter: none; opacity: 1; }
 .compose .btn.send:focus-visible, .compose .btn.stop:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: none; }
-.compose .btn.send[data-running]:not(:disabled) { width: auto; display: inline-flex; gap: 5px; padding: 0 12px 0 10px; border-radius: var(--r-pill); background: var(--accent); color: var(--accent-fg); font: var(--w-med) var(--fs-ui)/1 var(--ui); }
+.compose .btn.send[data-running]:not(:disabled) { width: auto; height: 24px; display: inline-flex; align-items: center; gap: 5px; padding: 0 12px 0 10px; border-radius: var(--r-pill); background: var(--accent); color: var(--accent-fg); font: var(--w-med) var(--fs-ui)/1 var(--ui); }
 .compose .btn.stop, .compose .btn.stop[data-primary] { border: 0; background: color-mix(in srgb, var(--err) 12%, transparent); color: var(--err-ink); }
 .compose .btn.stop:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 20%, transparent); color: var(--err-ink); }
-.compose .btn :is(.ic, .ic > svg) { width: 18px; height: 18px; }
+.compose .btn :is(.ic, .ic > svg) { width: 13.5px; height: 13.5px; }
 .compose .btn.send .ic > svg { stroke-width: 2; }
 
 .studio-meterrail { left: 0; right: 0; padding: 0 2px; gap: 0; color: var(--faint); font: var(--w-reg) var(--fs-micro)/1 var(--ui); }
