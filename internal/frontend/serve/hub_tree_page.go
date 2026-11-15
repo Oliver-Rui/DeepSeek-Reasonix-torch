@@ -136,6 +136,57 @@ func (h *Hub) projectPage(roots []string, name string, open map[string]string, w
 	return sessionPage{Sessions: rows, Total: total + len(unlisted), Archived: archived, Remaining: remaining, Said: said, Status: status}
 }
 
+// treeSessionRows is the raw material of one workspace's sidebar rows: the
+// conversations a row shows, with what no row shows — subagent traces, covered
+// recovery forks, copies folded into their lead — left out. Handlers that act
+// on a row the sidebar shows (move, pin, viewed, move-to) take the sessions
+// and the order they act on from here, so their enumeration never disagrees
+// with what /tree answers.
+//
+// listed is the part a rank can place. unlisted are the conversations a pane
+// is driving whose transcript is not on disk yet: the tree pins them above the
+// listed ones, and a rank has no file to ride with, so they are named
+// separately and a step on one changes nothing.
+func (h *Hub) treeSessionRows(root string) (listed, unlisted []sessionstore.SessionInfo) {
+	rows := h.listTreeSessions(SessionDirFor(root), listingStatusFor(false), false)
+	sortSessions(rows)
+	held := openLookup(h.openSessions())
+	byID := map[string]map[string]sessionstore.SessionInfo{}
+	for _, si := range rows {
+		dir := filepath.Dir(si.Path)
+		if byID[dir] == nil {
+			byID[dir] = map[string]sessionstore.SessionInfo{}
+		}
+		byID[dir][sessionstore.BranchID(si.Path)] = si
+	}
+	listed = make([]sessionstore.SessionInfo, 0, len(rows))
+	shown := make([]treeSession, 0, len(rows))
+	lead := map[string]bool{}
+	for _, si := range rows {
+		if store.IsSubagentTranscriptName(filepath.Base(si.Path)) {
+			continue
+		}
+		inUse := held(si.Path) != ""
+		if !inUse && hiddenRecoveryCopy(si, "") {
+			continue
+		}
+		dir := filepath.Dir(si.Path)
+		if si.Recovered && !inUse {
+			lineage := dir + "\x00" + recoveryLineageRoot(si, byID[dir])
+			if lead[lineage] {
+				continue
+			}
+			lead[lineage] = true
+		}
+		listed = append(listed, si)
+		shown = append(shown, treeSession{Path: si.Path})
+	}
+	for _, row := range h.unlistedOpenSessions(root, shown, rows) {
+		unlisted = append(unlisted, sessionstore.SessionInfo{Path: row.Path})
+	}
+	return listed, unlisted
+}
+
 func sortTreeSessions(listed []sessionstore.SessionInfo, recent bool) {
 	if !recent {
 		sortSessions(listed)
