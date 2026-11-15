@@ -26,21 +26,39 @@ func studioServer(t *testing.T, in *update.Install) *httptest.Server {
 	return srv
 }
 
-// A kernel nobody declared an install for is not a Studio: it has no build of
-// its own to report or change. It says so with a code, because "not a Studio"
-// and "a catalog that came back empty" are different answers and a panel that
-// folds them together offers to update a server with no application around it.
-func TestVersionRoutesRefuseByNameWithoutAnInstall(t *testing.T) {
+// A kernel nobody declared an install for still answers the versions route:
+// the fork's catalog is the GitHub releases list, which needs no install —
+// only pin and the notes-through-the-mirror stay install-only. The catalog's
+// error rides beside the data (current names the running build even when the
+// catalog could not be read), so a panel never mistakes an unreachable
+// GitHub for "not a Studio".
+func TestVersionRoutesWithoutAnInstall(t *testing.T) {
 	srv := studioServer(t, nil)
+	// An unreachable catalog: the route answers 200 with err beside the data.
+	wasBase, wasRepo := studioAPIBase, studioRepo
+	studioAPIBase, studioRepo = "http://127.0.0.1:1", "Oliver-Rui/DeepSeek-Reasonix-torch"
+	t.Cleanup(func() { studioAPIBase, studioRepo = wasBase, wasRepo })
+	t.Cleanup(resetStudioCatalogCache)
 
 	resp, err := http.Get(srv.URL + "/studio/versions")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if code := refusalCode(t, resp); code != codeNoInstall {
-		t.Fatalf("GET /studio/versions refused with %q, want %q", code, codeNoInstall)
+	var hub struct {
+		Current  string `json:"current"`
+		Err      string `json:"err"`
+		Studio   bool   `json:"studio"`
+		Versions []struct{} `json:"versions"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&hub); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if hub.Current != "" || hub.Err == "" || !hub.Studio || len(hub.Versions) != 0 {
+		t.Fatalf("hub = %+v, want an empty studio catalog with err beside it", hub)
 	}
 
+	// Pin stays install-only: there is nothing for a hold to hold.
 	resp, err = http.Post(srv.URL+"/studio/pin", "application/json", bytes.NewReader([]byte(`{"version":"2.9.0"}`)))
 	if err != nil {
 		t.Fatal(err)

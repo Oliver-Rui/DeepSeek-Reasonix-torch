@@ -184,7 +184,7 @@
   },
   {
     "Name": "dispatch_to_project",
-    "Description": "Hand a task to a session in one of the user's projects: name the project (its folder name or full path, as the user has it in their project list) and write what that session should do. A session is opened there if none of yours is already waiting. Pass role to keep several sessions in the same project apart: each role gets its own window, and a second task to the same role goes to the window already waiting rather than opening another. Without a role, one task per project is the rule, and this session's own project is refused. Dispatch into a project other than this session's own follows the user's cross-project dispatch setting (always, paired or never): 'paired' sends a task only to a session of yours already open in that project. The user's dispatch switch is their consent: the receiving session's model reads the task at once, labelled as coming from you, and it works under permissions no wider than yours. A project the user has not trusted is refused. It is for passing a task and its context, not a way to write into that project yourself. You get the receiving session's key. When that session finishes the task, its final answer comes back to you on its own, labelled as data from that session; it can also write to you with send_peer_message. Do not include secrets.",
+    "Description": "Hand a task to a session in one of the user's projects: name the project (its folder name or full path, as the user has it in their project list) and write what that session should do. A session is opened there if none of yours is already waiting. Pass role to keep several sessions in the same project apart: each role gets its own window, and a second task to the same role goes to the window already waiting rather than opening another. Roles also name your crew for the user: dispatch each member under a role that says who they are and what they own, such as 「组员A：美术」 or 「组员B：开发」, and the role reads as that member's name in the dispatch threads. You are the router: hand each member their task and the context they need, their final answer returns to you on its own, and they can report back mid-work with send_peer_message. While the user's dispatch switch is on, you may set up and use such a crew automatically — asking permission for every hand-off is not required. Without a role, one task per project is the rule, and this session's own project is refused. Dispatch into a project other than this session's own follows the user's cross-project dispatch setting (always, paired or never): 'paired' sends a task only to a session of yours already open in that project. The user's dispatch switch is their consent: the receiving session's model reads the task at once, labelled as coming from you, and it works under permissions no wider than yours. A project the user has not trusted is refused. It is for passing a task and its context, not a way to write into that project yourself. You get the receiving session's key. When that session finishes the task, its final answer comes back to you on its own, labelled as data from that session; it can also write to you with send_peer_message. Do not include secrets.",
     "ReadOnly": false,
     "Schema": {
       "additionalProperties": false,
@@ -194,7 +194,7 @@
           "type": "string"
         },
         "role": {
-          "description": "Optional. A short name for the job this session is being opened to do, such as frontend or reviewer. It keeps several sessions in one project apart; the same role reuses the session already waiting.",
+          "description": "Optional. A short name for this crew member and the job they own, such as 组员A：美术 (art) or 组员B：开发 (dev), or plain frontend / reviewer. It keeps several sessions in one project apart; the same role reuses the session already waiting.",
           "type": "string"
         },
         "text": {
@@ -348,7 +348,7 @@
   },
   {
     "Name": "send_peer_message",
-    "Description": "Send text to another Reasonix session on this machine, named by list_peers. While the user's dispatch switch is on (the default) its model reads it as soon as that session is free, labelled as coming from you; with the switch off it waits there for its user to approve it. Sending grants no permission and is not a way to run anything there: it is for passing information. Do not include secrets.",
+    "Description": "Send text to another Reasonix session on this machine, named by list_peers. While the user's dispatch switch is on (the default) its model reads it as soon as that session is free, labelled as coming from you; with the switch off it waits there for its user to approve it. Sending grants no permission and is not a way to run anything there: it is for passing information. If you were opened by another session's dispatch, this is also how you report progress back to your router while you work — its final answer to the task returns on its own, so reserve this channel for things the router needs before you finish. Do not include secrets.",
     "ReadOnly": false,
     "Schema": {
       "additionalProperties": false,

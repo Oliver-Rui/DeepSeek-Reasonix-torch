@@ -74,7 +74,7 @@ func studioCatalog(ctx context.Context, current string, refresh bool) update.Ver
 				hub.Err = err.Error()
 				return hub
 			}
-			return update.VersionHub{Current: current, Err: err.Error()}
+			return update.VersionHub{Current: current, Studio: true, Err: err.Error()}
 		}
 		studioCatalogCache.releases = releases
 		studioCatalogCache.at = time.Now()

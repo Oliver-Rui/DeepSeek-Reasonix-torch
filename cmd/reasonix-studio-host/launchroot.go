@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"reasonix/internal/assembly/boot"
@@ -67,9 +66,12 @@ func userChoseDir(cwd, appExe, home string) bool {
 }
 
 // sameRealDir says whether two spellings name one directory. The home
-// directory reaches this check from several writers, and on Windows they
-// disagree about case and separators, so the spellings are resolved and
-// case-folded first. An empty spelling names nothing.
+// directory reaches this check from several writers, and launchers disagree
+// about case and separators on every platform — a shortcut's start-in field
+// can carry any case — so the spellings are resolved and case-folded first.
+// A case-fold that mistakes a differently-cased sibling for home costs one
+// launch root falling back to the remembered projects; a miss puts the home
+// directory in the sidebar. An empty spelling names nothing.
 func sameRealDir(a, b string) bool {
 	if strings.TrimSpace(a) == "" || strings.TrimSpace(b) == "" {
 		return false
@@ -88,8 +90,5 @@ func sameRealDir(a, b string) bool {
 	if real, err := filepath.EvalSymlinks(b); err == nil {
 		b = real
 	}
-	if runtime.GOOS == "windows" {
-		return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
-	}
-	return filepath.Clean(a) == filepath.Clean(b)
+	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }
