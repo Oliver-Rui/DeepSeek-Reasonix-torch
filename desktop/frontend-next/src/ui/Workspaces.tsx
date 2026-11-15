@@ -1,9 +1,10 @@
 import { inScope, sessionRuntime } from "./sessionScope";
-import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from "react";
 import { hidesLegacySessions, onHidesLegacySessionsChange } from "../state/prefs";
 import { onSessionQuickActionsChange, showsSessionQuickActions } from "../state/sessionQuick";
 import { onRecencySortChange, recencySort } from "../state/recencySort";
 import { onRailGroupOrderChange, railGroupOrder, setRailGroupOrder } from "../state/railGroupOrder";
+import { onRailRunFoldChange, railRunFold, setRailRunFold } from "../state/railRunFold";
 import { onRailTimeGroupsChange, railTimeGroups } from "../state/railTimeGroups";
 import { dayBucket, monthBuckets } from "./timeBuckets";
 import { createPortal } from "react-dom";
@@ -11,7 +12,7 @@ import { t } from "../i18n";
 import type { TreeSession, TreeWorkspace } from "../port/hub";
 import { workspaceContains } from "../port/hub";
 import { HttpError } from "../port/http_error";
-import { pinToViewport } from "./place";
+import { pinToViewport, zoom } from "./place";
 import { useRailQuery } from "./railsearch";
 import { StudioIcon } from "./StudioIcon";
 import { TreeEmpty, TreeReading } from "./TreeReading";
@@ -28,7 +29,10 @@ import { WorkspaceReveal } from "./WorkspaceReveal";
 import { SessionMenu } from "./SessionMenu";
 import { useSessionMove } from "./useSessionMove";
 import { useSessionMoveTo } from "./useSessionMoveTo";
-import { pinnedFirst } from "./pinorder"; import { Hit } from "./Hit"; import { WsMark } from "./WsMark";
+import { dragGhost } from "./dragghost";
+import { BlankProjectDialog } from "./BlankProjectDialog";
+import { SessionHoverCard } from "./SessionHoverCard";
+import { pinnedFirst } from "./pinorder"; import { Hit } from "./Hit";
 import { Confirm, removeHint, sessionDeleteHint } from "./WorkspaceConfirm";
 import { LeadDot, UnreadCount } from "./UnreadMark";
 import { PeerThreadMark } from "./peerthreads";
@@ -71,13 +75,35 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // A run's label folds the whole run: the folder rows and every conversation
   // under them — whether or not any folder holds a session. The per-folder
-  // chevrons keep their own, persisted fold; this one is the label's.
-  const [collapsedRuns, setCollapsedRuns] = useState<Set<"projects" | "tasks">>(new Set());
+  // chevrons keep their own, persisted fold; this one is the label's, kept in
+  // the same store so a reload opens the same shape.
+  const collapsedRuns = useSyncExternalStore(onRailRunFoldChange, railRunFold, railRunFold);
   // The row a Delete key asked about. The question replaces that row, so focus
   // goes back to it once the question is gone, or a keyboard is left nowhere.
   const askedByKey = useRef("");
   const needle = useRailQuery();
   useEffect(() => { setSelection((current) => current === null ? null : new Set()); }, [needle, scope]);
+  // The projects run's plus: a two-item menu at the pointer's bottom-left —
+  // an empty named folder, or a folder the person already has — and the
+  // blank-project dialog the first item opens.
+  const [projAdd, setProjAdd] = useState<{ x: number; y: number } | null>(null);
+  const [blankOpen, setBlankOpen] = useState(false);
+  // The projects plus' menu dismisses on anything else: an outside click, a
+  // scroll of the tree, Escape.
+  useEffect(() => {
+    if (!projAdd) return;
+    const outside = (ev: MouseEvent) => {
+      const menu = document.querySelector(".groupadd");
+      if (!menu?.contains(ev.target as Node)) setProjAdd(null);
+    };
+    const key = (ev: KeyboardEvent) => { if (ev.key === "Escape") setProjAdd(null); };
+    window.addEventListener("mousedown", outside, true);
+    window.addEventListener("keydown", key, true);
+    return () => {
+      window.removeEventListener("mousedown", outside, true);
+      window.removeEventListener("keydown", key, true);
+    };
+  }, [projAdd]);
   const toggleSelection = (path: string) => setSelection((current) => togglePath(current, path));
   const treeKeys = useTreeKeys();
   const mutations = useSessionMutation(onError);
@@ -179,6 +205,20 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       setBusy("");
     }
   };
+
+  // The task run's plus: the window's own kind of conversation — no project,
+  // no picker; the kernel resolves it into the auto workspace itself.
+  const startTaskSession = async () => {
+    setBusy("new:");
+    try {
+      await onOpen({});
+    } catch (e) {
+      onError(e);
+    } finally {
+      setBusy("");
+    }
+  };
+
 
   // Dragging reorders the whole remembered list, so a search that hides rows turns it off.
   const drag = useWorkspaceDrag(needle ? [] : tree.filter((w) => w.remembered).map((w) => w.root), async (root, before) => {
@@ -381,18 +421,18 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   // The tree at rest — no query or scope on: this is when an empty run speaks,
   // and its standing label folds what it says.
   const restEmpty = !needle && scope === "all" && treeRead && !otherRows;
-  const toggleRun = (group: "projects" | "tasks") => setCollapsedRuns((current) => {
+  const toggleRun = (group: "projects" | "tasks") => setRailRunFold((current) => {
     const next = new Set(current);
     if (next.has(group)) next.delete(group);
     else next.add(group);
     return next;
   });
+  // The 任务列表 head folds both runs at once, the same persisted rest store
+  // the two labels write: everything but the labels themselves goes away,
+  // and a reload opens the same shape.
   const bothFolded = collapsedRuns.has("projects") && collapsedRuns.has("tasks");
-  // The 任务列表 head folds both runs at once: folder rows and conversations
-  // alike, leaving only the two labels.
   const toggleBothRuns = () => {
-    const shut = !bothFolded;
-    setCollapsedRuns(shut ? new Set(["projects", "tasks"]) : new Set());
+    setRailRunFold(!bothFolded ? new Set(["projects", "tasks"]) : new Set());
   };
   // Dragging one group's label onto the other swaps the two runs; the label is
   // the handle, and the swap rests in the group-order store.
@@ -401,12 +441,32 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   // neighbour of its own project asks for the row's place in that project's
   // order. `root` keeps a row from dropping into another project's list, and
   // `archived` keeps the two orderings from mixing — the move walks one class.
-  const [sessDrag, setSessDrag] = useState<{ from: string; root: string; archived: boolean; over: string } | null>(null);
+  // `over` carries the edge the pointer is nearest, so the insertion line and
+  // the walk the drop asks for name the same place.
+  const [sessDrag, setSessDrag] = useState<{ from: string; root: string; archived: boolean; over: { path: string; edge: "before" | "after" } | null } | null>(null);
+
+  // A row's hover, half a second in: the card that says what the conversation
+  // is and where its dispatches went. A drag, a search or the picking mode
+  // reads as no hover at all.
+  const [rowHover, setRowHover] = useState<{ ws: TreeWorkspace; session: TreeSession; rect: DOMRect } | null>(null);
+  const hoverTimer = useRef(0);
+  const hoverable = !needle && !selection && !sessDrag && !groupDrag;
+  const hoverIn = (ws: TreeWorkspace, session: TreeSession, ev: ReactMouseEvent<HTMLElement>) => {
+    if (!hoverable) return;
+    window.clearTimeout(hoverTimer.current);
+    const target = ev.currentTarget;
+    hoverTimer.current = window.setTimeout(() => setRowHover({ ws, session, rect: target.getBoundingClientRect() }), 450);
+  };
+  const hoverOut = () => {
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => setRowHover(null), 350);
+  };
   const groupDragProps = (group: "projects" | "tasks"): GroupDragProps => ({
     draggable: true,
     onDragStart: (e) => {
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData(GROUP_DRAG_KIND, group);
+      dragGhost(e, group === "projects" ? t("common.project") : t("session.tasks"));
       setGroupDrag({ from: group, over: null });
     },
     onDragOver: (e) => {
@@ -421,9 +481,10 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       if (!groupDrag || groupDrag.from === group) return;
       if (![...(e.dataTransfer?.types ?? [])].includes(GROUP_DRAG_KIND)) return;
       e.preventDefault();
-      const from = groupDrag.from;
       setGroupDrag(null);
-      setRailGroupOrder(from === "tasks" ? "tasks-first" : "projects-first");
+      // The drop swaps the two runs — with two of them, carrying either label
+      // onto the other lands in the same place, so the order simply flips.
+      setRailGroupOrder(railGroupOrder() === "projects-first" ? "tasks-first" : "projects-first");
     },
     onDragEnd: () => setGroupDrag(null),
   });
@@ -438,12 +499,27 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
     const collapsed = collapsedRuns.has(group);
     return (
       <Fragment key={group}>
-        {restEmpty ? (
-          <WorkspaceGroupHead group={group} folded={collapsed} canFold onToggle={() => toggleRun(group)} dragProps={groupDragProps(group)}
-            dropping={groupDrag?.over === group} dragging={groupDrag?.from === group} />
-        ) : (
-          <WorkspaceGroupHead group={group} folded={fold.folded} searching={searching} dragProps={groupDragProps(group)} />
-        )}
+        {/* One head for every shape of run: the label folds the whole run —
+            the folder rows and every conversation under them — through the
+            persisted rest store, so a reload opens the same shape. Remote
+            rows on the tree or a scope on the view must not take the fold
+            away; the query is the only thing that stands the label
+            unclickable, and even then the head reads as its disabled
+            button. The row's plus answers its own run: the projects' adds a
+            project, the tasks' opens the window's own kind of conversation. */}
+        <WorkspaceGroupHead group={group} folded={searching ? fold.folded : collapsed} canFold={!searching} searching={searching}
+          onToggle={() => toggleRun(group)} dragProps={groupDragProps(group)}
+          dropping={groupDrag?.over === group} dragging={groupDrag?.from === group}
+          onAdd={group === "projects" ? (at) => {
+            // The menu's top-left corner sits at the plus button's own
+            // bottom-left: the button is the anchor, not the pointer. The
+            // rect reads in screen pixels and the menu's fixed position
+            // lives inside the page's zoom, so the anchor is divided by it —
+            // the same math pinning the other floaters uses.
+            const box = at.currentTarget.getBoundingClientRect();
+            setProjAdd({ x: box.left / zoom(), y: (box.bottom + 6) / zoom() });
+          } : () => void startTaskSession()}
+          adding={adder.busy || busy === "new:"} />
         {restEmpty && !collapsed && group === "projects" && list.length === 0 && (
           <>
             <div className="ws-none">{t("session.no_projects_yet")}</div>
@@ -456,7 +532,10 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
         {restEmpty && !collapsed && group === "tasks" && (list.length === 0 || tasksEmpty) && (
           <div className="ws-none">{t("session.no_tasks_yet")}</div>
         )}
-        {!collapsed && list.map((ws) => {
+        {/* A fold is a resting-state preference: while a query is on, the rows
+            it would hide are the very rows the query just found, so the run
+            opens for the search no matter how it was put away. */}
+        {(!collapsed || !!needle) && list.map((ws) => {
             // A fold is a resting-state preference; while a query is on it would hide
             // the very rows the query just found.
             const hasChildren = hasKids(ws);
@@ -488,6 +567,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                 ) : (
                   <div
                     ref={sessionMenu === ws.root ? sessionMenuBox : undefined}
+                    data-action-click="workspace.fold"
                     data-action-contextmenu="workspace.menu"
                     data-action-keydown="workspace.menu"
                     data-action-dragstart="workspace.reorder"
@@ -499,7 +579,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                     data-drop={drag.over?.root === ws.root ? drag.over.edge : undefined}
                     data-dragging={drag.dragging === ws.root ? "" : undefined}
                     draggable={ws.remembered && !needle}
-                    onDragStart={(ev) => drag.start(ev, ws.root)}
+                    onDragStart={(ev) => { drag.start(ev, ws.root); dragGhost(ev, ws.name); }}
                     onDragOver={(ev) => drag.hover(ev, ws.root)}
                     onDragLeave={() => drag.leave(ws.root)}
                     onDrop={(ev) => drag.drop(ev, ws.root)}
@@ -532,11 +612,13 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                   >
                     {selection && <input type="checkbox" className="session-select" tabIndex={-1}
                       aria-label={t("session.select_session_name", { name: ws.name })}
-                      data-action-change="session.selection" data-target={ws.root}
+                      data-action-change="session.selection" data-action-click="session.selection" data-target={ws.root}
                       checked={visible.length > 0 && visible.every((s) => selection.has(s.path))}
                       onClick={(ev) => ev.stopPropagation()} onChange={() => pickProject(ws)} />}
-                    <WsMark open={hasChildren ? !shut : undefined} />
-                    <StudioIcon name="folder" />
+                    {/* The folder carries the fold itself: an open folder while
+                        the run shows, a closed one while it is put away — the
+                        row's edge carries no separate fold arrow. */}
+                    <StudioIcon name={hasChildren && !shut ? "reveal" : "folder"} />
                     <span className="wsname ds-title" title={ws.root}>
                       {ws.name}
                     </span>
@@ -700,6 +782,8 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         role="treeitem"
                         aria-level={2}
                         aria-label={rowLabel(session)}
+                        onMouseEnter={hoverable ? (ev) => hoverIn(ws, session, ev) : undefined}
+                        onMouseLeave={hoverable ? hoverOut : undefined}
                         aria-selected={selection ? selection.has(session.path) : on}
                         data-on={on ? "" : undefined}
                         data-live={session.runtimeId ? "" : undefined}
@@ -707,7 +791,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         data-unread={session.unread ? "" : undefined}
                         data-just-done={session.runtimeId && justDone.has(session.runtimeId) ? "" : undefined}
                         data-busy={opening === session.path || mutations.pending.has(session.path) ? "" : undefined}
-                        data-drop={sessDrag?.over === session.path ? "over" : undefined}
+                        data-drop={sessDrag?.over?.path === session.path ? sessDrag.over.edge : undefined}
                         data-dragging={sessDrag?.from === session.path ? "" : undefined}
                         draggable={subtitle || selection || !!needle ? undefined : true}
                         onClick={(ev) => { if (selection) toggleSelection(session.path); else if (ev.detail < 2 && mutations.pending.get(session.path) !== "archive") void pick(ws, session); }}
@@ -725,13 +809,14 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         }}
                         // Dragging a conversation onto a neighbour reorders it
                         // within its own project — the walk the Alt+arrow keys
-                        // already ask for, aimed by where the pointer let go.
+                        // already ask for, aimed at the edge the line showed.
                         // The flat time reading sorts by clock, so its rows
                         // drag nothing; a search has no order to move within.
                         onDragStart={subtitle ? undefined : (ev) => {
                           ev.dataTransfer.effectAllowed = "move";
                           ev.dataTransfer.setData(SESSION_DRAG_KIND, session.path);
-                          setSessDrag({ from: session.path, root: ws.root, archived: !!session.archived, over: "" });
+                          dragGhost(ev, rowLabel(session));
+                          setSessDrag({ from: session.path, root: ws.root, archived: !!session.archived, over: null });
                         }}
                         onDragOver={subtitle ? undefined : (ev) => {
                           if (!sessDrag || sessDrag.from === session.path || sessDrag.root !== ws.root) return;
@@ -739,9 +824,14 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           if (!!session.archived !== sessDrag.archived) return;
                           ev.preventDefault();
                           ev.dataTransfer.dropEffect = "move";
-                          setSessDrag((was) => (was?.over === session.path ? was : was ? { ...was, over: session.path } : was));
+                          const box = ev.currentTarget.getBoundingClientRect();
+                          // A real drag always carries the pointer's y; a
+                          // synthetic one (the tests) reads as the row's top.
+                          const y = typeof ev.clientY === "number" ? ev.clientY : 0;
+                          const edge = y < box.top + box.height / 2 ? "before" as const : "after" as const;
+                          setSessDrag((was) => (was?.over?.path === session.path && was.over.edge === edge ? was : was ? { ...was, over: { path: session.path, edge } } : was));
                         }}
-                        onDragLeave={subtitle ? undefined : () => setSessDrag((was) => (was?.over === session.path ? { ...was, over: "" } : was))}
+                        onDragLeave={subtitle ? undefined : () => setSessDrag((was) => (was?.over?.path === session.path ? { ...was, over: null } : was))}
                         onDrop={subtitle ? undefined : (ev) => {
                           if (!sessDrag || sessDrag.from === session.path || sessDrag.root !== ws.root) return;
                           if (![...(ev.dataTransfer?.types ?? [])].includes(SESSION_DRAG_KIND)) return;
@@ -750,7 +840,8 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           setSessDrag(null);
                           const dragged = ws.sessions.find((s) => s.path === drag.from);
                           if (!dragged || !!dragged.archived !== !!session.archived) return;
-                          void order.moveTo(dragged, ws.sessions.filter((s) => !!s.archived === !!session.archived), session);
+                          if (!drag.over) return;
+                          void order.moveTo(dragged, ws.sessions.filter((s) => !!s.archived === !!session.archived), session, drag.over.edge);
                         }}
                         onDragEnd={() => setSessDrag(null)}
                         tabIndex={0}
@@ -914,6 +1005,26 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   return (
     <>
       {moveTo.dialog}
+      {rowHover && createPortal(
+        <SessionHoverCard hub={hub} ws={rowHover.ws} session={rowHover.session} anchor={rowHover.rect}
+          onClose={() => setRowHover(null)} onKeepOpen={() => window.clearTimeout(hoverTimer.current)}
+          onOpenSession={(path) => { setRowHover(null); void onOpen({ sessionPath: path }); }} />,
+        document.body)}
+      {projAdd && createPortal(
+        <div className="groupadd" role="menu" aria-label={t("session.add_a_new_project")}
+          style={{ left: projAdd.x, top: projAdd.y }}>
+          <button role="menuitem" data-action="workspace.add-blank" disabled={adder.busy}
+            onClick={() => { setProjAdd(null); setBlankOpen(true); }}>
+            <StudioIcon name="plus" /><span>{t("session.new_blank_project")}</span>
+          </button>
+          <button role="menuitem" data-action="workspace.add-existing" disabled={adder.busy}
+            onClick={() => { setProjAdd(null); adder.add(); }}>
+            <StudioIcon name="reveal" /><span>{t("session.use_existing_folder")}</span>
+          </button>
+        </div>, document.body)}
+      {blankOpen && createPortal(
+        <BlankProjectDialog adder={adder} onDone={async () => { await reload(); }}
+          onClose={() => setBlankOpen(false)} onError={onError} />, document.body)}
       <SessionBatch hub={hub} selection={selection} selected={selected} displayed={displayed} onSelect={setSelection}
         onExit={() => {
           // Back to the tree's own standing control. The menu entries that

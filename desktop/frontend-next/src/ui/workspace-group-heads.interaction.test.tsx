@@ -25,7 +25,7 @@ function draw() {
       return next;
     });
     return <Workspaces hub={{} as never} tree={tree} treeRead runtimes={[]} active=""
-      folded={folded} onFold={(root, shut) => fold([root], shut)} onFoldGroup={fold}
+      folded={folded} onFold={(root, shut) => fold([root], shut)}
       reload={async () => {}} onOpen={async () => {}} onFocus={() => {}} onClose={async () => {}}
       liveIds={() => []} runs={{}} onRename={() => {}} onError={() => {}}
       adder={{ add: () => {}, close: () => {}, at: null } as never} />;
@@ -95,7 +95,7 @@ const notes = () => [...document.querySelectorAll(".ws-none")].map((el) => el.te
 
 function drawTree(tree: TreeWorkspace[]) {
   render(<Workspaces hub={{} as never} tree={tree} treeRead runtimes={[]} active="" folded={new Set()}
-    onFold={() => {}} onFoldGroup={() => {}} reload={async () => {}} onOpen={async () => {}}
+    onFold={() => {}} reload={async () => {}} onOpen={async () => {}}
     onFocus={() => {}} onClose={async () => {}} liveIds={() => []} runs={{}} onRename={() => {}}
     onError={() => {}} adder={{ add: () => {}, close: () => {}, at: null } as never} />);
 }
@@ -212,18 +212,23 @@ const dragTransfer = () => {
 it("swaps the two runs when one label is dragged onto the other", async () => {
   draw();
   const transfer = dragTransfer();
+  // The drag rides the whole label row: the carried state and the line sit
+  // on the row, not on the fold button itself.
+  const lineOf = (button: HTMLButtonElement) => button.closest(".wsgroupline")!;
   const tasks = head("tasks");
   const projects = head("projects");
   fireEvent.dragStart(tasks, { dataTransfer: transfer });
-  await waitFor(() => expect(tasks.getAttribute("data-dragging")).toBe(""));
+  await waitFor(() => expect(lineOf(tasks).getAttribute("data-dragging")).toBe(""));
   fireEvent.dragOver(projects, { dataTransfer: transfer });
-  await waitFor(() => expect(projects.getAttribute("data-drop")).toBe("over"));
+  // The drop swaps the runs, so the head's line rides the target's bottom
+  // edge — the row's own "after" edge.
+  await waitFor(() => expect(lineOf(projects).getAttribute("data-drop")).toBe("after"));
   fireEvent.drop(projects, { dataTransfer: transfer });
   expect([...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent)).toEqual(["任务", "项目"]);
   expect(localStorage.getItem("rx-rail-group-order")).toBe("tasks-first");
   // The run the drag carried no longer fades, and no head reads as a target.
-  expect(tasks.getAttribute("data-dragging")).toBeNull();
-  expect(projects.getAttribute("data-drop")).toBeNull();
+  expect(lineOf(tasks).getAttribute("data-dragging")).toBeNull();
+  expect(lineOf(projects).getAttribute("data-drop")).toBeNull();
   // The first run is now the tasks run: its conversations lead the tree.
   expect(screen.getAllByRole("treeitem", { name: "three" })[0]!.compareDocumentPosition(screen.getAllByRole("treeitem", { name: "one" })[0]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   // Dragging back restores the standing order.
@@ -271,10 +276,19 @@ function drawMoving(hub: unknown, reload: () => Promise<void> = async () => {}) 
     { root: "/b", name: "b", remembered: true, sessions: [{ path: "/b/9.jsonl", name: "nine", title: "nine" }] },
   ];
   render(<Workspaces hub={hub as never} tree={tree} treeRead runtimes={[]} active="" folded={new Set()}
-    onFold={() => {}} onFoldGroup={() => {}} reload={reload} onOpen={async () => {}}
+    onFold={() => {}} reload={reload} onOpen={async () => {}}
     onFocus={() => {}} onClose={async () => {}} liveIds={() => []} runs={{}} onRename={() => {}}
     onError={() => {}} adder={{ add: () => {}, close: () => {}, at: null } as never} />);
 }
+
+// jsdom has no DragEvent constructor, so the events carry no pointer
+// coordinates; the edge the row under the pointer speaks is driven here by
+// the rect the handler reads — a target sat low reads "before", one sat high
+// reads "after".
+const sitAt = (el: HTMLElement, top: number) => {
+  el.getBoundingClientRect = () =>
+    ({ top, bottom: top + 30, height: 30, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect);
+};
 
 it("moves a conversation onto its neighbour inside the same project", async () => {
   const moves: string[] = [];
@@ -285,17 +299,54 @@ it("moves a conversation onto its neighbour inside the same project", async () =
   const transfer = sessionTransfer();
   const one = screen.getByRole("treeitem", { name: "one" });
   const three = screen.getByRole("treeitem", { name: "three" });
+  sitAt(three, -100); // pointer reads below the row's middle: the "after" edge
   fireEvent.dragStart(one, { dataTransfer: transfer });
   await waitFor(() => expect(one.getAttribute("data-dragging")).toBe(""));
   fireEvent.dragOver(three, { dataTransfer: transfer });
-  await waitFor(() => expect(three.getAttribute("data-drop")).toBe("over"));
+  await waitFor(() => expect(three.getAttribute("data-drop")).toBe("after"));
   fireEvent.drop(three, { dataTransfer: transfer });
   fireEvent.dragEnd(one, { dataTransfer: transfer });
-  // Two places down is two kernel swaps, then one reload for the whole gesture.
+  // Landing below a row two places down is two kernel swaps, then one reload
+  // for the whole gesture.
   await waitFor(() => expect(moves).toEqual(["/a/1.jsonl:1", "/a/1.jsonl:1"]));
   expect(reloaded).toBe(1);
   expect(one.getAttribute("data-dragging")).toBeNull();
   expect(three.getAttribute("data-drop")).toBeNull();
+});
+
+it("lands a conversation above its target when the line rides the row's top edge", async () => {
+  const moves: string[] = [];
+  drawMoving({
+    moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); },
+  });
+  const transfer = sessionTransfer();
+  const one = screen.getByRole("treeitem", { name: "one" });
+  const three = screen.getByRole("treeitem", { name: "three" });
+  sitAt(one, 100); // pointer reads above the row's middle: the "before" edge
+  fireEvent.dragStart(three, { dataTransfer: transfer });
+  fireEvent.dragOver(one, { dataTransfer: transfer });
+  await waitFor(() => expect(one.getAttribute("data-drop")).toBe("before"));
+  fireEvent.drop(one, { dataTransfer: transfer });
+  fireEvent.dragEnd(three, { dataTransfer: transfer });
+  // From the foot to the head is two upward swaps.
+  await waitFor(() => expect(moves).toEqual(["/a/3.jsonl:-1", "/a/3.jsonl:-1"]));
+});
+
+it("asks no swap when the drop lands where the row already sits", async () => {
+  const moves: string[] = [];
+  drawMoving({
+    moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); },
+  });
+  const transfer = sessionTransfer();
+  const one = screen.getByRole("treeitem", { name: "one" });
+  const two = screen.getByRole("treeitem", { name: "two" });
+  sitAt(two, 100); // "before" the next row is where one already is
+  fireEvent.dragStart(one, { dataTransfer: transfer });
+  fireEvent.dragOver(two, { dataTransfer: transfer });
+  await waitFor(() => expect(two.getAttribute("data-drop")).toBe("before"));
+  fireEvent.drop(two, { dataTransfer: transfer });
+  fireEvent.dragEnd(one, { dataTransfer: transfer });
+  await waitFor(() => expect(moves).toEqual([]));
 });
 
 it("ignores a conversation dropped into another project's list", async () => {

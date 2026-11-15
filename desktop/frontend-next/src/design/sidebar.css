@@ -69,23 +69,72 @@
 [data-titlebar="app"][data-platform="darwin"] .rail .studio-brand-lockup { margin-left: calc(var(--lights-w) - 10px); }
 @container (max-width: 300px) { [data-titlebar="app"][data-platform="darwin"] .rail .studio-brand-sub { display: none; } }
 .rail .wsnode { padding: 0; }
+.rail .wsgroupline {
+  display: flex; align-items: center; margin-top: 6px; width: 100%;
+}
 .rail .wsgroup {
-  display: flex; align-items: center; gap: 4px; height: 28px; margin-top: 6px; padding: 0 8px;
-  box-sizing: border-box; width: 100%; color: var(--text); font: var(--w-med) var(--fs-meta)/1.3 var(--ui);
+  display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; flex: 1; min-width: 0;
+  box-sizing: border-box; color: var(--text); font: var(--w-med) var(--fs-meta)/1.3 var(--ui);
 }
 .rail button.wsgroup { border: 0; background: transparent; text-align: left; cursor: pointer; }
-.rail button.wsgroup:hover:not(:disabled) { background: var(--overlay); }
+/* Hovering the row paints one bar across label and plus — the two are one
+   control as far as the eye is concerned, so the bar belongs to the row. */
+.rail .wsgroupline { border-radius: var(--r-sm); }
+.rail .wsgroupline:hover:has(button.wsgroup:not(:disabled)) { background: var(--overlay); }
+.rail .wsgroupline:hover button.wsgroup:not(:disabled),
+.rail button.wsgroup:hover:not(:disabled),
+.rail button.wsgroup:focus-visible:not(:disabled) { background: none; }
+.rail .wsgroupline:has(button.wsgroup:disabled) { opacity: .45; }
 .rail button.wsgroup:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .rail button.wsgroup:disabled { opacity: .4; cursor: default; }
-/* The label is the handle that drags its run above the other: the one under
-   the pointer lights up, and the one being carried fades. */
-.rail .wsgroup[data-drop] { background: var(--overlay); }
-.rail .wsgroup[data-dragging] { opacity: .4; }
-/* A conversation row carries the same two states on its own drag: the row the
-   drop would land on lights up, the carried one fades. Only the tree rows
-   drag — the flat time reading sorts by clock, so it shows neither. */
-.rail .sessrow[data-drop] { background: var(--overlay); }
-.rail .sessrow[data-dragging] { opacity: .4; }
+/* Every drag in the tree speaks one insertion line: a 2px accent bar drawn on
+   the edge the drop will land at — `before` rides the top edge, `after` the
+   bottom — while the row being carried fades. Group-label rows, project rows
+   and conversation rows all read it the same way, so the place the pointer
+   means is said once, in one voice. The group drop swaps the two runs, so the
+   carried label takes the place of the one it lands on: the line rides the
+   row's bottom edge. */
+.rail .wsgroupline, .rail .wsrow, .rail .sessrow { position: relative; }
+.rail .wsgroupline[data-drop="before"]::before,
+.rail .wsrow[data-drop="before"]::before,
+.rail .sessrow[data-drop="before"]::before,
+.rail .wsgroupline[data-drop="after"]::after,
+.rail .wsrow[data-drop="after"]::after,
+.rail .sessrow[data-drop="after"]::after {
+  content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px;
+  border-radius: 1px; background: var(--accent); pointer-events: none; z-index: 1;
+}
+.rail .wsgroupline[data-drop="after"]::after,
+.rail .wsrow[data-drop="after"]::after,
+.rail .sessrow[data-drop="after"]::after { top: auto; bottom: -1px; }
+.rail .wsgroupline[data-dragging], .rail .wsrow[data-dragging], .rail .sessrow[data-dragging] { opacity: .4; }
+/* The run's plus, at the row's right edge: hidden at rest, revealed on hover
+   or focus the way the rows' own actions are — and never part of the drag or
+   the fold. */
+.rail .wsadd-run {
+  flex: none; width: 28px; height: 28px; display: inline-grid; place-items: center;
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--faint); cursor: pointer;
+  margin-right: 2px;
+}
+.rail .wsgroupline:not(:hover, :focus-within) .wsadd-run { opacity: 0; pointer-events: none; }
+.rail .wsgroupline .wsadd-run { transition: opacity var(--t-line) ease; }
+.rail .wsadd-run .studio-icon { width: 16px; height: 16px; }
+.rail .wsadd-run:hover:not(:disabled), .rail .wsgroupline:hover .wsadd-run:not(:disabled) { color: var(--text); background: var(--overlay); }
+.rail .wsadd-run:disabled { opacity: .4; cursor: default; }
+/* The projects plus' two-item menu, opened at the pointer's bottom-left. */
+.groupadd {
+  position: fixed; z-index: 90; min-width: 168px; padding: 4px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--float); color: var(--text); box-shadow: var(--shadow-float);
+}
+.groupadd button {
+  display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 8px;
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted);
+  font: var(--w-reg) var(--fs-ui) var(--ui); text-align: left; cursor: pointer;
+}
+.groupadd button:hover:not(:disabled) { background: var(--overlay); color: var(--text); }
+.groupadd button:disabled { opacity: .4; cursor: default; }
+.groupadd button .studio-icon { width: 14px; height: 14px; color: var(--faint); }
 .rail .wsgroup .wschev { width: 12px; height: 12px; flex: none; color: var(--faint); transform: rotate(-90deg); transition: transform var(--m-line); }
 .rail .wsgroup .wschev[data-open] { transform: none; }
 .rail .wsgroup .wschev[data-leaf] { visibility: hidden; }

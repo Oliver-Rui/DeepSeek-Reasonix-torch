@@ -60,12 +60,10 @@ it("reveals the right-clicked project and returns focus to its row", async () =>
   expect(document.activeElement).toBe(row("b"));
 });
 
-it("reuses project movement and removal confirmation from the context menu", async () => {
-  const { row, moveWorkspace, removeWorkspace, reload } = draw();
-  fireEvent.contextMenu(row("b"));
-  await userEvent.click(screen.getByRole("menuitem", { name: "上移" }));
-  await waitFor(() => expect(reload).toHaveBeenCalledOnce());
-  expect(moveWorkspace).toHaveBeenCalledExactlyOnceWith("/b", -1);
+it("reuses the removal confirmation from the context menu", async () => {
+  const { row, removeWorkspace } = draw();
+  // Movement left the menu for the row's own drag (workspace-drag covers the
+  // walk and its reload); the confirm stays the menu's own work.
   fireEvent.contextMenu(row("b"));
   await userEvent.click(screen.getByRole("menuitem", { name: /从列表移除/ }));
   expect(screen.getByRole("alertdialog").textContent).toContain("从列表移除「b」？");

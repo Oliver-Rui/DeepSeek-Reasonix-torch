@@ -524,7 +524,11 @@ class BenchHub extends MockHub {
 
   // ?slowarchive=<ms>: one project with 27 active and 2127 archived conversations,
   // whose archived read answers after that many milliseconds.
-  tree(window?: TreeWindow): Promise<TreeWorkspace[]> {
+    dispatchThreads(_path: string) {
+    return Promise.resolve([]);
+  }
+
+tree(window?: TreeWindow): Promise<TreeWorkspace[]> {
     const slow = Number(query.get("slowarchive") ?? "");
     if (slow > 0) {
       const archived = window?.scope === "archived";
