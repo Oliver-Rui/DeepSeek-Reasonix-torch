@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"slices"
 
 	"reasonix/internal/contract/config"
@@ -32,10 +33,43 @@ func workspacesPath() string {
 	return ""
 }
 
-// Workspaces is the sidebar's remembered project order.
+// Workspaces is the sidebar's remembered project order: the pinned projects
+// lead it, the rest keep the order they were chosen in.
 func Workspaces() []string {
 	list, _ := readWorkspaceList(workspacesPath())
-	return list.Paths
+	paths := list.Paths
+	if len(list.Pinned) == 0 {
+		return paths
+	}
+	pinned := map[string]bool{}
+	for _, dir := range list.Pinned {
+		pinned[strings.TrimSpace(dir)] = true
+	}
+	head, tail := []string{}, []string{}
+	for _, dir := range paths {
+		if pinned[strings.TrimSpace(dir)] {
+			head = append(head, dir)
+		} else {
+			tail = append(tail, dir)
+		}
+	}
+	return append(head, tail...)
+}
+
+// workspaceNames reads the display names the sidebar's projects carry.
+func workspaceNames() map[string]string {
+	list, _ := readWorkspaceList(workspacesPath())
+	return list.Names
+}
+
+// workspacePinned reads the pinned paths as a set.
+func workspacePinned() map[string]bool {
+	list, _ := readWorkspaceList(workspacesPath())
+	out := map[string]bool{}
+	for _, dir := range list.Pinned {
+		out[strings.TrimSpace(dir)] = true
+	}
+	return out
 }
 
 // LaunchWorkspaces puts the launch project first without changing sidebar order.

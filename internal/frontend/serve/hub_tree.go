@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+
+	"reasonix/internal/state/workspacelist"
 	"os"
 	"path/filepath"
 	"reasonix/internal/base/workspaceid"
@@ -31,7 +33,9 @@ func (h *Hub) registerTreeRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /history/search", historySearch)
 	mux.HandleFunc("GET /tree/events", h.treeEvents)
 	mux.HandleFunc("GET /tree/events/replay", h.treeEventsReplay)
-	mux.HandleFunc("POST /tree/workspaces", h.addWorkspace)
+		mux.HandleFunc("POST /tree/workspaces/display-name", h.setWorkspaceDisplayName)
+	mux.HandleFunc("POST /tree/workspaces/pin", h.setWorkspacePinned)
+mux.HandleFunc("POST /tree/workspaces", h.addWorkspace)
 	mux.HandleFunc("POST /tree/workspaces/remove", h.removeWorkspace)
 	mux.HandleFunc("POST /tree/workspaces/move", h.moveWorkspace)
 	mux.HandleFunc("POST /tree/sessions/remove", h.removeSession)
@@ -61,6 +65,8 @@ func (h *Hub) tree(w http.ResponseWriter, r *http.Request) {
 	}
 	open := h.openSessions()
 	roots := groupWorkspaces(h.roots())
+	names := workspaceNames()
+	pinned := workspacePinned()
 	out := make([]treeWorkspace, 0, len(roots))
 	for _, ref := range roots {
 		// Open means a pane is driving this folder — true from the moment one is
@@ -68,6 +74,7 @@ func (h *Hub) tree(w http.ResponseWriter, r *http.Request) {
 		auto := isAutoWorkspace(ref.root)
 		node := treeWorkspace{
 			Root: ref.root, Name: fileutil.RootName(ref.root),
+			DisplayName: names[ref.root], Pinned: pinned[ref.root],
 			WorkspaceRoots: ref.roots,
 			Isolated:       worktree.IsManagedPath(ref.root, config.DeliveryWorktreeDir()),
 			Remembered:     ref.remembered,
@@ -381,6 +388,72 @@ func recoveryLineageRoot(si sessionstore.SessionInfo, byID map[string]sessionsto
 
 // addWorkspace remembers a folder without opening it. Adding and opening are
 // separate acts: the sidebar lists what you work on, panes are what you drive.
+// setWorkspaceDisplayName records the name a project reads by in the sidebar:
+// the folder on disk keeps its own, and its files stay where they are.
+func (h *Hub) setWorkspaceDisplayName(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Path string `json:"path"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		badBody(w)
+		return
+	}
+	dir, err := resolveWorkspaceDir(strings.TrimSpace(body.Path))
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	err = updateWorkspaceList(r.Context(), false, func(l *workspacelist.List) error {
+		l.SetName(storedWorkspacePath(l, dir), strings.TrimSpace(body.Name))
+		return nil
+	})
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	h.treeChanged()
+	writeJSON(w, map[string]any{"ok": true})
+}
+
+// setWorkspacePinned pins or unpins a project: a pinned one leads the list.
+func (h *Hub) setWorkspacePinned(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Path   string `json:"path"`
+		Pinned bool   `json:"pinned"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		badBody(w)
+		return
+	}
+	dir, err := resolveWorkspaceDir(strings.TrimSpace(body.Path))
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	err = updateWorkspaceList(r.Context(), false, func(l *workspacelist.List) error {
+		l.SetPinned(storedWorkspacePath(l, dir), body.Pinned)
+		return nil
+	})
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	h.treeChanged()
+	writeJSON(w, map[string]any{"ok": true})
+}
+
+// storedWorkspacePath names the path exactly as the list carries it, so a
+// metadata write lands on the entry the sidebar reads.
+func storedWorkspacePath(l *workspacelist.List, dir string) string {
+	for _, stored := range l.Paths {
+		if strings.EqualFold(strings.TrimSpace(stored), strings.TrimSpace(dir)) {
+			return stored
+		}
+	}
+	return dir
+}
+
 func (h *Hub) addWorkspace(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Path string `json:"path"`

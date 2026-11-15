@@ -28,13 +28,21 @@ it("focuses project menu items and supports Arrow/Home/End/Escape", async () => 
   draw();
   const trigger = screen.getByRole("button", { name: "项目操作：b" });
   await userEvent.click(trigger);
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "重命名项目" }));
+  await userEvent.keyboard("{ArrowDown}");
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "置顶项目" }));
+  await userEvent.keyboard("{ArrowDown}");
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "归档项目对话" }));
+  await userEvent.keyboard("{ArrowDown}");
   expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "批量管理" }));
+  await userEvent.keyboard("{ArrowDown}");
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "复制项目目录" }));
   await userEvent.keyboard("{ArrowDown}");
   expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{End}");
   expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{Home}");
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "批量管理" }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "重命名项目" }));
   await userEvent.keyboard("{ArrowUp}");
   expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{Escape}");
@@ -51,7 +59,9 @@ it("offers only Remove for an unremembered project", async () => {
   await userEvent.click(screen.getByRole("button", { name: "项目操作：b" }));
   // 选择本机会话 stays a header control; the menu's own way into picking is
   // 批量管理, disabled where the folder shows nothing to pick.
-  expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["批量管理", "移除不删除文件"]);
+  expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+    "重命名项目", "置顶项目", "归档项目对话", "批量管理", "复制项目目录", "移除不删除文件",
+  ]);
   expect(screen.getByRole("menuitem", { name: /移除/ })).toBeTruthy();
 });
 

@@ -106,6 +106,8 @@ export interface OpenWithTarget {
 }
 
 export interface TreeWorkspace {
+  displayName?: string;
+  pinned?: boolean;
 	listingState?: "discovering" | "indexing" | "ready" | "degraded";
 	listingRevision?: number;
 	countsComplete?: boolean;
@@ -217,6 +219,10 @@ export interface HubPort extends SharePort {
   tree(window?: TreeWindow): Promise<TreeWorkspace[]>;
   /** What this session dispatched: the hub's book, by the session's path. */
   dispatchThreads(path: string): Promise<DispatchThread[]>;
+  /** The name a project reads by in the sidebar; the folder keeps its own. */
+  setWorkspaceDisplayName(path: string, name: string): Promise<void>;
+  /** Pin or unpin a project: a pinned one leads the list. */
+  setWorkspacePinned(path: string, pinned: boolean): Promise<void>;
   /** Conversations, in every workspace, that say these words. */
   searchHistory(query: string): Promise<HistorySearch>;
   onTreeChanged(listener: () => void): () => void;
@@ -405,6 +411,14 @@ export class SseHub implements HubPort {
 
   dispatchThreads(path: string) {
     return this.get<DispatchThread[]>("/dispatch-threads?path=" + encodeURIComponent(path));
+  }
+
+  setWorkspaceDisplayName(path: string, name: string) {
+    return this.post<void>("/tree/workspaces/display-name", { path, name });
+  }
+
+  setWorkspacePinned(path: string, pinned: boolean) {
+    return this.post<void>("/tree/workspaces/pin", { path, pinned });
   }
 
   searchHistory(query: string) {
