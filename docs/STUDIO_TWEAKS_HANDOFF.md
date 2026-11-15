@@ -406,3 +406,56 @@ Releases, in order: `studio-v2.62.0` tags the commit that completes the 2.62.0 s
 and is built by dispatching the current workflow onto that tag (its tree predates the
 publish gate); `studio-v2.63.0` tags the notes commit and builds from the tag push.
 Both publish with the CI-built installer attached.
+
+## 9. The 2.63.1 round: dated deletes, the queue ceiling, and the issue builder
+
+The first install of 2.63.0 surfaced a family of breaks, all fixed on the same
+day and shipped as `studio-v2.63.1` (tag on the tip, notes in
+`release-notes/studio/2.63.1.md`):
+
+- Task conversations refused delete, archive, export and batch removal with
+  「该路径不属于任何已知的工作区」: the ownership check compared the session's
+  parent to the sessions folder exactly, and the dated directories sat deeper.
+- The boundary is the sessions tree now, dated directories included
+  (`2cf2179`), proven by two serve tests and a live smoke against a real
+  kernel (remember, archive, remove-many, forget — all 204).
+- The queue strip lost its ceiling when the composer stopped routing it
+  through `.composeaux`: a full inbox pushed the transcript to 0%.
+- The row list's cap is back and folds with the window, and the cut-preview
+  overlay (`.ovf`, hover half a second, portal to the body) returned with it
+  (`49b28bf`). `perf/budget.mjs` guards this; a manual guard, not in CI.
+- The corner notices rose above the plan card (z 5 → 8 against its 7), and the
+  plan card meets the composer's edges (`inset: auto 0 100%`) (`49b28bf`).
+- The batch bar ends with an X, and the blank-project picker starts at the
+  platform's own last-used folder — `pickFolder` takes a preferred folder now,
+  and "" hands the choice to the OS (`01fc659`).
+
+Issue #2 closed with the family mark (`f44fd16`, Fixes #2): the model menu's
+rows ask `markForModelId` — one keyword table in `vendormarks.tsx` — so a
+relay's `deepseek-chat` shows DeepSeek and `glm-4.6` shows Zhipu.
+
+An id nobody names keeps the door's mark or the letter chip, and a family
+without artwork falls back until its svg lands in `assets/vendor-marks/`.
+
+The release line learned two lessons, both now baked into the pipeline:
+
+- Assets must never be uploaded from this machine: the egress proxy mangles
+  multipart bodies and GitHub stores the raw request — 2.62.0's first
+  installer gained a form-data prologue and Windows refused to run it.
+  `attach-studio-asset.yml` attaches the installer from a runner instead,
+  reading it back byte-identical.
+- The tag is the version: `release-studio.yml` resolves `studio-vX.Y.Z` from
+  the ref alone, so a patch release is notes plus tag, no source bump.
+
+Four CI rounds chased timing flakes to green: the pill test awaits its
+departure, the render-count windows retry, the footer notice query stays
+inside the foot where the one notice lives.
+
+The issue bots are wired but waiting on a key. `issue-builder.yml` turns a
+`@builder` comment (or an `agent:build` label) into a pull request through
+Z.ai's Anthropic endpoint, gated on `ZAI_API_KEY`; auto-labelling reads the
+same route.
+
+No public network exists here and Copilot's coding agent is paid-only, so the
+key is the path. Until it lands, both jobs skip with a notice — and the repo's
+own model family builds its own features the day the key arrives.
