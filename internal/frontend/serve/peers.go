@@ -28,7 +28,11 @@ const (
 )
 
 func (s *Server) registerPeerRoutes(mux *http.ServeMux) {
+	// The doors name their own goods: one quiet pass reads a relay's display
+	// names into the menu's aliases, once per process.
+	go s.autoRefreshDisplayNames()
 	mux.HandleFunc("GET /peers", s.peers)
+	mux.HandleFunc("GET /dispatch-threads", s.dispatchThreads)
 	mux.HandleFunc("POST /peers/send", s.sendPeerMessage)
 	mux.HandleFunc("POST /peers/held/{id}", s.resolvePeerMessage)
 	mux.HandleFunc("GET /peers/settings", s.peersSettings)
@@ -83,17 +87,27 @@ func (s *Server) peers(w http.ResponseWriter, _ *http.Request) {
 	if threads == nil {
 		threads = []control.PeerThread{}
 	}
-	// The dispatch book is the only place a role is remembered; join each thread
-	// to the pane its key names and stamp the role that pane was opened for.
-	if byKey := s.dispatchRoles; byKey != nil {
-		roles := byKey()
-		for i := range threads {
-			if role, ok := roles[threads[i].Key]; ok {
-				threads[i].Role = role
-			}
+	// The sender's own memory is the record of what each dispatch was opened
+	// under: the role rides the pair, so a thread keeps its name after the
+	// partner's pane has closed — a live-runtime walk cannot say that.
+	for i := range threads {
+		if role, ok := ctl.DispatchRoles()[threads[i].Key]; ok {
+			threads[i].Role = role
 		}
 	}
 	writeJSON(w, map[string]any{"enabled": ctl.PeersEnabled(), "peers": peers, "held": held, "threads": threads})
+}
+
+// dispatchThreads answers one session's dispatch record: the roles its
+// dispatched sessions were opened under and where each task landed, as the
+// sidebar's hover card reads them. The hub owns the book; a server outside
+// one has nothing to say.
+func (s *Server) dispatchThreads(w http.ResponseWriter, r *http.Request) {
+	if s.hubThreads == nil {
+		writeJSON(w, []any{})
+		return
+	}
+	writeJSON(w, s.hubThreads(r.URL.Query().Get("path")))
 }
 
 // sendPeerMessage and resolvePeerMessage ride the provider-edit grant: a held
