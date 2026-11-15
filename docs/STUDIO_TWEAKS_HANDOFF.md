@@ -460,52 +460,38 @@ No public network exists here and Copilot's coding agent is paid-only, so the
 key is the path. Until it lands, both jobs skip with a notice — and the repo's
 own model family builds its own features the day the key arrives.
 
-## 10. The 2.64.0 round in progress — timeline sidebar, drag everywhere, message times
+## 10. The 2.64.0 round — timeline sidebar, drag everywhere, message times
 
-All work below sits **uncommitted-to-date on `studio`, local only**; the batch
-commit plan is at the end. `tsc --noEmit` passes on the whole tree (verified
-2026-11-15). What has *not* run yet: the full `vitest` suite, `vite build`,
-census, repolint, and the WebUI preview builds — that is the next session's
-first block, ahead of the user's UI review.
+The round shipped as seven local commits (`14f8c4d`…`e4f77d3`, unpushed); the
+session that followed added §11 on top, also uncommitted. What has run:
+`tsc --noEmit`, census + census:verify (exit 0), focused suites, the WebUI
+preview builds. What §11 added and what still waits is at the end of §11.
 
 ### Sidebar as a timeline (`desktop/frontend-next`)
 
-- **Empty states**: the 项目 / 任务 labels are standing controls (`WorkspaceGroupHead`),
-  each with its own fold chevron beside the text (not the far edge), label in
-  `--text` at the 任务列表 font size, and gray 暂无项目 / 暂无任务 notes
-  (`session.no_projects_yet` / `no_tasks_yet`) that fold with their run.
-- **任务列表 folds both runs at once** (`data-action="workspace.fold-all"`
-  `data-value="both"`, keys `session.collapse/expand_all_groups`); the head's
-  arrow answers with the same two shapes.
-- **Group drag**: dragging the 项目 label onto 任务 (or back) swaps the two
-  runs; the choice rests in `state/railGroupOrder.ts`
-  (`localStorage "rx-rail-group-order"`, `projects-first` / `tasks-first`).
-  MIME kind `application/x-reasonix-group`; visuals on
-  `.rail .wsgroup[data-drop]` / `[data-dragging]` in `design/sidebar.css`.
+- **Empty states**: 项目 / 任务 are standing controls (`WorkspaceGroupHead`),
+  each with its own fold chevron and gray 暂无项目 / 暂无任务 notes that fold
+  with their run.
+- **任务列表 folds both runs at once** (`workspace.fold-all` `data-value="both"`,
+  keys `session.collapse/expand_all_groups`).
+- **Group drag**: dragging one label onto the other swaps the two runs; the
+  choice rests in `state/railGroupOrder.ts` (`localStorage
+  "rx-rail-group-order"`). MIME kind `application/x-reasonix-group`; visuals
+  on `.rail .wsgroupline[data-drop]` / `[data-dragging]` in `design/sidebar.css`.
 - **最近 moved out of the scope menu** into its own clock button left of 全部
-  (`SessionFilter.tsx`, `state/railTimeGroups.ts`, key
-  `"rx-rail-time-groups"`). Scope rows ink when chosen — no ✔, no
-  清除筛选 row (`session.filter-clear` action deleted from `actions.ts`).
-- **Flat timeline reading** (clock on): no folder tree — every listed
-  conversation is a two-line row (name on top, project name or 任务 below;
-  `.ds-row[data-sub]` `.sessline` / `.sessub` in `design/rows.css`), newest
-  first, gathered under 今天 / 昨天 / 7天内 / 30天内 / 更早
-  (`ui/timeBuckets.ts` — `dayBucket` walks the render order so a header can
-  never drift from the row it opens; no counts after headers). Right side
-  shows relative dates (刚刚 / 27分 / 19小时 style).
+  (`SessionFilter.tsx`, `state/railTimeGroups.ts`). Scope rows ink when
+  chosen — no ✔, no 清除筛选 row.
+- **Flat timeline reading** (clock on): every conversation is a two-line
+  row (`.ds-row[data-sub]`), newest first, gathered under day buckets
+  (`ui/timeBuckets.ts` — `dayBucket` walks the render order). Right side
+  shows relative dates.
 - **SessionMenu trim**: no session-info head, no 上移/下移 (`onMove` / `canMove`
   props gone, `onMoveTo` kept). Keyboard Alt+↑/↓ reorder stays
   (`Workspaces.tsx` row keydown → `useSessionMove.move`).
-- **Session-row drag** (the replacement): rows are draggable in the folder
-  tree only — the flat reading sorts by clock, so its rows drag nothing, and
-  a search has no order to move within. MIME kind
-  `application/x-reasonix-session`, kept apart from the group kind so neither
-  gesture can land on the other's rows. A drop names a destination row:
-  `useSessionMove.moveTo` walks `hub.moveSession(path, ±1)` one swap at a
-  time and reloads **once** for the whole gesture. Valid targets are the same
-  project and the same archived flag (the same peers `canMove` uses).
-  Tests: `workspace-group-heads.interaction.test.tsx` (18 pass, two new: the
-  same-project walk, the cross-project refusal).
+- **Session-row drag**: folder-tree rows only. MIME kind
+  `application/x-reasonix-session`, apart from the group kind. A drop names a
+  destination row and edge; `useSessionMove.moveTo` walks `hub.moveSession`,
+  reloading **once**. Targets: same project, same archived flag.
 
 ### Composer and meter
 
@@ -521,43 +507,26 @@ first block, ahead of the user's UI review.
 - Ten SVGs copied from yetone/magpie into `assets/vendor-marks/`
   (magpie, xai, copilot, cursor, modelscope, groq, antigravity, baiducloud,
   huaweicloud, tencentcloud). `vendormarks.tsx` gains `PROVIDER_KEYS` +
-  `markForProvider(name)`; `ServiceMark.tsx` derives the mark from the door's
-  own `name ?? id` — a provider's mark is its own label, not the family its
-  models belong to (magpie shows magpie even when every model behind it reads
-  as somebody else).
-- Kernel: `internal/model/openai/fetch_models.go` parses `display_name` into
-  `ListedModel.DisplayName`; `internal/model/catalog/probe.go` carries the
-  names through the probe (`Probe.Names`); `POST /providers/refresh-models`
-  (`internal/frontend/serve/provider_refresh.go`, route in `providers.go`)
-  merges the fetched list into the entry and prefills blank aliases from the
-  custom names, refusing decision-kind entries with `codeProbeNotCompatible`.
-  Kernel tests: `provider_refresh_test.go` 4/4, `fetch_models_test.go`
-  display_name case green.
-- Frontend: `refreshModels()` through `port` / `sse_provider` / `mock_provider`,
-  a 刷新模型 button in `ProviderDetail.tsx` (with the refresh-done status row),
-  and `EditConn.tsx`'s refetch prefills blank aliases from the refreshed
-  names. Keys in `msg/models.ts` (`refresh_models`, `refreshing_models`,
-  `refresh_done`, `refresh_done_why`).
-- **隐藏共同前缀 retired** on the strength of the above: the EditConn field,
-  its state and its payload line are gone; `msg/models.ts` lost
-  `hide_the_shared_prefix`, `model_name_prefix_of_name`,
-  `the_same_prefix_a_routing`, and `en_settings.ts` their legacy fallback
-  lines. The `hideModelPrefix` field stays on both `ProviderEntry` and
-  `ProviderEdit` (`port/provider.ts`) with compat comments — stored configs
-  that carry it (the mimo entry does) still parse, the kernel's edit route
-  still accepts it, nothing acts on it. `ModelPrefix.test.tsx` now asserts a
-  stored choice rides along unread and the save sends no field.
+  `markForProvider(name)`; a door's mark is its own label, not the family its
+  models belong to.
+- Kernel: `fetch_models.go` parses `display_name` into
+  `ListedModel.DisplayName`; `probe.go` carries the names through the probe
+  (`Probe.Names`); `POST /providers/refresh-models` merges the fetched list
+  into the entry and prefills blank aliases from the custom names.
+- Frontend: `refreshModels()` through the ports, a 刷新模型 button in
+  `ProviderDetail.tsx`, and `EditConn.tsx`'s refetch prefills blank aliases
+  from the refreshed names.
+- **隐藏共同前缀 retired**: the EditConn field, its state and its payload
+  line are gone, with their i18n keys. The `hideModelPrefix` field stays on
+  both `ProviderEntry` and `ProviderEdit` with compat comments — stored
+  configs still parse, nothing acts on it.
 
 ### Message timestamps (chat)
 
-- `say` items carry `at?: number` (`state/session_types.ts`) — when the
-  answer settled. Live paths stamp `Date.now()` in `sealSay` and in both
-  `foldMessage` settles (`state/say.ts`); the history rebuild
-  (`state/session.ts` `fromHistory`) derives
-  `closedAt = turnStart + m.workDurationMs` for the closing card only — the
-  kernel emits `createdAt` on user messages alone (its own
-  `history_thought_test` pins assistant `CreatedAt == 0`), so an untimed card
-  shows no stamp rather than an invented one.
+- `say` items carry `at?: number` — when the answer settled. Live paths
+  stamp `Date.now()` in `sealSay` and both `foldMessage` settles
+  (`state/say.ts`); the history rebuild derives `closedAt` for the closing
+  card only, so an untimed card shows no stamp rather than an invented one.
 - Both cards reveal the stamp on hover: `SayCard` puts
   `<time class="say-time">` at the end of its `.acts` row, `UserCard`'s
   existing `user-time` is gated the same way; hover-reveal CSS sits next to
@@ -583,13 +552,98 @@ first block, ahead of the user's UI review.
    timestamps on hover, row drag, label drag, the timeline reading, the
    retired prefix toggle.
 2. Full `vitest` + `npm run census` + `census:verify` + `repolint -changed`.
-3. Batch commits (next block), `release-notes/studio/2.64.0.md` (≤320-column
-   paragraphs, SHA refs, single summary), tag `studio-v2.64.0`, push through
-   the Git Data API pipeline (`push_robust.py` + `release_publish.py`), then
-   attach the installer **from a runner** (`attach-studio-asset.yml`) — never
-   from this machine, whose proxy mangles multipart bodies.
+3. Batch commits, `release-notes/studio/2.64.0.md`, tag `studio-v2.64.0`,
+   push through the Git Data API pipeline, then attach the installer **from a
+   runner** — never from this machine.
 4. Cosmetic: the forged 更早 demo session inherited the title 123 — rename it
    in the demo dir or leave it; it is review data, not product data.
+
+
+## 11. The review round that finished 2.64.0 — drag lines, folder folds, magpie names
+
+The user's UI review of §10 produced this round, uncommitted on `studio` on
+top of the seven local commits. Everything below was built into the WebUI
+preview (port 8787) and shown to the user as it landed.
+
+### Drag, unified
+
+- Every drag in the tree speaks one insertion line: a 2px accent bar on the
+  edge the drop will land at, in `design/sidebar.css` — group-label rows,
+  project rows and conversation rows all read it the same way.
+- Session drops name a row **and an edge**; `useSessionMove.moveTo` seats the
+  dragged row above or below the target (`before` from<to → `to-1`, else `to`;
+  `after` mirrors it).
+- **Group swap fixed**: the old semantics made the carried run the leader, so
+  dragging 项目 onto 任务 while it already led was a silent no-op. The drop
+  now flips `rx-rail-group-order`, and the line rides the target head's
+  bottom edge.
+- **Drag ghost**: `ui/dragghost.ts` sets a small name chip as the drag image —
+  the browser's default snapshot of a whole row was the slow part of a drag.
+
+### Sidebar regression fixes
+
+- Run folds are the 2.64.0 rows-gone design (only the label stays), persisted
+  in `state/railRunFold.ts` (`rx-rail-run-fold`) — the round had left them
+  in-memory, and a search reveals folded runs' rows.
+- The 2.64.0 Sidebar edit had **dropped `onFoldGroup` from the Workspaces
+  mount**, so group heads' folds did nothing in the real app; restored.
+- Per-project fold chevrons are gone: the folder icon itself reads closed /
+  open (`folder` / `reveal`), and the row's left padding puts the icon on the
+  nav rows' icon line.
+
+### Group heads carry a plus
+
+- 项目 and 任务 heads each gained a right-edge plus. The projects one opens
+  a two-item menu at the button's bottom-left; the blank dialog moved to
+  `ui/BlankProjectDialog.tsx`, shared with the pill. The tasks one opens a
+  non-project conversation.
+- The menu anchor is the button's rect **divided by the page's `--zoom`** —
+  fixed positioning inside the zoomed root was the reason the first version
+  floated away. The hover card shares the fix.
+
+### Peers, surfaced
+
+- The standing 会话互聊 bar above the composer is gone. Dispatched sessions
+  read as one quiet chip in the meter rail (`DispatchThreadsBar` rewritten),
+  and hovering it opens the small card with each peer's state and lamp.
+- An unknown peer — the audit trail carries keys, not titles — reads
+  「已派发的会话」（未知项目） instead of the word undefined.
+- Root fix: `NoteDispatchedSession` now carries the role, and `/peers` joins
+  roles from the sender's own memory (`DispatchRoles`), so a closed partner's
+  row keeps its name. The hub's live-runtime walk is gone.
+
+### The sidebar's hover card
+
+- Hovering a session row (450ms) opens `ui/SessionHoverCard.tsx`: title,
+  project, folder, last move, and one line per dispatched task, each opening
+  the session it landed on. The kernel serves `GET /dispatch-threads?path=`
+  from `dispatchBook.threads`, recorded by sender session path.
+
+### Model names come from the door
+
+- `ModelShort` draws each model by its last path segment, by default — a
+  relay's `group/…`, `auto/…`, `qoder-cn/…` prefixes leave the menus. Two
+  doors onto one model read alike on purpose; the door heading distinguishes.
+- The startup pass (`autoRefreshDisplayNames`, once per process) reads every
+  door's listing and prefills blank aliases from its `display_name` — with
+  no hand.
+- `vendormarks.tsx` keeps a mark table for ids that name no family (qoder's
+  `gfmodel` → zhipu, `fast` → qwen, …); the names themselves are never
+  guessed. Five preset vendors gained marks, gathered from Simple Icons and
+  the vendors' own sites.
+
+### Checks and debts
+
+- Focused suites green: the sidebar/fold/drag cluster, marks and menus,
+  peers, `actions.test` with the ceiling carried at its honest 215. Census
+  and census:verify exit 0. Kernel peer, dispatch, provider and model tests
+  green; five machine-only config failures predate the round (CI verifies).
+- repolint: `Workspaces.tsx` (1086 lines) and the css/file-size totals are a
+  deliberate carry-forward of the round's growth — baseline updated below;
+  splitting `Workspaces.tsx` is the follow-up that earns the ceiling back.
+- What still waits: the batch commits, `release-notes/studio/2.64.0.md`, the
+  tag, the Git Data API push, the runner-attached installer — the user
+  reviews first, and pushes only on their word.
 
 ### Commit batch plan (files that share no other batch)
 
