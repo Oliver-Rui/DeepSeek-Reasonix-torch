@@ -61,6 +61,9 @@ type VersionHub struct {
 	// Withdrawn is set when the running version is one the publisher pulled.
 	Withdrawn *WithdrawnNote `json:"withdrawn,omitempty"`
 	Err       string         `json:"err,omitempty"`
+	// Studio marks a catalog of plain downloads — the panel hands each row's
+	// file to the browser instead of asking the updater to install.
+	Studio bool `json:"studio,omitempty"`
 }
 
 // catalogTimeout bounds the whole read. A version panel that hangs is worse
