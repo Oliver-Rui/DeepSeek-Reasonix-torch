@@ -4,22 +4,93 @@ package serve
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 
 	"reasonix/internal/contract/config"
 	"reasonix/internal/model/catalog"
 )
 
+// autoNamesOnce guards the startup pass: one read of every door's own names
+// per process, whatever the panes.
+var autoNamesOnce sync.Once
+
+// autoRefreshDisplayNames runs once, when a server's routes first go up: every
+// OpenAI-compatible door whose models carry no aliases yet is asked for its
+// own listing, and the display names it offers — a relay's renamed models,
+// magpie's "custom name without vendor" — land where the menu reads them. No
+// name the person set is touched.
+func (s *Server) autoRefreshDisplayNames() {
+	autoNamesOnce.Do(func() {
+		edit := config.LoadForEdit(config.UserConfigPath())
+		changed := false
+		for i := range edit.Providers {
+			entry := &edit.Providers[i]
+			if config.AnswersFor(entry.Kind) == config.AnswersDecision || entry.BaseURL == "" || len(entry.Models) == 0 {
+				continue
+			}
+			unnamed := 0
+			for _, model := range entry.Models {
+				if strings.TrimSpace(entry.ModelAliases[model]) == "" {
+					unnamed++
+				}
+			}
+			if unnamed == 0 {
+				continue
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), providerProbeTimeout)
+			proxied, direct := probeClients()
+			got, probeErr := catalog.ProbeEndpoint(ctx, catalog.ProbeOptions{
+				BaseURL: entry.BaseURL,
+				APIKey:  entry.APIKey(),
+				Client:  proxied,
+				Direct:  direct,
+			})
+			cancel()
+			if probeErr != nil {
+				continue
+			}
+			// The list the person picked stays the spine; what the door now
+			// serves joins it, and its names fill the blanks.
+			merged := slices.Clone(entry.Models)
+			for _, model := range got.Models {
+				if !slices.Contains(merged, model) {
+					merged = append(merged, model)
+				}
+			}
+			entry.Models = merged
+			for _, model := range merged {
+				display := got.Names[model]
+				if display == "" || display == model {
+					continue
+				}
+				if strings.TrimSpace(entry.ModelAliases[model]) == "" {
+					if entry.ModelAliases == nil {
+						entry.ModelAliases = map[string]string{}
+					}
+					entry.ModelAliases[model] = display
+					changed = true
+				}
+			}
+		}
+		if changed {
+			if err := edit.SaveTo(config.UserConfigPath()); err != nil {
+				slog.Warn("auto refresh: could not save the display names", "err", err)
+				return
+			}
+			slog.Info("auto refresh: display names read from the doors")
+		}
+	})
+}
+
 // refreshProviderModels re-runs the add-a-source probe against what is saved
 // and writes what it found back: chat models the endpoint now serves join the
-// list, the ones the person picked stay, and the endpoint's own display names
-// land as model aliases. Only the display side changes — an id never moves, so
-// what a conversation runs on and the family marks drawn from ids keep
-// answering. This is what makes a relay's renamed models (magpie's
-// "custom name without vendor") reach the menu: the name rides the listing's
-// display_name field, which this writes where the menu reads it.
+// list, and the endpoint's own display names land as model aliases — which is
+// what makes a relay's renamed models (magpie's "custom name without vendor")
+// reach the menu: the name rides the listing's display_name field.
 func (s *Server) refreshProviderModels(w http.ResponseWriter, r *http.Request) {
 	if !s.grants.at(r).providerEdit {
 		refuse(w, http.StatusForbidden, "provider.editing_disabled", "provider editing is not enabled on this server", nil)

@@ -156,7 +156,10 @@ export class MockProvider extends MockBoundary {
       ? relayCatalog()
       : ["deepseek-v4-pro", "deepseek-flash", "deepseek-flash-vision-exp"];
     const vision = models.filter((m) => m === "gpt-4o" || m === "deepseek-flash-vision-exp");
-    return { ok: true, kind: "openai", models, vision, ambiguous: true };
+    // A relay names its own goods: the ids keep the routing, the names are
+    // display material the 编辑连接 form reads to prefill blank aliases.
+    const names = name.startsWith("myrelay") ? { "ZHIPU/GLM-5": "智谱 GLM-5", "kimi-k2": "Kimi K2" } : undefined;
+    return { ok: true, kind: "openai", models, vision, ...(names ? { names } : {}), ambiguous: true };
   }
 
   async checkProviderModel(request: ProviderModelCheckRequest): Promise<ProviderModelCheck> {

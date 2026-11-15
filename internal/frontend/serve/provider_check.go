@@ -38,8 +38,12 @@ type providerCheck struct {
 	Matches   bool     `json:"matches"`
 	Models    []string `json:"models,omitempty"`
 	Vision    []string `json:"vision,omitempty"`
-	Ambiguous bool     `json:"ambiguous,omitempty"`
-	NoProxy   bool     `json:"noProxy,omitempty"`
+	// Names is what the endpoint itself calls each model, where that differs
+	// from the id. Display material only: routing and everything drawn from
+	// ids keeps reading Models.
+	Names     map[string]string `json:"names,omitempty"`
+	Ambiguous bool              `json:"ambiguous,omitempty"`
+	NoProxy   bool              `json:"noProxy,omitempty"`
 	// Code is why the check failed, as the dotted identity the add flow's
 	// refusals use. Params carry only the numbers its sentence needs.
 	Code string `json:"code,omitempty"`
@@ -171,6 +175,7 @@ func (s *Server) checkProvider(w http.ResponseWriter, r *http.Request) {
 		Matches:   config.ProtocolAnswerMatches(entry.Kind, got.Kind),
 		Models:    nonNilStrings(got.Models),
 		Vision:    nonNilStrings(got.Vision),
+		Names:     got.Names,
 		Ambiguous: got.Ambiguous,
 		NoProxy:   got.NoProxy,
 	}
