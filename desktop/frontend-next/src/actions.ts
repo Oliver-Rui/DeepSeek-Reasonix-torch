@@ -117,6 +117,7 @@ export const ACTIONS: UIAction[] = [
   { id: "appearance.composer-hint", kind: "view", target: "none", proof: "interaction" },
   { id: "appearance.office-preview", kind: "view", target: "none", proof: "interaction" },
   { id: "appearance.graphics", kind: "view", target: "none", proof: "interaction" },
+  { id: "appearance.message-times", kind: "view", target: "none", proof: "interaction" },
   { id: "window.global-shortcut", kind: "shell-native", target: "none", proof: "browser" },
   { id: "appearance.session-tabs", kind: "view", target: "none", proof: "interaction" },
   { id: "appearance.esc-stop", kind: "view", target: "none", proof: "interaction" },
@@ -139,6 +140,7 @@ export const ACTIONS: UIAction[] = [
   // The pill's 添加新项目: the submenu opens the two ways in, and the blank one
   // makes an empty, named folder inside the folder the picker returned.
   { id: "workspace.add-menu", kind: "view", target: "none", proof: "interaction" },
+  { id: "workspace.add-group", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.add-existing", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "workspace.add-blank", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.create", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
@@ -420,6 +422,9 @@ export const ACTIONS: UIAction[] = [
   { id: "turn.edit", kind: "view", target: "entity", proof: "interaction" },
   { id: "turn.resend", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },
   { id: "session.new", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
+  // The task run's plus: the same resolve-into-auto open, carried by the run's
+  // own row so the gesture starts where the run is.
+  { id: "session.new-task", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   // The bytes reach the host as the file is chosen, before anything is sent:
   // the picker's button only opens a dialog, and this is where the upload is.
   { id: "session.attach", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
@@ -473,6 +478,7 @@ export const ACTIONS: UIAction[] = [
   { id: "hero.suggest", kind: "view", target: "none", proof: "interaction" },
   { id: "settings.changed-toggle", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.fold-all", kind: "view", target: "none", proof: "interaction" },
+  { id: "workspace.fold", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.add-cancel", kind: "view", target: "none", proof: "interaction" },
   { id: "root-missing.reselect", kind: "view", target: "none", proof: "interaction" },
   { id: "workspace.move", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },

@@ -55,6 +55,9 @@ function drawEdit(entry: Partial<ProviderEntry> = {}) {
 // the form neither shows it nor sends it, and the save leaves the field alone.
 it("saves without touching a stored prefix choice", async () => {
   const { editProvider } = drawEdit({ hideModelPrefix: true, modelShorts: { "group/a": "a", "group/b": "b" } });
+  // The save only answers a changed form: a nudge to the address makes the
+  // draft dirty, and the payload stays the form's own answer to what it holds.
+  await userEvent.type(screen.getByLabelText("接口地址"), "8");
   await userEvent.click(screen.getByRole("button", { name: /保存/ }));
   const payload = editProvider.mock.calls[0]?.[0] as Record<string, unknown>;
   expect(payload.hideModelPrefix).toBeUndefined();

@@ -34,6 +34,11 @@ const MARKS: Record<string, { file: string; name: string }> = {
   baiducloud: { file: "baiducloud-color", name: "Baidu Cloud" },
   huaweicloud: { file: "huaweicloud-color", name: "Huawei Cloud" },
   tencentcloud: { file: "tencentcloud-color", name: "Tencent Cloud" },
+  huggingface: { file: "huggingface", name: "Hugging Face" },
+  novita: { file: "novita", name: "Novita AI" },
+  kilocode: { file: "kilocode", name: "Kilo Code" },
+  gmi: { file: "gmi", name: "GMI Cloud" },
+  "token-rhythm": { file: "token-rhythm", name: "Token Rhythm" },
 };
 
 const SOURCE = new Map<string, string>();
@@ -97,11 +102,32 @@ const FAMILY_KEYS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(^|[-_/])mimo/i, "mimo"],
   [/longcat/i, "longcat"],
   [/stepfun|step-\d/i, "stepfun"],
-  [/grok|xai/i, "xai"],
+  [/grok|xai/i, "xai"],
 ];
+
+// Some relays name their goods in private shorthand: qoder's single-letter
+// models are the families they proxy, and no keyword in the id says so. One
+// exact table for the names a relay has already shipped — the family the name
+// stands for, matched on the bare id or its last path segment, so a provider
+// prefix changes nothing. The NAMES themselves are not guessed here: a door
+// that serves display names has them read through the refresh, and this table
+// only carries the mark for the ids that say no family.
+const MODEL_ALIASES: Readonly<Record<string, string>> = {
+  fast: "qwen", qmodel_latest: "qwen", qmodel_38max: "qwen", qfmodel: "qwen",
+  dmodel: "deepseek", dfmodel: "deepseek",
+  gmodel: "zhipu", gfmodel: "zhipu",
+  kmodel_latest: "kimi", kmodel: "kimi",
+  jmodel: "stepfun",
+  mmodel: "minimax", mmmodel: "minimax",
+};
 
 export function markForModelId(modelId: string | undefined): string | undefined {
   if (!modelId) return undefined;
+  const bare = modelId.trim().toLowerCase();
+  for (const candidate of [bare, bare.split("/").pop() ?? ""]) {
+    const slug = MODEL_ALIASES[candidate];
+    if (slug && SOURCE.has(slug)) return slug;
+  }
   for (const [re, slug] of FAMILY_KEYS) {
     if (re.test(modelId) && SOURCE.has(slug)) return slug;
   }
