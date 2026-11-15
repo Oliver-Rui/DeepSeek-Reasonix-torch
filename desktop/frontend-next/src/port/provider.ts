@@ -214,8 +214,9 @@ export interface ProviderCheck {
   // model to an endpoint whose stored model list predates it.
   vision?: string[];
   // What the endpoint itself calls each model, where that differs from the id
-  // — a relay's own display naming. Names are display material only: routing
-  // and everything drawn from ids keeps reading `models`.
+  // — a relay's own display naming, asked for again when the 编辑连接 form
+  // refetches. Display material only: routing and everything drawn from ids
+  // keeps reading `models`.
   names?: Record<string, string>;
   ambiguous?: boolean;
   noProxy?: boolean;
