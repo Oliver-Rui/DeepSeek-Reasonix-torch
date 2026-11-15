@@ -9,7 +9,6 @@ import { Composer } from "./Composer";
 import type { Quote } from "./cards/SayCard";
 import "./testkit";
 
-Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0);
 afterEach(() => { cleanup(); vi.restoreAllMocks(); localStorage.clear(); });
 

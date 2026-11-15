@@ -9,7 +9,6 @@ import type { SessionStatus } from "../port/port";
 import { Pane } from "./Pane";
 
 afterEach(cleanup);
-Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 
 it("keeps a file draft when the initial status confirms the runtime's known workspace", async () => {
   const port = new MockPort();

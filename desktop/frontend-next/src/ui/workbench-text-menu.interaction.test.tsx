@@ -9,7 +9,6 @@ import { MockPort } from "../port/mock";
 import { WorkbenchPanel } from "./WorkbenchPanel";
 import "./testkit";
 
-Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 const clipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
 afterEach(() => {
   cleanup();

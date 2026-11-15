@@ -8,7 +8,6 @@ import { MockPort } from "../port/mock";
 import { WorkbenchPanel } from "./WorkbenchPanel";
 import "./testkit";
 
-Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0);
 afterEach(() => { cleanup(); localStorage.clear(); });
 
