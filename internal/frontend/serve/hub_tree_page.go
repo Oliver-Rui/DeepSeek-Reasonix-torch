@@ -136,17 +136,14 @@ func (h *Hub) projectPage(roots []string, name string, open map[string]string, w
 	return sessionPage{Sessions: rows, Total: total + len(unlisted), Archived: archived, Remaining: remaining, Said: said, Status: status}
 }
 
-// treeSessionRows is the raw material of one workspace's sidebar rows: the
-// conversations a row shows, with what no row shows — subagent traces, covered
-// recovery forks, copies folded into their lead — left out. Handlers that act
-// on a row the sidebar shows (move, pin, viewed, move-to) take the sessions
-// and the order they act on from here, so their enumeration never disagrees
-// with what /tree answers.
+// treeSessionRows is the raw material of one workspace's sidebar rows: what a
+// row shows, with subagent traces, covered recovery forks and folded copies
+// left out. Handlers that act on a row (move, pin, viewed, move-to) take their
+// enumeration from here, so it never disagrees with what /tree answers.
 //
 // listed is the part a rank can place. unlisted are the conversations a pane
-// is driving whose transcript is not on disk yet: the tree pins them above the
-// listed ones, and a rank has no file to ride with, so they are named
-// separately and a step on one changes nothing.
+// is driving whose transcript is not on disk yet: the tree pins them above
+// the listed ones, so a step on one changes nothing.
 func (h *Hub) treeSessionRows(root string) (listed, unlisted []sessionstore.SessionInfo) {
 	rows := h.listTreeSessions(SessionDirFor(root), listingStatusFor(false), false)
 	sortSessions(rows)

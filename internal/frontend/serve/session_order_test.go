@@ -238,12 +238,10 @@ func rankOf(t *testing.T, path string) (float64, bool) {
 }
 
 // A conversation a pane is driving is the sidebar's first row before its
-// transcript exists — the listing has only the lease and inbox sidecars — and
-// the move endpoint used to refuse exactly that row. The rows a move works on
-// are the sidebar's: the in-flight conversation is moved without error (and
-// without a rank, there being no file to place yet), a dispatch transcript
-// takes part in nothing, and a listed conversation's step lands where the
-// sidebar shows it.
+// transcript exists — only lease and inbox sidecars — and the move endpoint
+// used to refuse exactly that row. The rows a move works on are the
+// sidebar's: the in-flight one moves without a rank, a dispatch transcript
+// takes part in nothing, and a listed step lands where the sidebar shows.
 func TestMovingAConversationTheSidebarShows(t *testing.T) {
 	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
 	root := testenv.TempDir(t)

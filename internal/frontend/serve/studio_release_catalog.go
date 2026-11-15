@@ -14,12 +14,10 @@ import (
 	"reasonix/internal/platform/update"
 )
 
-// This fork publishes its releases on GitHub — there is no signed manifest on
-// a mirror for the updater to read — so the version panel's catalog is the
-// releases list itself: one request, mapped onto the same VersionHub shape the
-// panel already renders, with each release's installer asset carried beside it
-// as a plain download. Verification, deltas and self-apply stay the upstream
-// mirror's business; this fork's release is saved and run by the person.
+// This fork publishes its releases on GitHub — no signed manifest on a mirror —
+// so the version panel's catalog is the releases list itself, mapped onto the
+// VersionHub shape the panel already renders, each row carrying its installer.
+// Saving and running the file is the person's; self-apply stays upstream's.
 
 // studioRepo is the repository whose releases are the catalog. A variable so a
 // test can point it at a fake.
@@ -111,7 +109,7 @@ func fetchStudioReleases(ctx context.Context) ([]studioRelease, error) {
 // assembleStudioHub maps the releases onto the panel's shape: newest version
 // first, the running one marked, installers carried beside their rows.
 func assembleStudioHub(current string, releases []studioRelease) update.VersionHub {
-	hub := update.VersionHub{Current: current}
+	hub := update.VersionHub{Current: current, Studio: true}
 	for _, rel := range releases {
 		if rel.Draft || rel.Prerelease {
 			continue

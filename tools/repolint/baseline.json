@@ -12,8 +12,8 @@
     "doc-owner": 27,
     "doc-prose": 1432,
     "error-text": 9,
-    "essay": 2536,
-    "file-size": 18470,
+    "essay": 2540,
+    "file-size": 18489,
     "flat-view": 0,
     "frontend-parity": 13,
     "function-size": 2348,
@@ -70,7 +70,7 @@
       "doc-prose": 21
     },
     "desktop/frontend-next/src/actions.ts": {
-      "file-size": 5
+      "file-size": 6
     },
     "desktop/frontend-next/src/styles/LAYOUT.md": {
       "doc-owner": 1,
@@ -761,7 +761,10 @@
       "essay": 2
     },
     "internal/frontend/serve/hub_tree.go": {
-      "file-size": 63
+      "file-size": 81
+    },
+    "internal/frontend/serve/hub_tree_page.go": {
+      "essay": 3
     },
     "internal/frontend/serve/provider_setup.go": {
       "essay": 1
@@ -774,6 +777,9 @@
       "essay": 3
     },
     "internal/frontend/serve/serve_lock_test.go": {
+      "essay": 1
+    },
+    "internal/frontend/serve/studio_release_catalog.go": {
       "essay": 1
     },
     "internal/frontend/serve/switch_recovery_test.go": {
