@@ -77,9 +77,9 @@ type dispatchPair struct {
 	// role is the name the sender opened the partner under, empty for a pair
 	// that was not a dispatch. Kept here, on the sender, so the thread rows
 	// keep their name after the partner's pane has closed.
-	role string
-	seen   map[uint64]bool
-	floor  uint64
+	role  string
+	seen  map[uint64]bool
+	floor uint64
 }
 
 // accept records seq as taken, or refuses it when it was taken or has aged out.
