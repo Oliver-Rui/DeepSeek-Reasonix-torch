@@ -144,6 +144,7 @@ export const ACTIONS: UIAction[] = [
   { id: "workspace.create", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "workspace.search", kind: "view", target: "none", proof: "interaction" },
   { id: "session.filter", kind: "view", target: "none", proof: "interaction" },
+  { id: "session.sort", kind: "view", target: "none", proof: "interaction" },
   { id: "session.more", kind: "repeatable", target: "none", proof: "interaction" },
   { id: "session.selection", kind: "view", target: "optional", proof: "interaction" },
   { id: "session.batch-archive", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
@@ -278,7 +279,6 @@ export const ACTIONS: UIAction[] = [
   { id: "ext.scope", kind: "view", target: "none", proof: "interaction" },
   { id: "ext.scope-back", kind: "navigation", target: "none", proof: "interaction" },
   { id: "session.import-native-choose", kind: "view", target: "none", proof: "interaction" },
-  { id: "session.filter-clear", kind: "view", target: "none", proof: "interaction" },
   { id: "queue.to-steer", kind: "kernel-mutation", target: "entity", proof: "interaction" },
   { id: "steer.withdraw", kind: "kernel-mutation", target: "entity", proof: "interaction" },
 
@@ -502,6 +502,7 @@ export const ACTIONS: UIAction[] = [
   { id: "rewind.notice-dismiss", kind: "view", target: "entity", proof: "interaction" },
   { id: "extensions.submit", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "provider.probe", kind: "repeatable", target: "none", proof: "interaction" },
+  { id: "provider.refresh", kind: "kernel-mutation", target: "entity", proof: "interaction" },
   { id: "provider.draft", kind: "interaction", target: "none", proof: "interaction" },
   { id: "provider.price-source", kind: "shell-native", target: "entity", proof: "interaction" },
   { id: "provider.discard-edits", kind: "destructive", target: "none", proof: "interaction" },
