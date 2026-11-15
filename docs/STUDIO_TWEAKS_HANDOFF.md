@@ -695,3 +695,32 @@ rework. Each fixed at its root:
 - repolint baseline widened for the last three commits' growth (actions +5,
   Workspaces 286→333, hub_tree +63, the 2.64.0 notes) — same deliberate
   carry-forward as above.
+
+### The second CI round (2026-11-15 late night) — three subagents, one coordinator
+
+The re-cut tag's CI still held four reds; three parallel subagents carried
+them down while the coordinator took the one their concurrency limit
+returned:
+
+- `test (ubuntu/macos)` never reached a test — both die at the gofmt step.
+  The round's kernel files were written without a format pass, and only the
+  Unix legs run gofmt (the Windows checkout's CRLF would flag everything).
+  Six files formatted; Windows skipping the step is why the machine never
+  saw it. The coordinator's GOOS=linux/darwin build+vet (via goproxy.cn —
+  proxy.golang.org is walled here) proved nothing else hides in the
+  unix-only surfaces.
+- `lint` held one dead method: `dispatchBook.rolesFor` lost its reader when
+  /peers moved to the sender's own DispatchRoles memory. A subagent
+  verified the zero callers, removed it, and proved four serve-package
+  failures unrelated via a pre-removal worktree.
+- `browser guards` ran its first honest lap in two rounds (the session-move
+  guard used to stop it early): control-icons found the send circle's
+  13.5px icon carrying lucide's 14-unit glyph at 7.875px — the app's icon
+  system is 16px, and the guard's ≥9 threshold was written for it. Back to
+  16px, fits and centering intact. Behind it sat a second stale guard:
+  project-header still walked the filter menu for the retired 最近 row; it
+  asserts the menu carries no ordering row and exercises the header's
+  timeline clock (aria-pressed flips, `.wstime` sections come and go) on
+  the long list instead.
+- 4 further guard failures were load flakes of the local parallel run —
+  each passes alone and on CI.
