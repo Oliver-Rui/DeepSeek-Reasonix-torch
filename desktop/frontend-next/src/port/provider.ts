@@ -22,8 +22,9 @@ export interface ProviderEntry {
   baseUrl: string;
   models: string[];
   modelAliases?: Record<string, string>;
-  // Whether the prefix every model shares is left out of how they are drawn, and each
-  // model as it then reads; a model drawn as it is has no entry.
+  // Read for compatibility with stored configs that still carry it; the
+  // setting it drove is retired — the kernel's display_name parsing and the
+  // aliases it prefills took the work over. Nothing acts on it any more.
   hideModelPrefix?: boolean;
   modelShorts?: Record<string, string>;
   default: string;
@@ -168,6 +169,9 @@ export interface ProviderProbe {
   kinds: string[];
   authHeader: boolean;
   models: string[];
+  // What the endpoint itself calls each model, where that differs from the id
+  // — a relay's own display naming. Display material only; routing reads ids.
+  names?: Record<string, string>;
   default: string;
   efforts: string[];
   effort: string;
@@ -209,6 +213,10 @@ export interface ProviderCheck {
   // Re-probing is also capability discovery: a vendor may add a multimodal
   // model to an endpoint whose stored model list predates it.
   vision?: string[];
+  // What the endpoint itself calls each model, where that differs from the id
+  // — a relay's own display naming. Names are display material only: routing
+  // and everything drawn from ids keeps reading `models`.
+  names?: Record<string, string>;
   ambiguous?: boolean;
   noProxy?: boolean;
   code?: string;
@@ -263,7 +271,9 @@ export interface ProviderEdit {
   name: string;
   // Omitted preserves aliases; blank or missing values reset listed models.
   modelAliases?: Record<string, string>;
-  // Omitted leaves the choice alone.
+  // No longer sent by this build; the field stays because the kernel's edit
+  // route still accepts it, and an older window talking to a newer kernel
+  // relies on that.
   hideModelPrefix?: boolean;
   // Omitted leaves the wire format alone.
   kind?: string;

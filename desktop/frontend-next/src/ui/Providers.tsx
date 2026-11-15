@@ -29,6 +29,7 @@ export type Port = {
   saveProvider(draft: ProviderDraft): Promise<void>;
   removeProvider(name: string): Promise<ProviderRemoval>;
   checkProvider(name: string, draft?: ProviderCheckDraft): Promise<ProviderCheck>;
+  refreshModels(name: string): Promise<void>;
   checkProviderModel(request: ProviderModelCheckRequest): Promise<ProviderModelCheck>;
   editProvider(edit: ProviderEdit): Promise<void>;
   renameProvider(names: string[], displayName: string): Promise<void>;
@@ -274,7 +275,7 @@ export function Providers({ port, onChanged, onFailed, protocol, onProtocol, act
                     }
                   }}
                   onClick={() => leave(() => { setAdding(false); setPicked(a.key); }, a.key !== selected)}>
-                  <ServiceMark mark={Object.values(a.byKind).find((e) => e.mark)?.mark} id={a.key} />
+                  <ServiceMark mark={Object.values(a.byKind).find((e) => e.mark)?.mark} id={a.key} name={a.label} />
                   <span className="tx">
                     <span className="nm">{a.label}</span>
                     <Clip className="ds">{a.host}</Clip>
