@@ -38,7 +38,7 @@ describe("the session menu", () => {
 
   it("hands the whole conversation to the batch-select entry", async () => {
     const p = menu({}, { path: "/p/b.jsonl" });
-    const item = screen.getByRole("menuitem", { name: /批量选择会话/ });
+    const item = screen.getByRole("menuitem", { name: /批量管理/ });
     expect(item.getAttribute("data-action")).toBe("session.selection");
     expect(item.getAttribute("data-value")).toBe("start");
     expect(item.getAttribute("data-target")).toBe("/p/b.jsonl");

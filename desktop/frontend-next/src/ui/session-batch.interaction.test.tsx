@@ -54,7 +54,7 @@ const projectRow = () =>
 // on purpose — and the menu seeds the mode with the row that was clicked.
 async function startSelection(row = document.querySelector<HTMLElement>(".sessrow")!) {
   fireEvent.contextMenu(row);
-  await userEvent.click(screen.getByRole("menuitem", { name: /批量选择会话/ }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /批量管理/ }));
 }
 
 async function selectAll() {
@@ -75,7 +75,7 @@ it("keeps the batch entries in the row menus without occupying an idle toolbar",
   expect(screen.queryByRole("menuitem", { name: "选择本机会话" })).toBeNull();
   // The project's menu offers the whole folder at once.
   fireEvent.contextMenu(projectRow());
-  const fromProject = screen.getByRole("menuitem", { name: /批量选择会话/ });
+  const fromProject = screen.getByRole("menuitem", { name: /批量管理/ });
   expect(fromProject.getAttribute("data-action")).toBe("session.selection");
   expect(fromProject.getAttribute("data-value")).toBe("start");
   await userEvent.click(fromProject);
@@ -84,7 +84,7 @@ it("keeps the batch entries in the row menus without occupying an idle toolbar",
   await userEvent.click(screen.getByRole("button", { name: "完成选择" }));
   // The session's menu carries the same entry, seeded with the clicked row.
   fireEvent.contextMenu(screen.getByRole("treeitem", { name: /Beta/ }));
-  await userEvent.click(screen.getByRole("menuitem", { name: /批量选择会话/ }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /批量管理/ }));
   expect(screen.getByText("已选 1 个会话")).toBeTruthy();
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "删除所选会话" }));
 });
@@ -92,14 +92,14 @@ it("keeps the batch entries in the row menus without occupying an idle toolbar",
 it("offers no batch entry where a folder shows nothing to pick", async () => {
   draw([], "all", new Set(["/w"]));
   fireEvent.contextMenu(projectRow());
-  expect((screen.getByRole("menuitem", { name: /批量选择会话/ }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("menuitem", { name: /批量管理/ }) as HTMLButtonElement).disabled).toBe(true);
   expect(document.querySelector(".session-batch")).toBeNull();
 });
 
 it("starts from a folded folder with nothing the fold lets stay selected", async () => {
   draw(sessions, "all", new Set(["/w"]));
   fireEvent.contextMenu(projectRow());
-  await userEvent.click(screen.getByRole("menuitem", { name: /批量选择会话/ }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /批量管理/ }));
   expect(screen.queryByRole("menu")).toBeNull();
   // The folder's entry still answers while folded, and the fold prunes what it
   // seeded: a hidden row cannot stay picked.
@@ -170,7 +170,10 @@ it("confirms the selected names before deletion and lets Escape cancel without a
   await selectAll();
   await userEvent.click(screen.getByRole("button", { name: "删除所选会话" }));
   const question = screen.getByRole("alertdialog", { name: "删除 2 个会话？" });
-  expect(within(question).getByText("Alpha、Beta")).toBeTruthy();
+  // Both rows write to a project folder, so the question says what stays: the
+  // folder and its files outlive the conversation.
+  expect(within(question).getByText(/2 个项目对话只删除对话本身/)).toBeTruthy();
+  expect(within(question).queryByText(/任务对话连同其产物/)).toBeNull();
   expect(pane.hub.removeSession).not.toHaveBeenCalled();
   await userEvent.keyboard("{Escape}");
   expect(screen.queryByRole("alertdialog")).toBeNull();
@@ -323,7 +326,7 @@ it("enters picking from a session's menu with that session already chosen", asyn
   const pane = draw();
   const alpha = screen.getByRole("treeitem", { name: /Alpha/ });
   fireEvent.contextMenu(alpha);
-  await userEvent.click(screen.getByRole("menuitem", { name: /批量选择会话/ }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /批量管理/ }));
   expect(screen.queryByRole("menu")).toBeNull();
   expect(screen.getByText("已选 1 个会话")).toBeTruthy();
   expect(alpha.getAttribute("aria-selected")).toBe("true");
@@ -332,86 +335,7 @@ it("enters picking from a session's menu with that session already chosen", asyn
   expect(pane.onFocus).not.toHaveBeenCalled();
 });
 
-it("asks once and removes the selected sessions' projects from the list", async () => {
-  const rooted: TreeSession[] = [
-    { path: "/w/a.jsonl", name: "a", title: "Alpha", workspaceRoot: "/w" },
-    { path: "/v/b.jsonl", name: "b", title: "Beta", workspaceRoot: "/v" },
-  ];
-  const pane = draw(rooted, "all", new Set(), [
-    { root: "/w", name: "First", remembered: true, sessions: [rooted[0]!] },
-    { root: "/v", name: "Second", remembered: true, sessions: [rooted[1]!] },
-  ]);
-  await selectAll();
-  await userEvent.click(screen.getByRole("button", { name: "移除项目" }));
-  const question = screen.getByRole("alertdialog", { name: "从列表移除 2 个项目？" });
-  expect(within(question).getByText("First、Second")).toBeTruthy();
-  expect(within(question).getByText("项目与其中会话将从列表移除；会话记录仍保留在磁盘上。")).toBeTruthy();
-  expect(pane.removeWorkspace).not.toHaveBeenCalled();
-  expect(pane.hub.removeSession).not.toHaveBeenCalled();
-  await userEvent.click(within(question).getByRole("button", { name: "移除" }));
-  await waitFor(() => expect(pane.removeWorkspace).toHaveBeenCalledTimes(2));
-  expect(pane.removeWorkspace).toHaveBeenNthCalledWith(1, "/w");
-  expect(pane.removeWorkspace).toHaveBeenNthCalledWith(2, "/v");
-  expect(pane.reload).toHaveBeenCalledTimes(1);
-  expect(pane.onError).not.toHaveBeenCalled();
-});
-
-it("lets Escape leave every project in place", async () => {
-  const rooted: TreeSession[] = [
-    { path: "/w/a.jsonl", name: "a", title: "Alpha", workspaceRoot: "/w" },
-    { path: "/v/b.jsonl", name: "b", title: "Beta", workspaceRoot: "/v" },
-  ];
-  const pane = draw(rooted, "all", new Set(), [
-    { root: "/w", name: "First", remembered: true, sessions: [rooted[0]!] },
-    { root: "/v", name: "Second", remembered: true, sessions: [rooted[1]!] },
-  ]);
-  await selectAll();
-  await userEvent.click(screen.getByRole("button", { name: "移除项目" }));
-  expect(screen.getByRole("alertdialog", { name: "从列表移除 2 个项目？" })).toBeTruthy();
-  await userEvent.keyboard("{Escape}");
-  expect(screen.queryByRole("alertdialog")).toBeNull();
-  expect(pane.removeWorkspace).not.toHaveBeenCalled();
-  expect(pane.reload).not.toHaveBeenCalled();
-});
-
-it("keeps removing the other project when one is refused", async () => {
-  const rooted: TreeSession[] = [
-    { path: "/w/a.jsonl", name: "a", title: "Alpha", workspaceRoot: "/w" },
-    { path: "/v/b.jsonl", name: "b", title: "Beta", workspaceRoot: "/v" },
-  ];
-  const pane = draw(rooted, "all", new Set(), [
-    { root: "/w", name: "First", remembered: true, sessions: [rooted[0]!] },
-    { root: "/v", name: "Second", remembered: true, sessions: [rooted[1]!] },
-  ]);
-  pane.removeWorkspace.mockRejectedValueOnce(new Error("panes still running"));
-  await selectAll();
-  await userEvent.click(screen.getByRole("button", { name: "移除项目" }));
-  await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "移除" }));
-  await waitFor(() => expect(pane.onError).toHaveBeenCalledExactlyOnceWith(expect.any(Error)));
-  expect(pane.removeWorkspace).toHaveBeenCalledTimes(2);
-  expect(pane.removeWorkspace).toHaveBeenNthCalledWith(2, "/v");
-  expect(pane.reload).toHaveBeenCalledTimes(1);
-});
-
-it("skips the project of a running session and removes the rest", async () => {
-  const rooted: TreeSession[] = [
-    { path: "/w/a.jsonl", name: "a", title: "Alpha", workspaceRoot: "/w", runtimeId: "r1" },
-    { path: "/v/b.jsonl", name: "b", title: "Beta", workspaceRoot: "/v" },
-  ];
-  const pane = draw(rooted, "all", new Set(), [
-    { root: "/w", name: "First", remembered: true, sessions: [rooted[0]!] },
-    { root: "/v", name: "Second", remembered: true, sessions: [rooted[1]!] },
-  ]);
-  await selectAll();
-  pane.live(["r1"]);
-  expect((screen.getByRole("button", { name: "归档所选会话" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole("button", { name: "删除所选会话" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole("button", { name: "移除项目" }) as HTMLButtonElement).disabled).toBe(false);
-  await userEvent.click(screen.getByRole("button", { name: "移除项目" }));
-  expect(screen.getByRole("alertdialog", { name: "从列表移除 1 个项目？" })).toBeTruthy();
-  await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "移除" }));
-  await waitFor(() => expect(pane.removeWorkspace).toHaveBeenCalledTimes(1));
-  expect(pane.removeWorkspace).toHaveBeenCalledWith("/v");
-  expect(pane.reload).toHaveBeenCalledTimes(1);
-  await waitFor(() => expect(pane.onError).toHaveBeenCalledExactlyOnceWith(expect.any(Error)));
-});
+// Bulk-unfollowing a project left the bar: it lives in each project's own
+// context menu (从列表移除), covered by workspace-context-menu tests. The
+// bar's delete speaks per kind — task conversations take their artifacts,
+// project conversations leave the folder whole.

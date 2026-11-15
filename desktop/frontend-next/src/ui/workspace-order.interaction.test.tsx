@@ -28,15 +28,15 @@ it("focuses project menu items and supports Arrow/Home/End/Escape", async () => 
   draw();
   const trigger = screen.getByRole("button", { name: "项目操作：b" });
   await userEvent.click(trigger);
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "批量选择会话" }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "批量管理" }));
   await userEvent.keyboard("{ArrowDown}");
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /从列表移除/ }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{End}");
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /从列表移除/ }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{Home}");
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "批量选择会话" }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "批量管理" }));
   await userEvent.keyboard("{ArrowUp}");
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /从列表移除/ }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: /移除/ }));
   await userEvent.keyboard("{Escape}");
   expect(screen.queryByRole("menu")).toBeNull();
   expect(document.activeElement).toBe(trigger);
@@ -50,9 +50,9 @@ it("offers only Remove for an unremembered project", async () => {
     adder={{ add: () => {}, close: () => {}, at: null } as never} />);
   await userEvent.click(screen.getByRole("button", { name: "项目操作：b" }));
   // 选择本机会话 stays a header control; the menu's own way into picking is
-  // 批量选择会话, disabled where the folder shows nothing to pick.
-  expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["批量选择会话", "从列表移除不删除文件"]);
-  expect(screen.getByRole("menuitem", { name: /从列表移除/ })).toBeTruthy();
+  // 批量管理, disabled where the folder shows nothing to pick.
+  expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["批量管理", "移除不删除文件"]);
+  expect(screen.getByRole("menuitem", { name: /移除/ })).toBeTruthy();
 });
 
 it("reads as two sections: the projects run, then the kernel's own folder", () => {

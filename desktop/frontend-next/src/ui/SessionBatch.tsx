@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { current, t } from "../i18n";
+import { t } from "../i18n";
 import type { HubPort, TreeSession } from "../port/hub";
 import { StudioIcon } from "./StudioIcon";
 import { clearDraftForSession } from "./drafts";
@@ -18,7 +18,7 @@ export function useSelectedRows(displayed: TreeSession[], selection: Set<string>
   return [...new Map(displayed.filter((row) => selection?.has(row.path)).map((row) => [row.path, row])).values()];
 }
 
-export function SessionBatch({ hub, selection, selected, displayed, onSelect, onExit, onBusy, onClose, onArchive, rememberedProjects, onRemoveWorkspaces, liveIds, reload, onError }: {
+export function SessionBatch({ hub, selection, selected, displayed, onSelect, onExit, onBusy, onClose, onArchive, autoRoot, liveIds, reload, onError }: {
   hub: HubPort;
   selection: Set<string> | null;
   selected: TreeSession[];
@@ -28,21 +28,19 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
   onBusy: (busy: boolean) => void;
   onClose: (ids: string[]) => Promise<void>;
   onArchive: (path: string, archived: boolean, runtimeId?: string) => Promise<void>;
-  /** The projects a person chose, by root and name: what the removal question is asked about. */
-  rememberedProjects: { root: string; name: string }[];
-  /** Takes each project out of the list through the single-removal flow; refusals are reported there. */
-  onRemoveWorkspaces: (roots: string[]) => Promise<void>;
+  /** The auto workspace's root: a selected row writing there is a task
+   *  conversation, and its delete takes the whole footprint. */
+  autoRoot?: string;
   liveIds: (ids: string[]) => string[];
   reload: () => Promise<void>;
   onError: (e: unknown) => void;
 }) {
-  const [phase, setPhase] = useState<"idle" | "confirm" | "remove" | "archive" | "restore" | "delete" | "removing">("idle");
+  const [phase, setPhase] = useState<"idle" | "confirm" | "archive" | "restore" | "delete">("idle");
   const wasSelecting = useRef(selection !== null);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const doneButton = useRef<HTMLButtonElement>(null);
-  const removeButton = useRef<HTMLButtonElement>(null);
-  const pending = phase !== "idle" && phase !== "confirm" && phase !== "remove";
-  const asking = phase === "confirm" || phase === "remove";
+  const pending = phase !== "idle" && phase !== "confirm";
+  const asking = phase === "confirm";
   const liveSelected = new Set(liveIds(selected.flatMap((row) => row.runtimeId ? [row.runtimeId] : [])));
   const running = liveSelected.size > 0;
   const blocked = pending || running || selected.length === 0;
@@ -92,35 +90,10 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
     deleteButton.current?.focus();
   };
 
-  // The projects the selected rows write to. A row without a workspace root
-  // names no project, and a folder nobody chose is not the list's to remove.
-  const removeCandidates = rememberedProjects.filter((p) => selected.some((row) => row.workspaceRoot === p.root));
-  // A project with a running conversation keeps its place: removal would stop
-  // work the batch never promised to stop. The others still leave.
-  const removable = removeCandidates.filter((p) => !selected.some((row) => row.workspaceRoot === p.root && row.runtimeId && liveSelected.has(row.runtimeId)));
-
-  const runRemove = async () => {
-    if (pending) return;
-    setPhase("removing");
-    // A turn may have started while the question was up: ask once more, and
-    // let the projects that can still leave do so.
-    const live = new Set(liveIds(selected.flatMap((row) => row.runtimeId ? [row.runtimeId] : [])));
-    const go: string[] = [];
-    let stopped = false;
-    for (const p of removeCandidates) {
-      if (selected.some((row) => row.workspaceRoot === p.root && row.runtimeId && live.has(row.runtimeId))) stopped = true;
-      else go.push(p.root);
-    }
-    try {
-      await onRemoveWorkspaces(go);
-    } catch (e) {
-      onError(e);
-    }
-    setPhase("idle");
-    onBusy(false);
-    if (stopped) onError(new Error(t("session.selected_sessions_are_running_stop")));
-  };
-
+  // The two kinds the delete speaks about: a task conversation's footprint is
+  // its own, a project conversation's sits in a folder that stays.
+  const taskCount = autoRoot ? selected.filter((row) => row.workspaceRoot === autoRoot).length : 0;
+  const projectCount = selected.length - taskCount;
   if (selection === null) return null;
   return (
     <div className="session-batch" aria-busy={pending}>
@@ -142,8 +115,6 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
           aria-label={t(restore ? "session.unarchive_selected_sessions" : "session.archive_selected_sessions")} onClick={() => void run(restore ? "restore" : "archive")}>{t(restore ? "common.unarchive" : "common.archived_2")}</button>
         <button ref={deleteButton} className="danger" data-action="session.batch-delete" disabled={blocked || asking} aria-label={t("session.delete_selected_sessions")}
           onClick={() => { setPhase("confirm"); onBusy(true); }}>{t("common.delete")}</button>
-        <button ref={removeButton} data-action="session.batch-remove" disabled={pending || asking || removable.length === 0}
-          onClick={() => { setPhase("remove"); onBusy(true); }}>{t("session.remove_projects")}</button>
       </div>
       {running && <p>{t("session.selected_sessions_are_running_stop")}</p>}
       {pending && <p role="status">{t("session.processing_selected_sessions")}</p>}
@@ -152,8 +123,8 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
           data-action-keydown="layer.dismiss" onKeyDown={(ev) => { if (ev.key === "Escape") { ev.stopPropagation(); cancel(); } }}>
           <div className="wsconfirm-t">
             <span className="q">{t("session.delete_n_sessions", { n: selected.length })}</span>
-            <span className="session-batch-names">{selected.map((row) => row.title || row.name).join(current() === "zh" ? "、" : ", ")}</span>
-            <span className="h">{t("common.deletes_it_together_with_its")}</span>
+            {taskCount > 0 && <span className="h">{t("session.batch_delete_tasks_hint", { n: taskCount })}</span>}
+            {projectCount > 0 && <span className="h">{t("session.batch_delete_projects_hint", { n: projectCount })}</span>}
           </div>
           <div className="wsconfirm-a">
             <button autoFocus data-action="layer.dismiss" onClick={cancel}>{t("common.cancel")}</button>
@@ -161,20 +132,7 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
           </div>
         </div>
       )}
-      {phase === "remove" && (
-        <div className="wsconfirm" role="alertdialog" aria-label={t("session.remove_n_projects", { n: removable.length })}
-          data-action-keydown="layer.dismiss" onKeyDown={(ev) => { if (ev.key === "Escape") { ev.stopPropagation(); cancel(); } }}>
-          <div className="wsconfirm-t">
-            <span className="q">{t("session.remove_n_projects", { n: removable.length })}</span>
-            <span className="session-batch-names">{removable.map((p) => p.name).join(current() === "zh" ? "、" : ", ")}</span>
-            <span className="h">{t("session.remove_projects_hint")}</span>
-          </div>
-          <div className="wsconfirm-a">
-            <button autoFocus data-action="layer.dismiss" onClick={cancel}>{t("common.cancel")}</button>
-            <button data-action="session.batch-remove" data-danger="" onClick={() => void runRemove()}>{t("common.remove")}</button>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
