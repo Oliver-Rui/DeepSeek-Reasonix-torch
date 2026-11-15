@@ -5,8 +5,12 @@ const KIT = SHEETS["./kit.css"];
 
 function rules(css: string): { selector: string; body: string }[] {
   const out: { selector: string; body: string }[] = [];
+  // Strip once and walk the stripped text the whole way: re-execing the
+  // original after the first match let a comment's own words — " select" in a
+  // rule's prose — surface as a selector and fail the ownership check.
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const re = /([^{}]+)\{([^{}]*)\}/g;
-  for (let m = re.exec(css.replace(/\/\*[\s\S]*?\*\//g, "")); m; m = re.exec(css)) {
+  for (let m = re.exec(plain); m; m = re.exec(plain)) {
     out.push({ selector: m[1].trim(), body: m[2] });
   }
   return out;
