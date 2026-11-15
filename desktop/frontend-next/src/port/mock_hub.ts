@@ -194,7 +194,11 @@ export class MockHub implements HubPort {
 
   onTreeChanged(_listener: () => void) { return () => {}; }
 
-  tree(window?: TreeWindow) {
+    dispatchThreads(_path: string) {
+    return Promise.resolve([]);
+  }
+
+tree(window?: TreeWindow) {
     const open = new Map(this.views.filter((v) => v.sessionPath).map((v) => [v.sessionPath!, v.id]));
     return Promise.resolve(
       this.recentTree(this.decorate(this.roots.map<TreeWorkspace>((root, i) => ({

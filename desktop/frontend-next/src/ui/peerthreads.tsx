@@ -33,9 +33,11 @@ export function PeerThreadsProvider({ port, hub, onOpen, children }: {
 }
 
 /** The state of one exchange, as the person here reads it. `name` lets a caller
- *  show the role the sender opened the session under instead of its title. */
-export function wording(th: PeerThread, name = th.title): string {
-  const p = { title: name, project: th.project };
+ *  show the role the sender opened the session under instead of its title, and
+ *  `project` stands in where the wire named none — a peer that has gone quiet
+ *  keeps neither on the trail. */
+export function wording(th: PeerThread, name = th.title, project?: string): string {
+  const p = { title: name, project: project ?? th.project ?? t("chat.dispatch_thread_unknown_project") };
   switch (th.state) {
     case "waiting": return t("remote.sent_to_title_project_waiting", p);
     case "working": return t("remote.title_project_accepted_it_and", p);
