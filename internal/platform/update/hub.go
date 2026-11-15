@@ -35,6 +35,10 @@ type VersionEntry struct {
 	HasNotes    bool   `json:"hasNotes"`
 	Current     bool   `json:"current"`
 	Older       bool   `json:"older"`
+	// URL is the release's plain download for a catalog that publishes files
+	// rather than a signed manifest — this fork's GitHub releases. Empty on a
+	// mirror catalog, whose downloads go through the updater instead.
+	URL string `json:"url,omitempty"`
 }
 
 // WithdrawnNote says the running version was pulled after publication and why,

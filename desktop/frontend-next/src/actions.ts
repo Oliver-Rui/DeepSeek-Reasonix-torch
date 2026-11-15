@@ -575,6 +575,7 @@ export const ACTIONS: UIAction[] = [
   { id: "versions.later", kind: "view", target: "none", proof: "interaction" },
   { id: "versions.more", kind: "view", target: "none", proof: "interaction" },
   { id: "versions.notes", kind: "repeatable", target: "none", proof: "interaction" },
+  { id: "versions.download", kind: "view", target: "none", proof: "interaction" },
   { id: "versions.notes-retry", kind: "repeatable", target: "none", proof: "interaction" },
   { id: "versions.notes-close", kind: "view", target: "none", proof: "interaction" },
   { id: "versions.full-installer", kind: "repeatable", target: "none", proof: "interaction" },
