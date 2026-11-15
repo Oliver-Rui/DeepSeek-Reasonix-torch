@@ -125,12 +125,6 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
   return (
     <div className="session-batch" aria-busy={pending}>
       <div className="session-batch-head">
-        <span role="status">{t("session.n_sessions_selected", { n: selected.length })}</span>
-        <button ref={doneButton} className="x" data-action="session.selection" data-value="end" disabled={pending}
-          aria-label={t("session.done_selecting")} title={t("session.done_selecting")}
-          onClick={() => { cancel(); onSelect(null); }}><StudioIcon name="close" /></button>
-      </div>
-      <div className="session-batch-actions">
         <button data-action="session.selection" data-value={all ? "clear" : "all"} disabled={phase !== "idle" || displayed.length === 0}
           aria-label={t(all ? "session.deselect_displayed_sessions" : "session.select_all_displayed_sessions")}
           onClick={() => {
@@ -138,9 +132,15 @@ export function SessionBatch({ hub, selection, selected, displayed, onSelect, on
             for (const row of displayed) { if (all) next.delete(row.path); else next.add(row.path); }
             onSelect(next);
           }}>{t(all ? "session.deselect_everything" : "session.select_all")}</button>
+        <span role="status">{t("session.n_sessions_selected", { n: selected.length })}</span>
+        <button ref={doneButton} className="x" data-action="session.selection" data-value="end" disabled={pending}
+          aria-label={t("session.done_selecting")} title={t("session.done_selecting")}
+          onClick={() => { cancel(); onSelect(null); }}><StudioIcon name="close" /></button>
+      </div>
+      <div className="session-batch-actions">
         <button data-action="session.batch-archive" data-value={restore ? "restore" : "archive"} disabled={blocked || asking}
           aria-label={t(restore ? "session.unarchive_selected_sessions" : "session.archive_selected_sessions")} onClick={() => void run(restore ? "restore" : "archive")}>{t(restore ? "common.unarchive" : "common.archived_2")}</button>
-        <button ref={deleteButton} data-action="session.batch-delete" disabled={blocked || asking} aria-label={t("session.delete_selected_sessions")}
+        <button ref={deleteButton} className="danger" data-action="session.batch-delete" disabled={blocked || asking} aria-label={t("session.delete_selected_sessions")}
           onClick={() => { setPhase("confirm"); onBusy(true); }}>{t("common.delete")}</button>
         <button ref={removeButton} data-action="session.batch-remove" disabled={pending || asking || removable.length === 0}
           onClick={() => { setPhase("remove"); onBusy(true); }}>{t("session.remove_projects")}</button>
