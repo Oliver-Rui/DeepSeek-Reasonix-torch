@@ -117,22 +117,6 @@ func (b *dispatchBook) setPending(from, root, role, id string) {
 	b.pending[dispatchKey{from, root, role}] = id
 }
 
-// rolesFor maps every pane from opened for its dispatches, decided or still
-// waiting, onto the role it was opened for, in one pass over the book.
-func (b *dispatchBook) rolesFor(from string) map[string]string {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	out := map[string]string{}
-	for _, m := range []map[dispatchKey]string{b.sessions, b.pending} {
-		for k, id := range m {
-			if k.from == from && k.role != "" {
-				out[id] = k.role
-			}
-		}
-	}
-	return out
-}
-
 // dispatcherFor is what a pane's controller calls to hand a task to another of
 // the user's projects. The controller has already checked the user's switch.
 func (h *Hub) dispatcherFor(from *Runtime) control.ProjectDispatcher {
