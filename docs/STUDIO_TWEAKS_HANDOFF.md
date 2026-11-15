@@ -702,13 +702,14 @@ The re-cut tag's CI still held four reds; three parallel subagents carried
 them down while the coordinator took the one their concurrency limit
 returned:
 
-- `test (ubuntu/macos)` never reached a test — both die at the gofmt step.
-  The round's kernel files were written without a format pass, and only the
-  Unix legs run gofmt (the Windows checkout's CRLF would flag everything).
-  Six files formatted; Windows skipping the step is why the machine never
-  saw it. The coordinator's GOOS=linux/darwin build+vet (via goproxy.cn —
-  proxy.golang.org is walled here) proved nothing else hides in the
-  unix-only surfaces.
+- `test (ubuntu/macos)` never reached a test — both die at the gofmt step:
+  - The round's kernel files were written without a format pass, and only
+    the Unix legs run gofmt (the Windows checkout's CRLF would flag
+    everything). Six files formatted; Windows skipping the step is why the
+    machine never saw it.
+  - The coordinator's GOOS=linux/darwin build+vet (via goproxy.cn —
+    proxy.golang.org is walled here) proved nothing else hides in the
+    unix-only surfaces.
 - `lint` held one dead method: `dispatchBook.rolesFor` lost its reader when
   /peers moved to the sender's own DispatchRoles memory. A subagent
   verified the zero callers, removed it, and proved four serve-package
