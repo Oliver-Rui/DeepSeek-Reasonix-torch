@@ -94,7 +94,7 @@
 .compose .btn.send[data-running]:not(:disabled) { width: auto; height: 24px; display: inline-flex; align-items: center; gap: 5px; padding: 0 12px 0 10px; border-radius: var(--r-pill); background: var(--accent); color: var(--accent-fg); font: var(--w-med) var(--fs-ui)/1 var(--ui); }
 .compose .btn.stop, .compose .btn.stop[data-primary] { border: 0; background: color-mix(in srgb, var(--err) 12%, transparent); color: var(--err-ink); }
 .compose .btn.stop:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 20%, transparent); color: var(--err-ink); }
-.compose .btn :is(.ic, .ic > svg) { width: 13.5px; height: 13.5px; }
+.compose .btn :is(.ic, .ic > svg) { width: 16px; height: 16px; }
 .compose .btn.send .ic > svg { stroke-width: 2; }
 
 .studio-meterrail { left: 0; right: 0; padding: 0 2px; gap: 0; color: var(--faint); font: var(--w-reg) var(--fs-micro)/1 var(--ui); }
