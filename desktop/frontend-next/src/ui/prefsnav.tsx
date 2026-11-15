@@ -184,6 +184,7 @@ export const SETTINGS: SettingEntry[] = [
   // and the one a reader cannot see from the screen.
   { section: "tools", anchor: "approval", title: "settings.tool_approvals", scope: "machine", apply: "immediate", keywords: ["权限", "yolo", "询问", "放行", "每次都问", "免确认", "自动同意", "确认", "不要问"] },
   { section: "display", anchor: "present-files", title: "settings.ai_file_delivery_cards", scope: "machine", apply: "on-open", keywords: ["文件交付", "交付卡片", "文件预览", "present_files", "tools.present_files", "PDF", "CSV", "HTML", "file delivery", "preview"] },
+  { section: "display", anchor: "message-times", title: "settings.message_times", scope: "machine", apply: "immediate", keywords: ["消息时间", "时间戳", "落时间", "悬停", "message times", "timestamp"] },
   { section: "tools", anchor: "external-origin", title: "settings.outside_text", scope: "machine", apply: "runtime-rebuild", keywords: ["外部", "网页", "来源", "注入", "提示注入", "origin", "yolo", "auto", "询问"] },
   { section: "session", anchor: "plan-approval", title: "settings.plan_approval", scope: "machine", apply: "immediate", keywords: ["plan", "自动批准", "长任务", "无人值守", "plan_approval", "放行", "询问", "每次都问", "免确认", "自动同意"] },
   { section: "tools", anchor: "tool-list", title: "ext.tools_the_model_can_use", scope: "machine", apply: "on-open", keywords: ["禁用", "关闭工具", "tools.disabled", "省 token", "提示词开销", "web_fetch", "denylist"] },
