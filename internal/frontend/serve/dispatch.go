@@ -26,7 +26,47 @@ type dispatchBook struct {
 	// pending holds a pane opened in a project the user has not decided about yet;
 	// it shows its own trust card, and the next dispatch reuses it.
 	pending map[dispatchKey]string
+	// threads records, by the sender's session path, what it dispatched and
+	// where each task landed. The sidebar's hover card reads it for any
+	// session — a live pane or one the user closed long ago.
+	threads map[string][]DispatchThread
 	open    func(context.Context, OpenRequest, *agentcomposition.Binding) (*Runtime, error)
+}
+
+// DispatchThread is one entry in a sender's record of its dispatches: the role
+// the target was opened under and the session the task landed on.
+type DispatchThread struct {
+	Role        string `json:"role,omitempty"`
+	SessionPath string `json:"sessionPath,omitempty"`
+	Key         string `json:"key,omitempty"`
+}
+
+func (b *dispatchBook) noteThread(senderPath, role, targetPath, key string) {
+	if senderPath == "" || senderPath == targetPath {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.threads == nil {
+		b.threads = map[string][]DispatchThread{}
+	}
+	for i := range b.threads[senderPath] {
+		t := &b.threads[senderPath][i]
+		if t.SessionPath == targetPath || (key != "" && t.Key == key) {
+			t.Role, t.SessionPath, t.Key = role, targetPath, key
+			return
+		}
+	}
+	b.threads[senderPath] = append(b.threads[senderPath], DispatchThread{Role: role, SessionPath: targetPath, Key: key})
+}
+
+func (b *dispatchBook) threadsFrom(senderPath string) []DispatchThread {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if len(b.threads[senderPath]) == 0 {
+		return nil
+	}
+	return append([]DispatchThread(nil), b.threads[senderPath]...)
 }
 
 type dispatchKey struct{ from, root, role string }
@@ -155,10 +195,15 @@ func (h *Hub) dispatchTo(ctx context.Context, from *Runtime, project, text, role
 	if key == "" {
 		return control.DispatchResult{}, fmt.Errorf("%w: the new session did not publish itself", control.ErrDispatchFailed)
 	}
-	sender.NoteDispatchedSession(key, secret)
+	sender.NoteDispatchedSession(key, secret, role)
 	receipt, err := sender.SendPeerMessage(key, text)
 	if err != nil {
 		return control.DispatchResult{}, err
+	}
+	// The record the sidebar's hover card reads: the sender's own path is the
+	// key, so the card answers for a session that has no pane open.
+	if tp := targetCtrl.SessionPath(); tp != "" {
+		h.dispatch.noteThread(sender.SessionPath(), role, tp, key)
 	}
 	return control.DispatchResult{Project: root, Key: key, ID: receipt.ID, Role: role}, nil
 }
@@ -251,27 +296,6 @@ func (h *Hub) liveDispatched(from string) int {
 		}
 	}
 	return n
-}
-
-// dispatchRoles resolves the roles from opened its dispatches for onto each
-// live target's peer key, the address a thread row is filed under, so /peers
-// can stamp the role onto the rows. A pane that closed has no row to name.
-func (h *Hub) dispatchRoles(fromID string) map[string]string {
-	out := map[string]string{}
-	for id, role := range h.dispatch.rolesFor(fromID) {
-		rt := h.runtimeByID(id)
-		if rt == nil {
-			continue
-		}
-		ctrl, ok := rt.Server.Controller().(*control.Controller)
-		if !ok {
-			continue
-		}
-		if key := ctrl.PeerKey(); key != "" {
-			out[key] = role
-		}
-	}
-	return out
 }
 
 func (h *Hub) runtimeByID(id string) *Runtime {

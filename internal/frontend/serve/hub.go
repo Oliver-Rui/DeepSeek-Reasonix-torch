@@ -693,7 +693,7 @@ func (h *Hub) publish(rt *Runtime) error {
 		if concrete {
 			rt.Server.mu.Lock()
 			rt.Server.projects = projects
-			rt.Server.dispatchRoles = func() map[string]string { return h.dispatchRoles(rt.ID) }
+			rt.Server.hubThreads = func(path string) []DispatchThread { return h.dispatch.threadsFrom(path) }
 			projects.bind(ctrl)
 			rt.Server.mu.Unlock()
 		}
