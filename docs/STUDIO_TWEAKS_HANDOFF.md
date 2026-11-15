@@ -796,3 +796,50 @@ on the remote — local SHAs are valid citations.
   re-dispatches.
 - TIP_SHA always comes from `git rev-parse studio`, never from memory. All
   the pipeline's scars are in the pitfalls notes.
+
+## 13. The 2.64.1 round — the drags were never wired to the kernel they serve
+
+Four user reports, one patch release. What each turned out to be:
+
+- **Sessions could not be reordered, projects either.**
+  - A kernel-level smoke (curl with the launch-token cookie) showed
+    `/tree/sessions/move` answering 403 `session.outside_workspace` for the
+    very row the tree lists first.
+  - The two sides enumerated differently: the tree reads the project page —
+    where a pane's in-flight first turn lives only in lease and inbox
+    sidecars — while the move validated against a raw store walk.
+  - The move now validates and orders against the tree's own rows —
+    `treeSessionRows` feeds move, pin, viewed and move-to; in-flight rows
+    answer 204 and stay pinned above, dispatch transcripts refuse, archived
+    partitions step inside themselves.
+  - A real browser drag (Playwright dispatching the HTML5 events) then
+    reordered projects and archived sessions with 204s and persistence across
+    reloads. Unremembered workspace rows are not draggable — they are not
+    members of the remembered order — which the smoke learned the hard way.
+- **The uninvited "Oliver" row** was the launch root resolved to the home
+  directory twice over.
+  - The host inherits the shell's working directory and the picker counted
+    every non-install directory as chosen; a stray `.git` in the home
+    directory made the boot's nearest-git-root walk crown it a project.
+  - The launch refuses the home directory now; removal writes a tombstone
+    into the workspace list (bounded at 64, never for the auto workspace) so
+    an implicit root stays gone until the folder is added back.
+  - The startup splash is a 3-second handshake threshold, not a dedicated
+    wait; with the launch root off home, the per-root boot work stops hitting
+    the home tree.
+- **The version panel read a mirror this fork does not have.** The catalog is
+  the GitHub releases list now, and the mode routes answer without a declared
+  install so the background watch runs.
+  - Rows run newest first with the running build marked; `newer` lights the
+    railfoot; each row carries its installer as a plain download link; notes
+    read from the release body.
+  - A dead GitHub answers with err beside the data, so the panel never loses
+    which version is running.
+- **The crew docs**: dispatch's role now names crew members (组员A：美术 /
+  组员B：开发), send_peer_message is the worker's report channel, and both
+  guides describe the router-and-named-crew pattern.
+
+Subagents carried the kernel move fix and the phantom-workspace hunt (their
+one shared-file hazard: a `git reset` mid-flight — index-only, the working
+tree survived; the rule after: never touch git state from a subagent). The
+release pipeline moved to tag `studio-v2.64.1`.
