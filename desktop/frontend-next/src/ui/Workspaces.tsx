@@ -1025,17 +1025,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       {blankOpen && createPortal(
         <BlankProjectDialog adder={adder} onDone={async () => { await reload(); }}
           onClose={() => setBlankOpen(false)} onError={onError} />, document.body)}
-      <SessionBatch hub={hub} selection={selection} selected={selected} displayed={displayed} onSelect={setSelection}
-        onExit={() => {
-          // Back to the tree's own standing control. The menu entries that
-          // start picking live inside closed menus, so the head is the way in;
-          // a folded-everything head still answers with itself for the keyboard.
-          const entry = document.querySelector<HTMLElement>('[data-action="workspace.fold-all"][data-value="projects"]');
-          entry?.focus();
-        }}
-        onBusy={(pending) => { setBusy(pending ? "batch" : ""); if (pending) { setSessionMenu(""); setEditing(""); setConfirm(""); } }}
-        onClose={onClose} onArchive={onArchive} rememberedProjects={rememberedProjects} onRemoveWorkspaces={removeWorkspaces}
-        liveIds={liveIds} reload={reload} onError={onError} />
       <ProjectsHeader bothFolded={bothFolded} searching={searching} onToggleBoth={() => toggleBothRuns()} />
       <div className="scroll">
         <div role="tree" aria-label={t("session.projects_and_conversations")} aria-multiselectable={selection !== null} inert={busy === "batch"} data-action-keydown="tree.navigate" ref={treeKeys.ref} onKeyDown={treeKeys.onKeyDown}>
@@ -1062,6 +1051,17 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
           {children}
         </div>
       </div>
+      <SessionBatch hub={hub} selection={selection} selected={selected} displayed={displayed} onSelect={setSelection}
+        onExit={() => {
+          // Back to the tree's own standing control. The menu entries that
+          // start picking live inside closed menus, so the head is the way in;
+          // a folded-everything head still answers with itself for the keyboard.
+          const entry = document.querySelector<HTMLElement>('[data-action="workspace.fold-all"][data-value="projects"]');
+          entry?.focus();
+        }}
+        onBusy={(pending) => { setBusy(pending ? "batch" : ""); if (pending) { setSessionMenu(""); setEditing(""); setConfirm(""); } }}
+        onClose={onClose} onArchive={onArchive} rememberedProjects={rememberedProjects} onRemoveWorkspaces={removeWorkspaces}
+        liveIds={liveIds} reload={reload} onError={onError} />
     </>
   );
 }

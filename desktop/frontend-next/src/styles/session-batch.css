@@ -1,11 +1,18 @@
 .session-batch button { font: var(--w-reg) var(--fs-meta) var(--ui); }
-.session-batch { position: sticky; bottom: 0; z-index: 2; margin: 4px 0 0; padding: 8px 12px 10px; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: var(--float); box-shadow: var(--shadow-float); animation: m-card var(--m-panel) both; }
+/* The picking bar sits at the column's foot, above 设置: a floating card with
+   the two rows the picking flow reads top to bottom — select/cancel/status,
+   then the actions. */
+.session-batch { position: relative; z-index: 2; margin: 6px 8px 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--float); box-shadow: var(--shadow-float); animation: m-card var(--m-panel) both; }
 .session-batch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: var(--fs-micro); }
 .session-batch-head button { flex: none; height: 24px; color: var(--muted); background: transparent; padding: 0 10px; border: 0; border-radius: var(--r-pill); cursor: pointer; }
+.session-batch-head button:hover:not(:disabled) { background: var(--overlay); color: var(--text); }
+.session-batch-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .session-batch-head button.x { width: 24px; padding: 0; display: inline-grid; place-items: center; }
 .session-batch-actions { display: flex; gap: 4px; flex-wrap: wrap; }
-.session-batch-actions button { height: 24px; padding: 0 10px; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-pill); font-size: var(--fs-meta); }
+.session-batch-actions button { height: 26px; padding: 0 12px; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-pill); font-size: var(--fs-meta); }
 .session-batch-actions button:hover:not(:disabled) { background: var(--overlay); }
+.session-batch-actions button.danger { background: color-mix(in srgb, var(--err-ink) 12%, transparent); color: var(--err-ink); border-color: color-mix(in srgb, var(--err-ink) 30%, transparent); }
+.session-batch-actions button.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--err-ink) 20%, transparent); }
 .session-batch [data-action="session.batch-delete"] { color: var(--err-ink); }
 .session-batch p { margin: 6px 0 0; color: var(--muted); font-size: var(--fs-micro); }
 .session-batch button:disabled { opacity: .45; cursor: default; }
