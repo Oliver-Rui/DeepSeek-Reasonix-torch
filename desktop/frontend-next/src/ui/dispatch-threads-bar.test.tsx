@@ -66,15 +66,25 @@ describe("the dispatch status bar", () => {
     draw(portWith([thread("waiting"), thread("replied", { key: "peer-2", role: "评审", sessionPath: "/sessions/review.jsonl" })]));
     expect(await screen.findByText(/处理『组员B · VR面板式』的回信/)).toBeTruthy();
     expect(screen.getByText(/处理『评审』的回信/)).toBeTruthy();
-    const open = screen.getAllByRole("button");
-    expect(open).toHaveLength(2);
-    expect(open[1].getAttribute("data-session-path")).toBe("/sessions/review.jsonl");
+    // One chip names the whole rail; the lamps inside its card are the rows.
+    expect(screen.getByRole("button", { name: "会话互聊" })).toBeTruthy();
+    const lamps = [...document.querySelectorAll<HTMLElement>(".peerthread")];
+    expect(lamps).toHaveLength(2);
+    expect(lamps[1].getAttribute("data-session-path")).toBe("/sessions/review.jsonl");
     expect(screen.getByText(/已派发 2 个会话/)).toBeTruthy();
   });
 
-  it("names the bar for the cross-chat it reports", async () => {
+  it("says its own word for a peer the wire names neither role nor title for", async () => {
+    // The audit trail carries keys only: a peer that went quiet before its
+    // live beat expired keeps no name, and that must not read as "undefined".
+    draw(portWith([thread("replied", { role: undefined, title: undefined, project: undefined })]));
+    expect(await screen.findByText(/处理『已派发的会话』的回信/)).toBeTruthy();
+    expect(screen.getByText(/（未知项目）回复了你/)).toBeTruthy();
+  });
+
+  it("names the card for the cross-chat it reports", async () => {
     draw(portWith([thread("waiting")]));
-    expect(await screen.findByRole("region", { name: /会话互聊/ })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: /会话互聊/ })).toBeTruthy();
   });
 
   it("draws nothing while the kernel lists no threads", async () => {
