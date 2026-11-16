@@ -220,9 +220,9 @@ it("swaps the two runs when one label is dragged onto the other", async () => {
   fireEvent.dragStart(tasks, { dataTransfer: transfer });
   await waitFor(() => expect(lineOf(tasks).getAttribute("data-dragging")).toBe(""));
   fireEvent.dragOver(projects, { dataTransfer: transfer });
-  // The drop swaps the runs, so the head's line rides the target's bottom
-  // edge — the row's own "after" edge.
-  await waitFor(() => expect(lineOf(projects).getAttribute("data-drop")).toBe("after"));
+  // The carried run sits below the target, so it lands above it: the line
+  // rides the target's top edge, where the run will be.
+  await waitFor(() => expect(lineOf(projects).getAttribute("data-drop")).toBe("before"));
   fireEvent.drop(projects, { dataTransfer: transfer });
   expect([...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent)).toEqual(["任务", "项目"]);
   expect(localStorage.getItem("rx-rail-group-order")).toBe("tasks-first");
@@ -231,8 +231,11 @@ it("swaps the two runs when one label is dragged onto the other", async () => {
   expect(lineOf(projects).getAttribute("data-drop")).toBeNull();
   // The first run is now the tasks run: its conversations lead the tree.
   expect(screen.getAllByRole("treeitem", { name: "three" })[0]!.compareDocumentPosition(screen.getAllByRole("treeitem", { name: "one" })[0]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  // Dragging back restores the standing order.
+  // Dragging back restores the standing order: now the carried run sits
+  // above its target, so its line rides the target's bottom edge.
   fireEvent.dragStart(projects, { dataTransfer: transfer });
+  fireEvent.dragOver(tasks, { dataTransfer: transfer });
+  await waitFor(() => expect(lineOf(tasks).getAttribute("data-drop")).toBe("before"));
   fireEvent.drop(tasks, { dataTransfer: transfer });
   expect([...document.querySelectorAll(".wsgroup span")].map((el) => el.textContent)).toEqual(["项目", "任务"]);
   expect(localStorage.getItem("rx-rail-group-order")).toBe("projects-first");

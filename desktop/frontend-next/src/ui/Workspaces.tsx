@@ -449,7 +449,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   };
   // Dragging one group's label onto the other swaps the two runs; the label is
   // the handle, and the swap rests in the group-order store.
-  const [groupDrag, setGroupDrag] = useState<{ from: "projects" | "tasks"; over: "projects" | "tasks" | null } | null>(null);
+  const [groupDrag, setGroupDrag] = useState<{ from: "projects" | "tasks"; over: { group: "projects" | "tasks"; edge: "before" | "after" } | null } | null>(null);
   // The same gesture one level down: a conversation row dragged onto a
   // neighbour of its own project asks for the row's place in that project's
   // order. `root` keeps a row from dropping into another project's list, and
@@ -474,6 +474,13 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
     window.clearTimeout(hoverTimer.current);
     hoverTimer.current = window.setTimeout(() => setRowHover(null), 350);
   };
+  /** The side of the target the carried run lands on. With two runs the only
+   *  outcome is a swap, so this is decided by the standing order: a run
+   *  carried up from below lands over its target, one carried down from
+   *  above lands under it. The painted line and the drop read this one
+   *  answer, so what the eye sees is what the drop does. */
+  const carriedEdge = (from: "projects" | "tasks"): "before" | "after" =>
+    railGroupOrder() === (from === "projects" ? "projects-first" : "tasks-first") ? "after" : "before";
   const groupDragProps = (group: "projects" | "tasks"): GroupDragProps => ({
     draggable: true,
     onDragStart: (e) => {
@@ -487,17 +494,22 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       if (![...(e.dataTransfer?.types ?? [])].includes(GROUP_DRAG_KIND)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
-      setGroupDrag((was) => (was?.over === group ? was : was ? { ...was, over: group } : was));
+      setGroupDrag((was) => (was?.over?.group === group && was.over.edge === carriedEdge(groupDrag.from) ? was : was ? { ...was, over: { group, edge: carriedEdge(groupDrag.from) } } : was));
     },
-    onDragLeave: () => setGroupDrag((was) => (was?.over === group ? { ...was, over: null } : was)),
+    onDragLeave: () => setGroupDrag((was) => (was?.over?.group === group ? { ...was, over: null } : was)),
     onDrop: (e) => {
       if (!groupDrag || groupDrag.from === group) return;
       if (![...(e.dataTransfer?.types ?? [])].includes(GROUP_DRAG_KIND)) return;
       e.preventDefault();
+      // Two runs and one possible outcome — the carried run takes the
+      // other's place — so the side is a fact about the order, not about
+      // where inside the row the pointer was: carried up from below, it
+      // lands above the target; carried down from above, it lands below.
+      const from = groupDrag.from;
+      const edge = carriedEdge(from);
       setGroupDrag(null);
-      // The drop swaps the two runs — with two of them, carrying either label
-      // onto the other lands in the same place, so the order simply flips.
-      setRailGroupOrder(railGroupOrder() === "projects-first" ? "tasks-first" : "projects-first");
+      const first = edge === "before" ? from : group;
+      setRailGroupOrder(first === "projects" ? "projects-first" : "tasks-first");
     },
     onDragEnd: () => setGroupDrag(null),
   });
@@ -522,7 +534,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
             project, the tasks' opens the window's own kind of conversation. */}
         <WorkspaceGroupHead group={group} folded={searching ? fold.folded : collapsed} canFold={!searching} searching={searching}
           onToggle={() => toggleRun(group)} dragProps={groupDragProps(group)}
-          dropping={groupDrag?.over === group} dragging={groupDrag?.from === group}
+          dropping={groupDrag?.over?.group === group ? groupDrag.over.edge : undefined} dragging={groupDrag?.from === group}
           onAdd={group === "projects" ? (at) => {
             // The menu's top-left corner sits at the plus button's own
             // bottom-left: the button is the anchor, not the pointer. The

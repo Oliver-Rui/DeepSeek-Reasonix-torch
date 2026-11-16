@@ -865,3 +865,22 @@ synthetic dragstart — found the gap the synthetic smoke had hidden: both
   tombstones recorded: a removal is explicit and confirmed, but nothing about
   a *reorder* should ever write one — the new kernel test locks that. The
   three folders were added back through the add route, which lifts tombstones.
+
+### The group heads' line, second correction (same morning)
+
+After the row fix, the two standing labels still painted their line on the
+target's bottom edge whatever the pointer did — the old "the drop swaps the
+runs, so the line rides the bottom" reading. The user's expectation is the
+travel direction: carried up from below, the run lands **over** the target,
+so the line belongs on its top edge.
+
+With two runs there is exactly one outcome — the carried run takes the
+other's place — so the side is a fact about the standing order, not about
+the pointer's half inside the row. `carriedEdge(from)` answers it once and
+both the painted line and the drop read that answer; a drop no longer needs
+a dragover to have landed first (`WorkspaceGroupHeaders` takes
+`dropping?: "before" | "after"` now).
+
+Real-mouse probe: carrying 任务 up onto 项目 paints `before` on 项目 and
+lands 任务 first; carrying 项目 up onto 任务 mirrors it; carrying down
+paints `after` and lands the target first.
