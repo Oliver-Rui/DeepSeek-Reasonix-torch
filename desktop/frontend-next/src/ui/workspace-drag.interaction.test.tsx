@@ -68,12 +68,34 @@ it("the lower half of a row means after it: before the next project, or at the e
   await waitFor(() => expect(placeWorkspace).toHaveBeenLastCalledWith("/a", ""));
 });
 
-it("a drop that leaves the order as it is asks nothing of the kernel", async () => {
+it("a row dropped onto itself asks nothing of the kernel", async () => {
   const { placeWorkspace } = draw();
   await drag("b", "b", "top");
-  await drag("b", "a", "bottom");
-  await drag("b", "c", "top");
   expect(placeWorkspace).not.toHaveBeenCalled();
+});
+
+it("the neighbour's near edge means the other side of it — every drag moves at least one step", async () => {
+  // Dropping b on a's lower half would be "after a", where b already sits;
+  // the line flips to a's upper side and b lands above it. Same downward:
+  // b on c's upper half lands under c. A gesture that paints a line never
+  // leaves the order untouched.
+  const { placeWorkspace } = draw();
+  await drag("b", "a", "bottom");
+  await waitFor(() => expect(placeWorkspace).toHaveBeenLastCalledWith("/b", "/a"));
+  await drag("b", "c", "top");
+  await waitFor(() => expect(placeWorkspace).toHaveBeenLastCalledWith("/b", "/d"));
+});
+
+it("the flipped side is the side the line paints", () => {
+  draw();
+  const dt = transfer();
+  fireEvent.dragStart(row("b"), { dataTransfer: dt });
+  // b sits directly above c: its upper half would be a move of zero, so the
+  // line rides c's lower edge — the place b will actually land.
+  over(row("c"), dt, "top");
+  expect(row("c").getAttribute("data-drop")).toBe("after");
+  fireEvent.dragEnd(row("b"), { dataTransfer: dt });
+  expect(row("c").hasAttribute("data-drop")).toBe(false);
 });
 
 it("shows where it will land while the pointer is over a row, and clears it on release", () => {

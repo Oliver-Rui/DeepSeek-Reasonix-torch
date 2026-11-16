@@ -27,11 +27,9 @@ func studioServer(t *testing.T, in *update.Install) *httptest.Server {
 }
 
 // A kernel nobody declared an install for still answers the versions route:
-// the fork's catalog is the GitHub releases list, which needs no install —
-// only pin and the notes-through-the-mirror stay install-only. The catalog's
-// error rides beside the data (current names the running build even when the
-// catalog could not be read), so a panel never mistakes an unreachable
-// GitHub for "not a Studio".
+// the fork's catalog is the GitHub releases list, which needs no install; only
+// pin and the mirror-read notes stay install-only. The catalog's error rides
+// beside the data, so an unreachable GitHub never reads as "not a Studio".
 func TestVersionRoutesWithoutAnInstall(t *testing.T) {
 	srv := studioServer(t, nil)
 	// An unreachable catalog: the route answers 200 with err beside the data.

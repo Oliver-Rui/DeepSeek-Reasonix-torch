@@ -332,7 +332,11 @@ it("lands a conversation above its target when the line rides the row's top edge
   await waitFor(() => expect(moves).toEqual(["/a/3.jsonl:-1", "/a/3.jsonl:-1"]));
 });
 
-it("asks no swap when the drop lands where the row already sits", async () => {
+it("the neighbour's near edge means the other side of it — the row moves one step", async () => {
+  // Dropping one on two's upper half would be "before two", where one
+  // already sits; the line flips to two's lower side and one lands under it.
+  // The complementary gesture is the same fact from below: three on two's
+  // lower half lands above two. A painted line never means a move of zero.
   const moves: string[] = [];
   drawMoving({
     moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); },
@@ -340,12 +344,42 @@ it("asks no swap when the drop lands where the row already sits", async () => {
   const transfer = sessionTransfer();
   const one = screen.getByRole("treeitem", { name: "one" });
   const two = screen.getByRole("treeitem", { name: "two" });
-  sitAt(two, 100); // "before" the next row is where one already is
+  sitAt(two, 100);
   fireEvent.dragStart(one, { dataTransfer: transfer });
+  fireEvent.dragOver(two, { dataTransfer: transfer });
+  await waitFor(() => expect(two.getAttribute("data-drop")).toBe("after"));
+  fireEvent.drop(two, { dataTransfer: transfer });
+  fireEvent.dragEnd(one, { dataTransfer: transfer });
+  await waitFor(() => expect(moves).toEqual(["/a/1.jsonl:1"]));
+});
+
+it("flips the same way when a conversation is carried upward", async () => {
+  const moves: string[] = [];
+  drawMoving({
+    moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); },
+  });
+  const transfer = sessionTransfer();
+  const three = screen.getByRole("treeitem", { name: "three" });
+  const two = screen.getByRole("treeitem", { name: "two" });
+  sitAt(two, -100); // lower half of the row just above: "after two" is where three sits
+  fireEvent.dragStart(three, { dataTransfer: transfer });
   fireEvent.dragOver(two, { dataTransfer: transfer });
   await waitFor(() => expect(two.getAttribute("data-drop")).toBe("before"));
   fireEvent.drop(two, { dataTransfer: transfer });
-  fireEvent.dragEnd(one, { dataTransfer: transfer });
+  fireEvent.dragEnd(three, { dataTransfer: transfer });
+  await waitFor(() => expect(moves).toEqual(["/a/3.jsonl:-1"]));
+});
+
+it("a row dropped onto itself still asks nothing", async () => {
+  const moves: string[] = [];
+  drawMoving({
+    moveSession: async (path: string, direction: number) => { moves.push(`${path}:${direction}`); },
+  });
+  const transfer = sessionTransfer();
+  const two = screen.getByRole("treeitem", { name: "two" });
+  fireEvent.dragStart(two, { dataTransfer: transfer });
+  fireEvent.drop(two, { dataTransfer: transfer });
+  fireEvent.dragEnd(two, { dataTransfer: transfer });
   await waitFor(() => expect(moves).toEqual([]));
 });
 

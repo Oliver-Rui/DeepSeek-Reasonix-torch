@@ -2,6 +2,7 @@ package serve
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -213,3 +214,67 @@ func TestARemovalMatchesAnySpellingOfTheFolder(t *testing.T) {
 		t.Fatalf("a removal recorded for %q does not match %q", abs, recast)
 	}
 }
+
+// A reorder is not a removal: dropping a project before another, or stepping it
+// with the menu, rewrites the order and nothing else. The tombstone is what the
+// user's "take this off the sidebar" means, and a drag must never write one —
+// that mistake would make the row vanish on the next reload.
+func TestReorderingProjectsWritesNoRemoval(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	base := testenv.TempDir(t)
+	mk := func(name string) string {
+		dir := filepath.Join(base, name)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return dir
+	}
+	a, b, c := mk("alpha"), mk("beta"), mk("gamma")
+	if err := updateWorkspaceList(context.Background(), true, func(list *workspaceList) error {
+		list.Paths = []string{a, b, c}
+		list.Launch = a
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	hubRuntime(t, hub, a)
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+
+	move := func(body string) {
+		t.Helper()
+		resp, err := http.Post(srv.URL+"/tree/workspaces/move", "application/json", bytes.NewReader([]byte(body)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("move %s: status %d", body, resp.StatusCode)
+		}
+	}
+	// A drop names its place; a step names a direction. Both are reorders.
+	move(`{"path":` + quoteJSON(c) + `,"before":` + quoteJSON(a) + `}`)
+	move(`{"path":` + quoteJSON(c) + `,"before":""}`)
+	move(`{"path":` + quoteJSON(b) + `,"direction":-1}`)
+
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Removed) != 0 {
+		t.Fatalf("a reorder recorded removals: %+v", list.Removed)
+	}
+	if len(list.Paths) != 3 {
+		t.Fatalf("a reorder lost projects: %+v", list.Paths)
+	}
+	rows := treeRoots(t, srv)
+	for _, dir := range []string{a, b, c} {
+		if treeRowFor(rows, dir) == nil {
+			t.Fatalf("project %s left the tree: %+v", filepath.Base(dir), rows)
+		}
+	}
+}
+
