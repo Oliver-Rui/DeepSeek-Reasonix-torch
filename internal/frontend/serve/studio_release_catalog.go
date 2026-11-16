@@ -74,7 +74,7 @@ func studioCatalog(ctx context.Context, current string, refresh bool) update.Ver
 				hub.Err = err.Error()
 				return hub
 			}
-			return update.VersionHub{Current: current, Studio: true, Err: err.Error()}
+			return update.VersionHub{Current: current, Studio: true, Err: err.Error(), Versions: []update.VersionEntry{}}
 		}
 		studioCatalogCache.releases = releases
 		studioCatalogCache.at = time.Now()
@@ -109,7 +109,9 @@ func fetchStudioReleases(ctx context.Context) ([]studioRelease, error) {
 // assembleStudioHub maps the releases onto the panel's shape: newest version
 // first, the running one marked, installers carried beside their rows.
 func assembleStudioHub(current string, releases []studioRelease) update.VersionHub {
-	hub := update.VersionHub{Current: current, Studio: true}
+	// The wire keeps lists as lists: an empty catalog answers [] rather than
+	// null, so a panel's `versions.length` cannot throw on an unreachable day.
+	hub := update.VersionHub{Current: current, Studio: true, Versions: []update.VersionEntry{}}
 	for _, rel := range releases {
 		if rel.Draft || rel.Prerelease {
 			continue
