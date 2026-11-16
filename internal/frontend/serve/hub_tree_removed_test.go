@@ -277,4 +277,3 @@ func TestReorderingProjectsWritesNoRemoval(t *testing.T) {
 		}
 	}
 }
-
