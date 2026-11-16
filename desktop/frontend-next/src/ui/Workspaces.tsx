@@ -223,7 +223,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
 
 
   // Dragging reorders the whole remembered list, so a search that hides rows turns it off.
-  const drag = useWorkspaceDrag(needle ? [] : tree.filter((w) => w.remembered).map((w) => w.root), async (root, before) => {
+  const drag = useWorkspaceDrag(needle ? [] : tree.filter((w) => w.remembered).map((w) => w.root), needle ? [] : tree.map((w) => w.root), async (root, before) => {
     try {
       await hub.placeWorkspace(root, before);
       await reload();

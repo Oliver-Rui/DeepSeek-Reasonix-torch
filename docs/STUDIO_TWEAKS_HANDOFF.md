@@ -884,3 +884,23 @@ a dragover to have landed first (`WorkspaceGroupHeaders` takes
 Real-mouse probe: carrying 任务 up onto 项目 paints `before` on 项目 and
 lands 任务 first; carrying 项目 up onto 任务 mirrors it; carrying down
 paints `after` and lands the target first.
+
+### The last position was unreachable (same afternoon)
+
+The user's next report: projects would not move down, and the last position
+could never be reached. The screenshot showed the line painted under
+LidarHub while the drop did nothing — and the row under the last project is
+`Reasonix Studio`, the launch-opened folder that is *not* in the
+remembered order.
+
+- The drag accepted only remembered rows as drop targets (`order.includes`),
+  so a drop on that implicit row was swallowed entirely; since it sits under
+  the last remembered project, "put this last" had no target at all.
+- Fix: the hook takes `rows` (every project row in visual order) beside
+  `order` (the remembered, carriable ones); only remembered rows are carried,
+  but any project row names a place — the next remembered row at or after the
+  pointer's edge, or "" for the end.
+  - `beforeOf` walks `rows`, so a target that is not remembered still
+    resolves to the end. Real mouse: first row onto the neighbour's lower
+    half moves one step; first row onto the implicit row's lower half lands
+    last (`before: ""`).

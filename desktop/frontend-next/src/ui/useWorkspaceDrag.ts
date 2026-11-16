@@ -6,12 +6,15 @@ type Edge = "before" | "after";
 
 /** Reordering the remembered projects by dragging a row. The place a drop names
  *  is a project to land before ("" for the end), so the kernel's order after the
- *  call is the one the person dropped and nothing here keeps an order of its own. */
-export function useWorkspaceDrag(order: string[], place: (root: string, before: string) => Promise<void>) {
+ *  call is the one the person dropped and nothing here keeps an order of its own.
+ *  `rows` is every project row the tree paints, in order — a folder the launch
+ *  opened without being asked is a row too, and dropping onto it has to mean the
+ *  place it sits at rather than nothing at all. */
+export function useWorkspaceDrag(order: string[], rows: string[], place: (root: string, before: string) => Promise<void>) {
   const [dragging, setDragging] = useState("");
   const [over, setOver] = useState<{ root: string; edge: Edge } | null>(null);
 
-  const mine = (e: DragEvent, root: string) => !!dragging && order.includes(root) && [...(e.dataTransfer?.types ?? [])].includes(KIND);
+  const mine = (e: DragEvent, root: string) => !!dragging && root !== dragging && rows.includes(root) && [...(e.dataTransfer?.types ?? [])].includes(KIND);
   const edgeOf = (e: DragEvent): Edge => {
     const box = e.currentTarget.getBoundingClientRect();
     return e.clientY < box.top + box.height / 2 ? "before" : "after";
@@ -29,7 +32,20 @@ export function useWorkspaceDrag(order: string[], place: (root: string, before: 
     if (edge === "after" && to === from - 1) return "before";
     return edge;
   };
-  const beforeOf = (root: string, edge: Edge) => (edge === "before" ? root : order[order.indexOf(root) + 1] ?? "");
+  /** The remembered project the drop lands before, "" for the end. A target
+   *  that is not remembered still names a place: the next remembered row at or
+   *  after it (or the end), so the implicit folder under the last project can
+   *  receive a drop that means "last". */
+  const beforeOf = (root: string, edge: Edge) => {
+    let at = rows.indexOf(root);
+    if (at < 0) return "";
+    if (edge === "after") at += 1;
+    for (; at < rows.length; at++) {
+      const row = rows[at];
+      if (row !== dragging && order.includes(row)) return row;
+    }
+    return "";
+  };
 
   const start = useCallback((e: DragEvent, root: string) => {
     e.dataTransfer.effectAllowed = "move";

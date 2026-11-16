@@ -119,15 +119,29 @@ it("leaves everything else that is dragged over a project row alone", () => {
   expect(placeWorkspace).not.toHaveBeenCalled();
 });
 
-it("only a remembered project can be dragged or dropped on", () => {
+it("a folder the launch opened takes a drop too, and it means the place it sits at", async () => {
+  // The implicit folder under the last remembered project is a row like any
+  // other. Dropping above or below it is how a row reaches the end of the
+  // list — refusing the target left the last position unreachable.
+  const { placeWorkspace } = draw({ remembered: [true, true, true, false] });
+  await drag("a", "d", "top");
+  await waitFor(() => expect(placeWorkspace).toHaveBeenLastCalledWith("/a", ""));
+  await drag("b", "d", "bottom");
+  await waitFor(() => expect(placeWorkspace).toHaveBeenLastCalledWith("/b", ""));
+});
+
+it("only a remembered project is carried, but any project row names a place", () => {
+  // A launch-opened folder is not part of the remembered order, so it cannot
+  // be dragged; it is still a row on screen, so dropping on it has to name the
+  // place it sits at instead of swallowing the gesture.
   const { placeWorkspace } = draw({ remembered: [true, false, true, true] });
   expect(row("b").getAttribute("draggable")).not.toBe("true");
   expect(row("a").getAttribute("draggable")).toBe("true");
   const dt = transfer();
-  fireEvent.dragStart(row("a"), { dataTransfer: dt });
-  expect(over(row("b"), dt, "top").defaultPrevented).toBe(false);
+  fireEvent.dragStart(row("d"), { dataTransfer: dt });
+  expect(over(row("b"), dt, "top").defaultPrevented).toBe(true);
   fireEvent.drop(row("b"), { dataTransfer: dt });
-  expect(placeWorkspace).not.toHaveBeenCalled();
+  expect(placeWorkspace).toHaveBeenLastCalledWith("/d", "/c");
 });
 
 it("reports a host failure without reloading as if the order had changed", async () => {
