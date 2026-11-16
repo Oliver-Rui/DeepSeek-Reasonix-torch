@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"reasonix/internal/platform/update"
 )
 
 // The fork's version catalog is the GitHub releases list itself. A fake answers
@@ -139,8 +137,7 @@ func TestStudioCatalogMarksTheInstallVersionCurrent(t *testing.T) {
 	withStudioRepo(t, srv)
 	t.Cleanup(resetStudioCatalogCache)
 
-	var hub update.VersionHub
-	hub = studioCatalog(context.Background(), "2.64.0", true)
+	hub := studioCatalog(context.Background(), "2.64.0", true)
 	if !hub.Versions[0].Current || hub.Newer {
 		t.Fatalf("hub = %+v", hub)
 	}

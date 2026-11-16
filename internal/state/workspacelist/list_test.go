@@ -192,7 +192,7 @@ func TestRemovalRoundTripsAndRestoreLiftsIt(t *testing.T) {
 // and removing projects cannot grow the file without end.
 func TestRemovalsStayBounded(t *testing.T) {
 	var list List
-	for i := 0; i < maxRemoved+16; i++ {
+	for i := range maxRemoved + 16 {
 		list.Remove(fmt.Sprintf("r%d", i))
 	}
 	if len(list.Removed) != maxRemoved {
