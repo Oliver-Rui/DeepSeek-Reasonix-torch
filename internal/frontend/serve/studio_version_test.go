@@ -43,9 +43,9 @@ func TestVersionRoutesWithoutAnInstall(t *testing.T) {
 		t.Fatal(err)
 	}
 	var hub struct {
-		Current  string `json:"current"`
-		Err      string `json:"err"`
-		Studio   bool   `json:"studio"`
+		Current  string     `json:"current"`
+		Err      string     `json:"err"`
+		Studio   bool       `json:"studio"`
 		Versions []struct{} `json:"versions"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&hub); err != nil {

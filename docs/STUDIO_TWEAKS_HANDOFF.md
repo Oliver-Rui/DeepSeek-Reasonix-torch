@@ -856,8 +856,9 @@ synthetic dragstart — found the gap the synthetic smoke had hidden: both
   which is why every earlier test passed: they dragged non-adjacent rows.
 - Fix: on the immediate neighbour the edge **flips** — carried down it lands
   under that row, carried up it lands over it — and the painted line follows
-  the flipped edge, so a line always means a move. Sessions and projects use
-  the same rule (`Workspaces.tsx` dragover, `useWorkspaceDrag.ts`); the tests
+  the flipped edge, so a line always means a move.
+  - Sessions and projects use the same rule (`Workspaces.tsx` dragover,
+    `useWorkspaceDrag.ts`); the tests
   that had encoded the old no-op now assert the flip, plus a regression test
   that a reorder writes no tombstone (`TestReorderingProjectsWritesNoRemoval`).
 - The user's three projects had disappeared from their sidebar with
