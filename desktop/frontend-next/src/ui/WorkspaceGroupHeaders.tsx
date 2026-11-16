@@ -42,16 +42,17 @@ export function WorkspaceGroupHead({ group, folded, canFold, searching, onToggle
   searching?: boolean;
   onToggle?: () => void;
   dragProps?: GroupDragProps;
-  dropping?: boolean;
+  /** The edge the carried run will land on, as the pointer names it. */
+  dropping?: "before" | "after";
   dragging?: boolean;
   onAdd?: (at: ReactMouseEvent) => void;
   adding?: boolean;
 }) {
   const label = group === "projects" ? t("common.project") : t("session.tasks");
   // The row is the drag: the label and the plus both live in it, so the
-  // carried state and the insertion line ride the whole row. The drop swaps
-  // the runs, so the line rides the row's bottom edge — the same "after"
-  // edge a row speaks for "goes below".
+  // carried state and the insertion line ride the whole row. The line follows
+  // the pointer's half — above the label when the run will go over it, below
+  // when it will go under — the way every other row in the tree speaks.
   const drag = {
     draggable: dragProps?.draggable,
     onDragStart: dragProps?.onDragStart,
@@ -59,7 +60,7 @@ export function WorkspaceGroupHead({ group, folded, canFold, searching, onToggle
     onDragLeave: dragProps?.onDragLeave,
     onDrop: dragProps?.onDrop,
     onDragEnd: dragProps?.onDragEnd,
-    "data-drop": dropping ? "after" : undefined,
+    "data-drop": dropping,
     "data-dragging": dragging ? "" : undefined,
   };
   const plus = onAdd && (group === "projects" ? (
