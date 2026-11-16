@@ -843,3 +843,24 @@ Subagents carried the kernel move fix and the phantom-workspace hunt (their
 one shared-file hazard: a `git reset` mid-flight — index-only, the working
 tree survived; the rule after: never touch git state from a subagent). The
 release pipeline moved to tag `studio-v2.64.1`.
+
+### The drag that painted a line and moved nothing (same night)
+
+A real-input probe — page.mouse starting the native HTML5 drag, not a
+synthetic dragstart — found the gap the synthetic smoke had hidden: both
+"natural" gestures were silent no-ops.
+
+- Dropping a row on the **next row's top edge** asks for "before it", which is
+  exactly where the row already sits; the line painted, the drop returned
+  zero steps. The complementary downward edge worked, and far drops worked,
+  which is why every earlier test passed: they dragged non-adjacent rows.
+- Fix: on the immediate neighbour the edge **flips** — carried down it lands
+  under that row, carried up it lands over it — and the painted line follows
+  the flipped edge, so a line always means a move. Sessions and projects use
+  the same rule (`Workspaces.tsx` dragover, `useWorkspaceDrag.ts`); the tests
+  that had encoded the old no-op now assert the flip, plus a regression test
+  that a reorder writes no tombstone (`TestReorderingProjectsWritesNoRemoval`).
+- The user's three projects had disappeared from their sidebar with
+  tombstones recorded: a removal is explicit and confirmed, but nothing about
+  a *reorder* should ever write one — the new kernel test locks that. The
+  three folders were added back through the add route, which lifts tombstones.

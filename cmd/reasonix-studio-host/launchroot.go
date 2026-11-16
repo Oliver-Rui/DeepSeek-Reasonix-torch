@@ -65,13 +65,11 @@ func userChoseDir(cwd, appExe, home string) bool {
 	return !inside
 }
 
-// sameRealDir says whether two spellings name one directory. The home
-// directory reaches this check from several writers, and launchers disagree
-// about case and separators on every platform — a shortcut's start-in field
-// can carry any case — so the spellings are resolved and case-folded first.
-// A case-fold that mistakes a differently-cased sibling for home costs one
-// launch root falling back to the remembered projects; a miss puts the home
-// directory in the sidebar. An empty spelling names nothing.
+// sameRealDir says whether two spellings name one directory. Launchers
+// disagree about case and separators on every platform, so the spellings are
+// resolved and case-folded first. A false match costs one launch root falling
+// back to the remembered projects; a miss puts the home directory in the
+// sidebar. An empty spelling names nothing.
 func sameRealDir(a, b string) bool {
 	if strings.TrimSpace(a) == "" || strings.TrimSpace(b) == "" {
 		return false

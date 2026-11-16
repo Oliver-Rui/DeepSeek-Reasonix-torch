@@ -857,7 +857,20 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           // A real drag always carries the pointer's y; a
                           // synthetic one (the tests) reads as the row's top.
                           const y = typeof ev.clientY === "number" ? ev.clientY : 0;
-                          const edge = y < box.top + box.height / 2 ? "before" as const : "after" as const;
+                          let edge = y < box.top + box.height / 2 ? "before" as const : "after" as const;
+                          // The line names where the row will land. On the
+                          // neighbour that edge would be a move of zero — the
+                          // row already sits there — so it flips: carrying a
+                          // row onto the row just below lands under it, onto
+                          // the row just above lands over it. moveTo reads the
+                          // same edge, so what is painted is what happens.
+                          const peers = ws.sessions.filter((s) => !!s.archived === !!sessDrag.archived);
+                          const from = peers.findIndex((s) => s.path === sessDrag.from);
+                          const to = peers.findIndex((s) => s.path === session.path);
+                          if (from >= 0 && to >= 0 && from !== to) {
+                            if (edge === "before" && to === from + 1) edge = "after";
+                            else if (edge === "after" && to === from - 1) edge = "before";
+                          }
                           setSessDrag((was) => (was?.over?.path === session.path && was.over.edge === edge ? was : was ? { ...was, over: { path: session.path, edge } } : was));
                         }}
                         onDragLeave={subtitle ? undefined : () => setSessDrag((was) => (was?.over?.path === session.path ? { ...was, over: null } : was))}
