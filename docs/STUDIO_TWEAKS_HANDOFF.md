@@ -983,3 +983,91 @@ Left as recorded, with reasons:
   setting that no longer governs them.
 - A menu or keyboard reorder still rests the clock reading, which is the
   intended "a reorder is a manual order" rule.
+
+## 14. The 2.66.0 round — the default model follows you, the composer sheds chrome
+
+This round ran mostly as a live debugging session against the real workspace,
+so every finding below was verified against the running pane kernels, not just
+the suite.
+
+### The default model follows the last composer pick
+
+- A new policy answers "what should a brand-new conversation open on". With
+  `default_model_follows_last_choice` on (the new default the user asked for),
+  a model picked in the composer is recorded as the default; picking a concrete
+  model in settings pins it again. The settings row offers 随上次选择 explicitly.
+- Kernel side: `desktop_config.go` carries the nullable TOML key (rendered only
+  when set), `declare.go` declares the setting, `settings.go` writes it behind
+  `POST /default-model-policy` (refused with 409 when the pane is brokered) and
+  `followModelChoice` records composer picks best-effort. `/models?answers=all`
+  answers `defaultFollowsLastChoice` so the page can check without a second
+  round trip.
+- Frontend: the 默认模型 dropdown leads with 随上次选择 (`FOLLOW_LAST_PICK`), the
+  settings row writes the policy through the new port method. The composer's
+  model mark also reads the catalog entry (`markForModelId`) instead of trusting
+  a relay-provided mark.
+- The kernel cost of a switch is now measured, not guessed: same-provider
+  switches take the ~105ms fast path, cross-provider switches rebuild the whole
+  controller (~500–700ms). See the follow-up plan for the smoothness work.
+
+### The composer sheds chrome
+
+- The session hover card is gone — `SessionHoverCard.tsx`, its interaction
+  test, the `.sesscard*` styles and the two i18n keys. The state lamps it
+  duplicated live on the rows themselves.
+- The peer-thread lamp left the sidebar session rows: with the lead dot already
+  on the row it read as a second, redundant state dot. The lamp stays on the
+  pane tabs, where there is no lead dot to double.
+- The usage picker rows stopped clipping: the model picker takes its column
+  width (`min-width: 0`, ellipsis) and the effort select no longer overflows
+  into the 连接 column.
+- The project palette's search box aligns its magnifier with the row icons
+  below (padding 10→9px against the 1px border) and carries one vertical
+  rhythm (10px top and bottom).
+
+### Vendor marks
+
+- MiMo wears the maker's own round disc: the extracted-official artwork,
+  cropped to the solid-disc bounds and embedded as a 128px RGBA data-URL inside
+  the SVG shell the mark loader expects (21.9KB). The loader strips only the
+  first `<title>`/`style`, so the `<image>` rides through untouched.
+- Hunyuan answers to the HY ids: `hy4-flash`, `hy-7`, `混元-4` and friends map
+  to the hunyuan family; negative cases (rhythm, shy-model) stay unmapped.
+
+### Round label
+
+- The follow option reads 随上次选择 (was 跟随上次手动选择). Two tests needed
+  to learn about the option and about midnight: `ModelPrefix` counts the
+  follow row, and `timeBuckets` pins its fixtures against the local midnight
+  so a suite run right after 00:00 no longer sees 昨天 turn into 今天.
+
+### How it was checked
+
+- Full frontend suite: 925 files, 6920 tests, green (one iteration: the
+  three failures this round itself introduced or exposed are described above).
+- `tsc -b && vite build` green; `repolint` clean (css-size/file-size budget
+  reclaimed).
+- Live verification against the running serve: the round MiMo mark in the
+  composer and model menu, the 随上次选择 row in settings, the palette search
+  alignment measured pixel-exact (magnifier and row icons both at 354px), the
+  peer lamp absent from session rows.
+- The switch-cost numbers above came from the serve log against live pane
+  kernels; the send path was traced end to end (each pane kernel owns its own
+  port — submits never appear in the hub's log, which is why one debugging
+  session first misread a successful send as swallowed).
+
+### Left as recorded, with reasons
+
+- Switching models and switching sessions are not yet silky. The costs are
+  measured and the plan is written down rather than half-applied: an
+  optimistic model label must live at the pane level (a button-level attempt
+  set state that never reached the visible button — reverted for touching
+  more than it fixed); new-pane first-load fetches could parallelise or
+  defer; cross-provider switches rebuild the whole controller by design, and
+  splitting that needs a kernel design round before anyone touches it.
+- `POST /default-model-policy` answers 403 to callers without the launch
+  token when the serve runs `-auth none`; a bare curl will see this and it is
+  the mutation gate working as intended.
+- The test serve must carry `-workspace-switch` for the 进入项目工作 pill to
+  open; the installed host grants it unconditionally, so only ad-hoc serves
+  forget it.
