@@ -34,9 +34,10 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 const OVER = 9;
 const give = (d: number) => OVER * Math.tanh(d / 90);
 
-// How much further you have to push, past that give, for the panel to close —
-// and the same pull the other way to bring it back. The give is what makes the
-// threshold safe: a slip stops at the edge, and only sustained force commits.
+// How far a shut column's edge has to be pulled out before it opens. The give
+// is what makes the threshold safe: a slip stops at the edge, and only a
+// deliberate pull reveals the column. A drag never shuts a column; the collapse
+// control does that.
 const COMMIT = 56;
 
 export function widthOf(span: Span): number {
@@ -100,15 +101,9 @@ export function Gutter({ edge, span, width, max = span.max, label, open, onWidth
         pull = shut ? give(Math.max(0, dx)) : 0;
       } else {
         const want = width + dx;
-        if (want >= span.min) {
-          shut = false;
-          now = Math.min(max, want);
-          pull = want > max ? give(want - max) : 0;
-        } else {
-          shut = span.min - want > COMMIT;
-          now = span.min;
-          pull = shut ? 0 : -give(span.min - want);
-        }
+        shut = false;
+        now = clamp(want, span.min, max);
+        pull = want > max ? give(want - max) : want < span.min ? -give(span.min - want) : 0;
       }
       over = edge === "l" ? pull : -pull;
     };
@@ -129,6 +124,7 @@ export function Gutter({ edge, span, width, max = span.max, label, open, onWidth
       // this same width once React has landed the open/closed attribute, and
       // clearing early flashes the column it had before the drag.
       requestAnimationFrame(() => host.style.removeProperty(span.col));
+      // A drag can only open a shut column; closing is the control's job.
       if (shut === open) onOpen(!shut);
       if (!shut) onWidth(now);
     };
