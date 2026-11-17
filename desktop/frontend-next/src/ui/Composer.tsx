@@ -18,7 +18,7 @@ import { ModelGroupChips } from "./ModelGroupChips";
 import { useModelHealth } from "./modelhealth";
 import { effortMenu, effortReading, effortShort, effortsFor, forcesThinkingFor, routeEffortPick } from "./effort";
 import { EffortColumn } from "./EffortColumn";
-import { hasVendorMark, VendorMark } from "./vendormarks";
+import { hasVendorMark, markForModelId, VendorMark } from "./vendormarks";
 import { CompletionMenu, useCompletion } from "./Completion";
 import { ChipMirror, useSkillChips } from "./ChipMirror";
 import { useIme } from "./ime";
@@ -395,7 +395,11 @@ export function Composer({ port, status, running, queued = false, quote, restore
   });
 
   const efforts = effortsFor(models, status?.modelRef);
-  const currentMark = models.find((m) => m.ref === status?.modelRef)?.mark;
+  // The id names the family, and the family owns the mark — the same rule the
+  // menu's rows use. A relay declares no vendor of its own, so reading m.mark
+  // alone left the composer's button bare.
+  const currentModel = models.find((m) => m.ref === status?.modelRef);
+  const currentMark = (currentModel && markForModelId(currentModel.model)) ?? currentModel?.mark;
   // Whether this model says anything about reasoning levels at all. The session
   // may still carry one from a model that did, and printing that would be the
   // composer answering for an endpoint that never spoke.
