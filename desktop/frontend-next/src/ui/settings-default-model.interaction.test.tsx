@@ -45,6 +45,23 @@ it("the settings default-model row records the pick as the default, not just for
   expect(setDefault).toHaveBeenCalledWith(picked);
 });
 
+// Following the last pick is a policy the row carries beside the models, so one
+// select answers both "which model" and "who decides it".
+it("the row offers following the last pick, and records that as the policy", async () => {
+  const port = new MockPort() as unknown as AgentPort;
+  const policy = vi.spyOn(port, "defaultModelPolicy");
+  const set = vi.spyOn(port, "setModel");
+  draw(port);
+  const select = (await screen.findByRole("combobox", { name: "默认模型" })) as HTMLSelectElement;
+  const follow = Array.from(select.options).find((o) => o.textContent === "随上次选择");
+  expect(follow).toBeTruthy();
+  await userEvent.selectOptions(select, follow!.value);
+  expect(policy).toHaveBeenCalledWith(true);
+  // Choosing the policy is not choosing a model: the session keeps running the
+  // one it has.
+  expect(set).not.toHaveBeenCalled();
+});
+
 // A remote pane's models come from this machine's broker, so the default the
 // row describes is this machine's: the pick is written there and the pane's own
 // kernel, which has no default_model it reads, is only asked to switch.

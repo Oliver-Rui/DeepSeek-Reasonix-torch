@@ -35,6 +35,7 @@ import { ExtAddMenu, type ExtAddWay } from "./ExtAddMenu";
 import { ExtDetail, ExtSplit, firstPick } from "./ExtDetail";
 import type { ExtPicked } from "./extpick";
 import { ModelSettings } from "./ModelSettings";
+import { FOLLOW_LAST_PICK } from "./ModelUsage";
 import { ServerRow } from "./ServerRow";
 import { SkillGroups } from "./SkillRow";
 import { ConfigTrouble } from "./ConfigTrouble";
@@ -97,6 +98,9 @@ export function Settings({ hub, onError, port, networkPort, localWorkspacePort, 
   // on its reasoning fields. The model ref's first segment is the source name.
   const declare = openedAnchor === "effort-declare" ? status?.modelRef?.split("/")[0] : undefined;
   const [models, setModels] = useState<ModelEntry[]>([]);
+  // Whether new conversations open on the model last picked in the composer,
+  // rather than on the one the default row names.
+  const [followsLastChoice, setFollowsLastChoice] = useState(false);
   const { roles, overrides, loadRoles } = useRoles(port);
   const [protocol, setProtocol] = useState<Record<string, string>>({});
   const [mcp, setMcp] = useState<McpEntry[]>([]);
@@ -157,7 +161,7 @@ export function Settings({ hub, onError, port, networkPort, localWorkspacePort, 
   }, [port, homePort, localPort, scopeAt]);
   // Adding or removing a source changes what the picker above can offer, so
   // the list is reloadable rather than read once at mount.
-  const loadModels = useModelCatalog(port, localPort, setModels);
+  const loadModels = useModelCatalog(port, localPort, setModels, setFollowsLastChoice);
 
   const currentExt = useRef({ port, reloadExt, loadModels, onChanged });
   currentExt.current = { port, reloadExt, loadModels, onChanged };
@@ -434,10 +438,18 @@ export function Settings({ hub, onError, port, networkPort, localWorkspacePort, 
           {at === "model" && (
             <ModelSettings port={port} onChanged={onChanged} onFailed={setFailed}
               usage={{
-                models, roles, main: status?.modelRef, busy, protocol,
+                models, roles, main: status?.modelRef, busy, protocol, followsLastChoice,
                 onMain: (ref) => run(ref, async () => {
+                  // The follow option is a policy, not a model: it records that
+                  // new conversations open on whatever the composer last picked.
+                  if (ref === FOLLOW_LAST_PICK) {
+                    await localPort.defaultModelPolicy(true);
+                    loadModels();
+                    return;
+                  }
                   await port.setModel(ref);
                   await localPort.setDefaultModel(ref);
+                  await localPort.defaultModelPolicy(false);
                   loadModels();
                 }),
                 effort: status?.effort || "auto", onEffort: (level) => run(`effort:${level}`, () => port.setEffort(level)),
