@@ -1,5 +1,6 @@
-// Opt-in session actions put Pin and Archive after the title.
-// Their visibility, geometry and pointer targets need a real browser.
+// The opt-in row action is the pin button (the setting's own name); archive is
+// always drawn. Pin's visibility, geometry and pointer target need a real
+// browser.
 import { chromium } from "playwright";
 
 const BASE = process.env.PERF_URL ?? "http://localhost:4399/perf.html";
@@ -26,9 +27,10 @@ try {
         const row = page.locator(`.sessrow-${kind}`).first();
         await row.hover();
         await page.waitForTimeout(150);
-        const quick = row.locator('[data-action="session.pin"], [data-action="session.archive"]');
+        const quick = row.locator('[data-action="session.pin"]');
         if (!on) {
-          check(`${tag}: hover draws no quick buttons`, (await quick.count()) === 0);
+          check(`${tag}: the setting off draws no pin`, (await quick.count()) === 0);
+          if (kind === "context") check(`${tag}: archive stays, the setting does not govern it`, (await row.locator('[data-action="session.archive"]').count()) === 1);
         } else {
           const state = await row.evaluate((el) => {
             const title = el.querySelector(".sesstitle > span").getBoundingClientRect();

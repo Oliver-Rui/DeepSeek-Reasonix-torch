@@ -368,6 +368,12 @@ export function App({ hub }: { hub: HubPort }) {
   openPeerSessionRef.current = openPeerSession;
   const openPeerSessionStable = useCallback((path: string) => openPeerSessionRef.current(path), []);
 
+  // Pane memoizes on projectTree, and the picker reads only these fields: a
+  // reload that changed none of them must hand back the object it already had,
+  // or every pane redraws for a tree the picker cannot see.
+  const pickerSig = tree.map((w) => `${w.root}${w.name}${w.remembered ? 1 : 0}${w.missing ? 1 : 0}`).join("");
+  const pickerTree = useRef({ sig: "", tree });
+  if (pickerTree.current.sig !== pickerSig) pickerTree.current = { sig: pickerSig, tree };
   const openFromSidebar = useSidebarOpen<PaneView>(runtimes, openPane, setActive, setViewRequests, "flow");
   const adder = useAddWorkspace(hub, reloadTree, fail, useCallback((workspace) => openPaneRef.current({ root: workspace.root }), []));
   const { focusFor, openProject, openSettings, openFeedback, openSessionFor } = usePaneCallbacks({
@@ -701,7 +707,7 @@ export function App({ hub }: { hub: HubPort }) {
                   failure={rt.id === active ? errorBar : undefined}
                   connect={first.connect}
                   onOpenProject={openProject}
-                  projectTree={tree}
+                  projectTree={pickerTree.current.tree}
                   remotes={remotes}
                   remoteTrees={remoteTrees}
                   runtimes={runtimes}
