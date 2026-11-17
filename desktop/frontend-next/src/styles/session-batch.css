@@ -7,8 +7,8 @@
 .session-batch-status > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-batch-hint { color: var(--warn-ink); }
 .session-batch-head button.x { width: 24px; padding: 0; display: inline-grid; place-items: center; }
-.session-batch-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
-.session-batch-actions button { height: 28px; padding: 0 12px; width: 100%; display: inline-flex; align-items: center; justify-content: center; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-pill); font-size: var(--fs-meta); }
+.session-batch-actions { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; margin-top: 6px; }
+.session-batch-actions button { height: 28px; padding: 0 10px; min-width: 0; width: 100%; display: inline-flex; align-items: center; justify-content: center; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-pill); font-size: var(--fs-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .session-batch-actions button:hover:not(:disabled) { background: var(--overlay); }
 .session-batch-actions button.danger { background: color-mix(in srgb, var(--err-ink) 12%, transparent); color: var(--err-ink); border-color: color-mix(in srgb, var(--err-ink) 30%, transparent); }
 .session-batch-actions button.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--err-ink) 20%, transparent); }
