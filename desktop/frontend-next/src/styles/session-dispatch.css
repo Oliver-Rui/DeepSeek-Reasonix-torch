@@ -1,0 +1,54 @@
+.session-dispatch-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  box-sizing: border-box;
+  margin: auto;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+  overflow-y: auto;
+  font: var(--w-reg) var(--fs-ui)/1.5 var(--ui);
+}
+.session-dispatch-dialog::backdrop { background: rgb(0 0 0 / .28); }
+.session-dispatch-dialog header { margin-bottom: 14px; }
+.session-dispatch-dialog header b { font: var(--w-semi) var(--fs-title)/1.3 var(--ui); }
+.session-dispatch-field { display: grid; gap: 4px; margin-bottom: 12px; color: var(--muted); }
+.session-dispatch-field textarea {
+  width: 100%; box-sizing: border-box; padding: 8px; resize: vertical;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--field); color: var(--text); font: inherit;
+}
+.session-dispatch-targets { display: grid; gap: 6px; }
+.session-dispatch-row { display: grid; grid-template-columns: 112px 1fr 1fr 1.4fr auto; gap: 6px; align-items: center; }
+.session-dispatch-row :is(select, input) {
+  min-width: 0; width: 100%; box-sizing: border-box; height: 30px; padding: 0 6px;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--field); color: var(--text); font: var(--w-reg) var(--fs-meta) var(--ui);
+}
+.session-dispatch-row input::placeholder { color: var(--faint); }
+.session-dispatch-result { color: var(--err-ink); font: var(--w-reg) var(--fs-micro) var(--ui); }
+.session-dispatch-result[data-ok] { color: var(--ok); }
+.session-dispatch-remove { width: 26px; height: 26px; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted); cursor: pointer; }
+.session-dispatch-remove:hover { background: var(--overlay); color: var(--text); }
+.session-dispatch-add {
+  display: inline-flex; align-items: center; gap: 4px; height: 28px; margin-top: 8px;
+  padding: 0 8px; border: 1px dashed var(--border); border-radius: var(--r-sm);
+  background: transparent; color: var(--muted); cursor: pointer;
+  font: var(--w-reg) var(--fs-meta) var(--ui);
+}
+.session-dispatch-add:hover { color: var(--text); background: var(--overlay); }
+.session-dispatch-add .studio-icon { width: 14px; height: 14px; }
+.session-dispatch-error { margin: 10px 0 0; color: var(--err-ink); }
+.session-dispatch-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.session-dispatch-dialog footer button {
+  min-width: 76px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: transparent; color: var(--text); cursor: pointer;
+  font: var(--w-med) var(--fs-ui) var(--ui);
+}
+.session-dispatch-dialog footer button[type="submit"],
+.session-dispatch-dialog footer button[data-action="session.dispatch-done"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.session-dispatch-dialog footer button:disabled { opacity: .45; cursor: default; }

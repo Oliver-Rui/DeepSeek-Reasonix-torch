@@ -11,7 +11,7 @@ afterEach(cleanup);
 function menu(over: Partial<SessionMenuProps> = {}, session: Partial<TreeSession> = {}) {
   const props: SessionMenuProps = {
     session: { path: "/p/a.jsonl", archived: false, runtimeId: "rt-1", ...session } as TreeSession,
-    label: "上一次的会话", live: false, pinned: false, exporting: false, autoNaming: false,
+    live: false, pinned: false, exporting: false, autoNaming: false,
     onPin: vi.fn(), onMarkRead: vi.fn(), onRename: vi.fn(), onAutoName: vi.fn(), onPause: vi.fn(), onClose: vi.fn(),
     onArchive: vi.fn(), onBranch: vi.fn(), onCopyInfo: vi.fn(), onExport: vi.fn(), onBatchSelect: vi.fn(), onDelete: vi.fn(),
     onMoveTo: vi.fn(), ...over,
@@ -34,6 +34,15 @@ describe("the session menu", () => {
       ["session.move-to-start", "session.archive:archive"],
       ["session.close", "session.delete"],
     ]);
+  });
+
+  it("offers the dispatch entry for the row, and hands the conversation over", async () => {
+    const p = menu({ onDispatch: vi.fn() });
+    const item = screen.getByRole("menuitem", { name: "派发任务" });
+    expect(item.getAttribute("data-action")).toBe("session.dispatch-start");
+    expect(item.getAttribute("data-target")).toBe("/p/a.jsonl");
+    await userEvent.click(item);
+    expect(p.onDispatch).toHaveBeenCalledOnce();
   });
 
   it("hands the whole conversation to the batch-select entry", async () => {

@@ -1,5 +1,6 @@
 import type { AgentPort } from "./port";
 import type { HistorySearch, HubPort, RuntimeView, TreeSession, TreeWindow, TreeWorkspace } from "./hub";
+import type { DispatchResult, DispatchTarget } from "./dispatch";
 import type { RemoteHost, RemoteListing, RemoteProbe } from "./remote";
 import type { PhoneAction, PhoneList, PhoneView, ShareStatus } from "./share";
 import { MockPort } from "./mock";
@@ -206,6 +207,10 @@ export class MockHub implements HubPort {
     return Promise.resolve([]);
   }
 
+  dispatch(_to: string, targets: DispatchTarget[]): Promise<DispatchResult[]> {
+    return Promise.resolve(targets.map(() => ({ ok: true })));
+  }
+
 tree(window?: TreeWindow) {
     const open = new Map(this.views.filter((v) => v.sessionPath).map((v) => [v.sessionPath!, v.id]));
     return Promise.resolve(
@@ -271,24 +276,14 @@ tree(window?: TreeWindow) {
     return [...sessions].sort((a, b) => rank(a) - rank(b));
   }
 
-  async moveSession(path: string, direction: -1 | 1) {
+  async placeSession(path: string, before: string) {
     const ws = (await this.tree()).find((w) => w.sessions.some((s) => s.path === path));
     if (!ws) return;
-    const order = ws.sessions.map((s) => s.path);
-    const at = order.indexOf(path);
-    const to = at + direction;
-    if (to < 0 || to >= order.length) return;
-    [order[at], order[to]] = [order[to], order[at]];
-    this.placedSessions.set(ws.root, order);
-  }
-
-  moveWorkspace(path: string, direction: -1 | 1) {
-    const at = this.roots.indexOf(path);
-    const to = at + direction;
-    if (at >= 0 && to >= 0 && to < this.roots.length) {
-      [this.roots[at], this.roots[to]] = [this.roots[to], this.roots[at]];
-    }
-    return Promise.resolve();
+    const rest = ws.sessions.map((s) => s.path).filter((p) => p !== path);
+    const at = before === "" ? rest.length : rest.indexOf(before);
+    if (at < 0) return;
+    rest.splice(at, 0, path);
+    this.placedSessions.set(ws.root, rest);
   }
 
   searchHistory(_query: string): Promise<HistorySearch> {

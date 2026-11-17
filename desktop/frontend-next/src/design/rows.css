@@ -42,13 +42,13 @@
 .ds-row:has(> .session-select) > .ds-lead { display: none; }
 .ds-row > .session-select { margin: 0; flex: none; }
 .ds-row > .sessedit { flex: 1; min-width: 0; }
+.ds-row:is(:hover, :focus-within) > :is(.ds-meta, .ds-pin) { display: none; }
+.ds-row .ds-pin { width: 12px; height: 12px; flex: none; }
 .ds-row .ds-more { display: none; width: 28px; height: 28px; margin-right: -6px; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted); place-items: center; flex: none; cursor: pointer; }
 .ds-row .ds-more:hover { background: var(--overlay); color: var(--text); }
 .ds-row .ds-more .studio-icon { width: 16px; height: 16px; }
 .ds-row:is(:hover, :focus-within) .ds-more { display: grid; }
-.ds-row:is(:hover, :focus-within) > :is(.ds-meta, .ds-pin) { display: none; }
 @media (hover: none) { .ds-row .ds-more { display: grid; } }
-.ds-row .ds-pin { width: 12px; height: 12px; flex: none; }
 .ds-row .sessquick { flex: none; display: flex; }
 .ds-row .sesspin-action { flex: none; display: grid; }
 .ds-row:not(:is(:hover, :focus-within)) :is(.sessquick, .sesspin-action) { position: absolute; width: 0; height: 0; overflow: hidden; clip-path: inset(50%); opacity: 0; pointer-events: none; }
@@ -84,3 +84,4 @@
 .ds-row[data-sub] .ds-title { display: flex; flex-direction: column; gap: 1px; }
 .ds-row .sessline { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ds-row .sessub { color: var(--faint); font: var(--w-reg) var(--fs-micro)/1.2 var(--ds-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[aria-multiselectable="true"] .sessrow[aria-selected="true"] { background: var(--accent-wash); color: var(--text); }

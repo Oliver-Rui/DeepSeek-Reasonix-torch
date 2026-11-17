@@ -716,6 +716,39 @@ test("a kernel that never answers is started once and not retried", { skip: proc
     assert.equal((log.match(/host: starting /g) || []).length, 1);
     assert.doesNotMatch(log, /retrying once/);
     assert.match(shell.calls[0][2], /still running/);
+    const [wall] = shell.windows;
+    assert.ok(wall, "the launch opened no window before the kernel answered");
+    assert.match(decodeURIComponent(wall.loaded[0]), /Studio is starting/, "the window did not open on its starting page");
+    assert.equal(wall.shown, true, "the starting page was never shown");
+  } finally {
+    delete process.env.REASONIX_STUDIO_HANDSHAKE_TIMEOUT_MS;
+    shell.cleanup();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the starting page speaks the shell's language", () => {
+  const { startingPage } = require("../src/starting.js");
+  assert.match(startingPage("zh-CN"), /Studio 正在启动/);
+  assert.match(startingPage("zh-CN"), /工作区/);
+  assert.match(startingPage("en-US"), /Studio is starting/);
+  assert.doesNotMatch(startingPage("en-US"), /正在启动/);
+});
+
+test("closing the window before the kernel answers ends the launch", { skip: process.platform === "win32" }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reasonix-closed-"));
+  const host = path.join(dir, "host.sh");
+  fs.writeFileSync(host, "#!/bin/sh\nexec sleep 5\n", { mode: 0o755 });
+  process.env.REASONIX_STUDIO_HANDSHAKE_TIMEOUT_MS = "400";
+  const shell = loadShell({ lock: true, host });
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const [wall] = shell.windows;
+    assert.ok(wall, "the launch opened no window before the kernel answered");
+    wall.emit("closed");
+    await shell.quitted;
+    assert.match(shell.shellLog(), /window closed while starting; ending the launch/);
+    assert.deepEqual(shell.calls[0], ["quit"], "closing the starting page did not end the launch");
   } finally {
     delete process.env.REASONIX_STUDIO_HANDSHAKE_TIMEOUT_MS;
     shell.cleanup();
@@ -1668,6 +1701,7 @@ function loadShell({ lock, host }) {
   const Module = require("node:module");
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), "reasonix-shell-"));
   const calls = [];
+  const windows = [];
   let quit;
   const quitted = new Promise((resolve) => { quit = resolve; });
   const inert = new Proxy(function () {}, { get: (_t, key) => (key === "then" ? undefined : inert), apply: () => inert });
@@ -1685,7 +1719,43 @@ function loadShell({ lock, host }) {
     },
   });
   const dialog = { showErrorBox: (title, detail) => calls.push(["dialog", title, detail]) };
-  const fake = new Proxy({ app, dialog }, { get: (t, key) => t[key] ?? inert });
+  class ShellWindow extends EventEmitter {
+    constructor() {
+      super();
+      windows.push(this);
+      this.loaded = [];
+      this.shown = false;
+      this.webContents = Object.assign(new EventEmitter(), {
+        setWindowOpenHandler: () => {},
+        isCrashed: () => false,
+      });
+    }
+    async loadURL(url) {
+      this.loaded.push(url);
+      this.emit("ready-to-show");
+      return {};
+    }
+    show() { this.shown = true; }
+    focus() {}
+    hide() {}
+    isDestroyed() { return false; }
+    isVisible() { return false; }
+    isMinimized() { return false; }
+    isMaximized() { return false; }
+    isFullScreen() { return false; }
+    getNormalBounds() { return { x: 0, y: 0, width: 800, height: 600 }; }
+    restore() {}
+    maximize() {}
+    setFullScreen() {}
+    setBackgroundColor() {}
+  }
+  const screen = {
+    getAllDisplays: () => [],
+    getPrimaryDisplay: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1080 }, workAreaSize: { width: 1920, height: 1080 } }),
+    on() {},
+    removeListener() {},
+  };
+  const fake = new Proxy({ app, dialog, screen, BrowserWindow: ShellWindow }, { get: (t, key) => t[key] ?? inert });
   const load = Module._load;
   const main = require.resolve("../src/main.js");
   const saved = { REASONIX_STUDIO_HOST: process.env.REASONIX_STUDIO_HOST, REASONIX_OZONE_PLATFORM: process.env.REASONIX_OZONE_PLATFORM };
@@ -1707,7 +1777,7 @@ function loadShell({ lock, host }) {
   const logDir = path.join(userData, "logs");
   const shellLog = () => fs.readFileSync(path.join(logDir, "shell.log"), "utf8");
   const hostLog = () => fs.readFileSync(path.join(logDir, "host.log"), "utf8");
-  return { calls, quitted, logDir, shellLog, hostLog, cleanup: () => fs.rmSync(userData, { recursive: true, force: true }) };
+  return { calls, quitted, windows, logDir, shellLog, hostLog, cleanup: () => fs.rmSync(userData, { recursive: true, force: true }) };
 }
 
 test("a second launch leaves a line in the log and no dialog", async () => {
@@ -1743,6 +1813,10 @@ test("a host that exits before its handshake is logged and shown, not swallowed"
     assert.match(log, /retrying once/);
     assert.match(detail, /after 2 attempts/);
     assert.match(detail, /stopped before it was ready/, "no cause was given for an early exit");
+    const [wall] = shell.windows;
+    assert.ok(wall, "the launch opened no window before the kernel answered");
+    assert.match(decodeURIComponent(wall.loaded[0]), /Studio is starting/, "the window did not open on its starting page");
+    assert.equal(wall.shown, true, "the starting page was never shown");
   } finally {
     shell.cleanup();
   }

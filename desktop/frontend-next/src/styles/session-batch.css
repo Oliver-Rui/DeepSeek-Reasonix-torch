@@ -1,23 +1,26 @@
 .session-batch button { font: var(--w-reg) var(--fs-meta) var(--ui); }
-/* The picking bar sits at the column's foot, above 设置: a floating card with
-   the two rows the picking flow reads top to bottom — select/cancel/status,
-   then the actions. */
 .session-batch { position: relative; z-index: 2; margin: 6px 8px 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--float); box-shadow: var(--shadow-float); animation: m-card var(--m-panel) both; }
-.session-batch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: var(--fs-micro); }
+.session-batch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; font-size: var(--fs-micro); }
 .session-batch-head button { flex: none; height: 24px; color: var(--muted); background: transparent; padding: 0 10px; border: 0; border-radius: var(--r-pill); cursor: pointer; }
 .session-batch-head button:hover:not(:disabled) { background: var(--overlay); color: var(--text); }
-.session-batch-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.session-batch-status { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); }
+.session-batch-status > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-batch-hint { color: var(--warn-ink); }
 .session-batch-head button.x { width: 24px; padding: 0; display: inline-grid; place-items: center; }
-.session-batch-actions { display: flex; gap: 4px; flex-wrap: wrap; }
-.session-batch-actions button { height: 26px; padding: 0 12px; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-pill); font-size: var(--fs-meta); }
+.session-batch-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+.session-batch-actions button { height: 28px; padding: 0 12px; width: 100%; display: inline-flex; align-items: center; justify-content: center; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-pill); font-size: var(--fs-meta); }
 .session-batch-actions button:hover:not(:disabled) { background: var(--overlay); }
 .session-batch-actions button.danger { background: color-mix(in srgb, var(--err-ink) 12%, transparent); color: var(--err-ink); border-color: color-mix(in srgb, var(--err-ink) 30%, transparent); }
 .session-batch-actions button.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--err-ink) 20%, transparent); }
 .session-batch [data-action="session.batch-delete"] { color: var(--err-ink); }
-.session-batch p { margin: 6px 0 0; color: var(--muted); font-size: var(--fs-micro); }
 .session-batch button:disabled { opacity: .45; cursor: default; }
 .session-batch button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .session-batch .wsconfirm { margin: 8px 0 0; flex-wrap: wrap; gap: 8px; }
 .session-batch .wsconfirm-t { flex-basis: 100%; }
-.session-batch-names { font-size: var(--fs-micro); color: var(--text); overflow-wrap: anywhere; max-height: 100px; overflow-y: auto; }
+.session-batch-pick { position: fixed; z-index: 93; right: 18px; bottom: 90px; min-width: 220px; max-width: calc(100vw - 36px); max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 6px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--float); box-shadow: var(--shadow-float); }
+.session-batch-pick button { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.session-batch-pick button:hover, .session-batch-pick button:focus-visible { background: var(--accent-wash); }
+.session-batch-pick button .studio-icon { width: 15px; height: 15px; flex: none; color: var(--faint); }
+.session-batch-pick button small { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font: var(--w-reg) var(--fs-micro) var(--mono); }
+.session-batch-pick-empty { margin: 0; padding: 8px 10px; color: var(--muted); font: var(--w-reg) var(--fs-meta) var(--ui); }
 .rail .session-select { flex: none; width: 14px; height: 14px; margin: 0 6px 0 0; accent-color: var(--accent); }

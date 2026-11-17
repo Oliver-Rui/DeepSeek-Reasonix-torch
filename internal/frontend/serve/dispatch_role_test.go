@@ -102,3 +102,26 @@ func TestTheSenderThreadsCarryTheDispatchRole(t *testing.T) {
 		t.Fatalf("thread for the role-less pane = %+v (present %v), want no role", th, ok)
 	}
 }
+
+// A dispatched session carries its role in the sidecar so a rebuild reads the
+// same identity into its system prompt. A role-less dispatch writes none.
+func TestDispatchPersistsRoleTextOnTheTarget(t *testing.T) {
+	f := newDispatchFixture(t, dispatchOn)
+	f.project("billing", true)
+	sender := f.sender(f.project("alpha", true))
+	got, err := sender.DispatchToProject(t.Context(), "billing", "rotate the key", "reviewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pane := f.paneOf(got.Key)
+	if role := sessionstore.LoadBranchRoleText(pane.SessionPath()); role != "reviewer" {
+		t.Fatalf("target role = %q, want reviewer", role)
+	}
+	plain, err := sender.DispatchToProject(t.Context(), f.project("ledger", true), "count rows", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if role := sessionstore.LoadBranchRoleText(f.paneOf(plain.Key).SessionPath()); role != "" {
+		t.Fatalf("role-less target role = %q, want empty", role)
+	}
+}

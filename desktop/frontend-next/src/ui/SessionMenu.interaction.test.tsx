@@ -12,7 +12,7 @@ const session = (over: Partial<TreeSession> = {}): TreeSession => ({ path: "/s/a
 
 function draw(s: TreeSession, extra: { markRead?: () => void; live?: boolean; pinned?: boolean; exporting?: boolean; naming?: boolean; branch?: boolean } = {}) {
   const on = { onPin: vi.fn(), onRename: vi.fn(), onAutoName: vi.fn(), onPause: vi.fn(), onClose: vi.fn(), onArchive: vi.fn(), onCopyInfo: vi.fn(), onExport: vi.fn(), onBatchSelect: vi.fn(), onDelete: vi.fn(), onBranch: vi.fn() };
-  render(<SessionMenu session={s} label="第一个" live={extra.live ?? false} pinned={extra.pinned ?? false} exporting={extra.exporting ?? false} autoNaming={extra.naming ?? false} {...on} onBranch={extra.branch === false ? undefined : on.onBranch} onMarkRead={extra.markRead} />);
+  render(<SessionMenu session={s} live={extra.live ?? false} pinned={extra.pinned ?? false} exporting={extra.exporting ?? false} autoNaming={extra.naming ?? false} {...on} onBranch={extra.branch === false ? undefined : on.onBranch} onMarkRead={extra.markRead} />);
   return on;
 }
 

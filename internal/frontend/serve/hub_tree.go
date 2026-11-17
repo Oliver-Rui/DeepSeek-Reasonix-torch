@@ -74,7 +74,7 @@ func (h *Hub) tree(w http.ResponseWriter, r *http.Request) {
 		auto := isAutoWorkspace(ref.root)
 		node := treeWorkspace{
 			Root: ref.root, Name: fileutil.RootName(ref.root),
-			DisplayName: names[ref.root], Pinned: pinned[ref.root],
+			DisplayName: names[ref.root], Pinned: pinned[projectIdentity(ref.root)],
 			WorkspaceRoots: ref.roots,
 			Isolated:       worktree.IsManagedPath(ref.root, config.DeliveryWorktreeDir()),
 			Remembered:     ref.remembered,

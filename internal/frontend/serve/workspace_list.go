@@ -46,13 +46,10 @@ func Workspaces() []string {
 	if len(list.Pinned) == 0 {
 		return paths
 	}
-	pinned := map[string]bool{}
-	for _, dir := range list.Pinned {
-		pinned[strings.TrimSpace(dir)] = true
-	}
+	pinned := workspacePinnedIdentities(list)
 	head, tail := []string{}, []string{}
 	for _, dir := range paths {
-		if pinned[strings.TrimSpace(dir)] {
+		if pinned[projectIdentity(dir)] {
 			head = append(head, dir)
 		} else {
 			tail = append(tail, dir)
@@ -67,12 +64,19 @@ func workspaceNames() map[string]string {
 	return list.Names
 }
 
-// workspacePinned reads the pinned paths as a set.
+// workspacePinned reads the pinned projects by canonical identity, so a pin on
+// any spelling of a worktree member still names the grouped project.
 func workspacePinned() map[string]bool {
 	list, _ := readWorkspaceList(workspacesPath())
+	return workspacePinnedIdentities(list)
+}
+
+func workspacePinnedIdentities(list workspaceList) map[string]bool {
 	out := map[string]bool{}
 	for _, dir := range list.Pinned {
-		out[strings.TrimSpace(dir)] = true
+		if id := projectIdentity(dir); id != "" {
+			out[id] = true
+		}
 	}
 	return out
 }
@@ -237,6 +241,10 @@ func moveWorkspace(ctx context.Context, dir string, direction int) error {
 		}
 		to := at + direction
 		if to >= 0 && to < len(roots) {
+			pinned := workspacePinnedIdentities(*list)
+			if pinned[roots[at]] != pinned[roots[to]] {
+				return nil
+			}
 			roots[at], roots[to] = roots[to], roots[at]
 			list.Paths = orderWorkspaceMembers(list.Paths, roots)
 		}
@@ -244,30 +252,62 @@ func moveWorkspace(ctx context.Context, dir string, direction int) error {
 	})
 }
 
-// placeWorkspace drops dir where a drag left it: before the remembered project
-// named by before, or at the end when before is empty. The launch project stays.
+// placeWorkspace drops dir before the remembered project named by before, or
+// at the end of its pinned partition. A folder the sidebar paints without
+// remembering becomes remembered by the drag; the launch project stays. A
+// project never crosses the pinned boundary: pinned rows lead the sidebar, so
+// such a write could only snap back.
 func placeWorkspace(ctx context.Context, dir, before string) error {
 	return updateWorkspaceList(ctx, false, func(list *workspaceList) error {
 		roots := workspaceProjectOrder(list.Paths)
-		dir = projectIdentity(dir)
+		dir = strings.TrimSpace(dir)
+		identity := projectIdentity(dir)
+		if identity == "" || isAutoWorkspace(dir) {
+			return errWorkspaceNotRemembered
+		}
+		pinned := workspacePinnedIdentities(*list)
+		movedPinned := pinned[identity]
 		if before != "" {
 			before = projectIdentity(before)
 		}
-		if !slices.Contains(roots, dir) {
-			return errWorkspaceNotRemembered
+		if identity == before {
+			return nil
+		}
+		if before != "" && pinned[before] != movedPinned {
+			return refusal(http.StatusConflict, codeWorkspaceOrderBoundary, errors.New("a project cannot be placed across the pinned boundary"), nil)
+		}
+		if !slices.Contains(roots, identity) {
+			if !projectDirectoryExists(dir) {
+				return errWorkspaceNotRemembered
+			}
+			if workspaceListFull(len(rememberedProjects(list.Paths))) {
+				return refusal(http.StatusConflict, "workspace.limit_reached", errWorkspaceListFull, nil)
+			}
+			// Asking for the folder again lifts a removal, exactly as adding
+			// it back does; the row now has a place to keep.
+			list.Restore(identity)
+			list.Paths = append(list.Paths, dir)
+			roots = workspaceProjectOrder(list.Paths)
 		}
 		if before != "" && !slices.Contains(roots, before) {
 			return errWorkspaceNotRemembered
 		}
-		if dir == before {
-			return nil
-		}
-		rest := slices.DeleteFunc(roots, func(path string) bool { return path == dir })
+		rest := slices.DeleteFunc(roots, func(path string) bool { return path == identity })
 		at := len(rest)
-		if before != "" {
+		switch {
+		case before != "":
 			at = slices.Index(rest, before)
+		case movedPinned:
+			// The pinned partition leads in Workspaces(); its end is the last
+			// pinned row in the stored order, wherever unpinned rows sit.
+			at = 0
+			for i, root := range rest {
+				if pinned[root] {
+					at = i + 1
+				}
+			}
 		}
-		list.Paths = orderWorkspaceMembers(list.Paths, slices.Insert(rest, at, dir))
+		list.Paths = orderWorkspaceMembers(list.Paths, slices.Insert(rest, at, identity))
 		return nil
 	})
 }

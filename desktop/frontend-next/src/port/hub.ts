@@ -204,13 +204,8 @@ export interface HistorySearch {
   index: HistoryIndex;
 }
 
-/** One line of a session's dispatch record: the role the target was opened
- *  under and the session the task landed on, as the hover card reads them. */
-export interface DispatchThread {
-  role?: string;
-  sessionPath?: string;
-  key?: string;
-}
+export type { DispatchThread, DispatchTarget, DispatchResult } from "./dispatch";
+import type { DispatchThread, DispatchTarget, DispatchResult } from "./dispatch";
 
 export interface HubPort extends SharePort {
   runtimes(): Promise<RuntimeView[]>;
@@ -219,6 +214,8 @@ export interface HubPort extends SharePort {
   tree(window?: TreeWindow): Promise<TreeWorkspace[]>;
   /** What this session dispatched: the hub's book, by the session's path. */
   dispatchThreads(path: string): Promise<DispatchThread[]>;
+  /** Hand one task to several sessions at once; one result per target. */
+  dispatch(to: string, targets: DispatchTarget[]): Promise<DispatchResult[]>;
   /** The name a project reads by in the sidebar; the folder keeps its own. */
   setWorkspaceDisplayName(path: string, name: string): Promise<void>;
   /** Pin or unpin a project: a pinned one leads the list. */
@@ -237,10 +234,10 @@ export interface HubPort extends SharePort {
   openWithTargets(): Promise<OpenWithTarget[]>;
   /** Open a listed project in one of those programs. */
   openWith(path: string, target: string): Promise<void>;
-  moveWorkspace(path: string, direction: -1 | 1): Promise<void>;
-  moveSession(path: string, direction: -1 | 1): Promise<void>;
   /** Drop a project before another remembered one, or at the end when `before` is empty. */
   placeWorkspace(path: string, before: string): Promise<void>;
+  /** Drop a conversation before another listed one, or at the end of its partition. */
+  placeSession(path: string, before: string): Promise<void>;
   removeSession(path: string): Promise<void>;
   /** The conversation moves into the named project; originalRemoved is false when the copy arrived but the original could not be taken away. */
   moveSessionTo(path: string, target: string): Promise<{ path: string; originalRemoved: boolean }>;
@@ -413,6 +410,10 @@ export class SseHub implements HubPort {
     return this.get<DispatchThread[]>("/dispatch-threads?path=" + encodeURIComponent(path));
   }
 
+  dispatch(to: string, targets: DispatchTarget[]) {
+    return this.post<DispatchResult[]>("/tree/sessions/dispatch", { from: to, targets });
+  }
+
   setWorkspaceDisplayName(path: string, name: string) {
     return this.post<void>("/tree/workspaces/display-name", { path, name });
   }
@@ -451,16 +452,12 @@ export class SseHub implements HubPort {
     await this.post<void>("/tree/workspaces/remove", { path });
   }
 
-  async moveWorkspace(path: string, direction: -1 | 1) {
-    await this.post<void>("/tree/workspaces/move", { path, direction });
-  }
-
-  async moveSession(path: string, direction: -1 | 1) {
-    await this.post<void>("/tree/sessions/move", { path, direction });
-  }
-
   async placeWorkspace(path: string, before: string) {
     await this.post<void>("/tree/workspaces/move", { path, before });
+  }
+
+  async placeSession(path: string, before: string) {
+    await this.post<void>("/tree/sessions/move", { path, before });
   }
 
   async moveSessionTo(path: string, target: string) {

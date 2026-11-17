@@ -58,6 +58,9 @@ type Hub struct {
 	runtimes     map[string]*Runtime
 	order        []string
 	seq          int
+	// orderMu serializes session-order computations and their sidecar writes,
+	// so two panes' moves cannot rank the same partition from stale reads.
+	orderMu sync.Mutex
 
 	opts HubOptions
 	// notes answers the release-notes route; its state outlives one request. Nil reads
@@ -321,6 +324,23 @@ func (h *Hub) Open(ctx context.Context, req OpenRequest) (*Runtime, error) {
 	return h.openBound(ctx, req, nil)
 }
 
+type sessionBuildPostureResult struct{ preset, model, role string }
+
+// sessionBuildPosture resolves the saved model, preset and dispatch role of a
+// session being opened. The request's own role wins over the sidecar's so a
+// fresh dispatch can name a new pane; a resumed one reads it from the sidecar.
+func sessionBuildPosture(req OpenRequest, settings *sessionstore.BranchMeta) sessionBuildPostureResult {
+	out := sessionBuildPostureResult{model: req.Model, role: strings.TrimSpace(req.RoleText)}
+	if settings != nil {
+		out.model = strings.TrimSpace(settings.Model)
+		out.preset = settings.AgentPreset
+		if out.role == "" {
+			out.role = strings.TrimSpace(settings.RoleText)
+		}
+	}
+	return out
+}
+
 func (h *Hub) openBound(ctx context.Context, req OpenRequest, inherited *agentcomposition.Binding) (*Runtime, error) {
 	defer backgroundwork.Shared.Foreground()()
 	if rt := h.findSession(req.SessionPath); rt != nil {
@@ -341,12 +361,9 @@ func (h *Hub) openBound(ctx context.Context, req OpenRequest, inherited *agentco
 			return nil, err
 		}
 	}
-	preset := ""
-	savedModel := ""
-	if settings != nil {
-		savedModel = strings.TrimSpace(settings.Model)
-		req.Model, preset = savedModel, settings.AgentPreset
-	}
+	posture := sessionBuildPosture(req, settings)
+	req.Model = posture.model
+	roleText := posture.role
 	bc := NewBroadcaster()
 	paneSink := h.decorateSink(bc)
 	build := func(model string, fallback bool) (*boot.BuildResult, error) {
@@ -355,7 +372,8 @@ func (h *Hub) openBound(ctx context.Context, req OpenRequest, inherited *agentco
 			Composition:              binding,
 			ComputerDriver:           h.opts.ComputerDriver,
 			Model:                    strings.TrimSpace(model),
-			AgentPreset:              preset,
+			AgentPreset:              posture.preset,
+			RoleText:                 roleText,
 			WorkspaceRoot:            root,
 			SessionDir:               SessionDirFor(root),
 			Sink:                     paneSink,
@@ -392,7 +410,7 @@ func (h *Hub) openBound(ctx context.Context, req OpenRequest, inherited *agentco
 	built.Controller.SetDatedSessionPaths(isAutoWorkspace(root))
 	srv := New(built.Controller, bc, h.opts.Serve)
 	if branchModelFallback {
-		srv.branchModelFallback = savedModel
+		srv.branchModelFallback = posture.model
 	}
 	srv.SetPaneSink(paneSink)
 	srv.AdoptRuntime(built)
@@ -544,6 +562,7 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("POST /runtimes", h.openRuntime)
 	mux.HandleFunc("POST /runtimes/{id}/close", h.closeRuntime)
 	h.registerTreeRoutes(mux)
+	mux.HandleFunc("POST /tree/sessions/dispatch", h.dispatchSessions)
 	h.registerMuxRoutes(mux)
 	h.registerStudioVersionRoutes(mux)
 	mux.HandleFunc("GET /device", notADevice)
@@ -693,7 +712,7 @@ func (h *Hub) publish(rt *Runtime) error {
 		if concrete {
 			rt.Server.mu.Lock()
 			rt.Server.projects = projects
-			rt.Server.hubThreads = func(path string) []DispatchThread { return h.dispatch.threadsFrom(path) }
+			rt.Server.hubThreads = h.dispatchThreadsStatus
 			projects.bind(ctrl)
 			rt.Server.mu.Unlock()
 		}

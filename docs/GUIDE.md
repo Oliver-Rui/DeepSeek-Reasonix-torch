@@ -1056,7 +1056,20 @@ The input's accessible name, entered text, queue content, IME handling and
 send shortcuts stay unchanged. Turning the hint back on restores the
 responsive guidance at the theme's normal contrast.
 
-Remembered projects have Move up / Move down in their project menu. Open it with the keyboard, navigate with arrows or Home/End, and use Escape to return to the trigger. Moving a project changes sidebar order without changing the launch project.
+Projects and conversations in the sidebar use one pointer-slot order: drag a
+row and the accent line shows the exact place it will land — the upper or
+lower half of the row under the pointer, or the run's end. Dropping over an
+expanded project's conversations lands around the whole project, and a drop
+in the slot the row already fills does nothing. Pinned rows only move inside
+the pinned group; archived conversations order among themselves. Every drag
+switches that list to manual order and writes one place request, which the
+kernel persists (a drag of a launch-opened project remembers it too).
+
+Remembered projects and listed conversations also have Move up / Move down in
+their menus, and conversations answer Alt+Up / Alt+Down. These step one slot
+in the same list; a row already at its group's edge has the step disabled.
+Open a menu with the keyboard, navigate with arrows or Home/End, and use
+Escape to return to the trigger. None of this changes the launch project.
 
 Studio remembers which local and remote projects you collapse in the sidebar,
 including Collapse all / Expand all, when you reopen it in the same browser or

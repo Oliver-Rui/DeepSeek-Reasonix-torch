@@ -7,13 +7,13 @@
     "commented-code": 0,
     "complexity": 662,
     "css-important": 127,
-    "css-size": 8977,
+    "css-size": 8988,
     "doc-language": 0,
     "doc-owner": 27,
-    "doc-prose": 1434,
+    "doc-prose": 1445,
     "error-text": 9,
     "essay": 2540,
-    "file-size": 18514,
+    "file-size": 18505,
     "flat-view": 0,
     "frontend-parity": 13,
     "function-size": 2348,
@@ -24,7 +24,7 @@
     "orphan": 61,
     "process-input": 96,
     "refusal-path": 0,
-    "release-note": 706,
+    "release-note": 725,
     "stray-file": 0,
     "struct-state": 30,
     "temp-dir": 0,
@@ -69,9 +69,6 @@
       "doc-owner": 1,
       "doc-prose": 21
     },
-    "desktop/frontend-next/src/actions.ts": {
-      "file-size": 6
-    },
     "desktop/frontend-next/src/styles/LAYOUT.md": {
       "doc-owner": 1,
       "doc-prose": 111
@@ -86,10 +83,10 @@
     },
     "desktop/frontend-next/src/styles/studio.css": {
       "css-important": 103,
-      "css-size": 3721
+      "css-size": 3732
     },
     "desktop/frontend-next/src/ui/Workspaces.tsx": {
-      "file-size": 358
+      "file-size": 355
     },
     "desktop/internal/winuninstall/registry_windows.go": {
       "essay": 1
@@ -123,11 +120,11 @@
     },
     "docs/GUIDE.md": {
       "doc-owner": 1,
-      "doc-prose": 364
+      "doc-prose": 369
     },
     "docs/GUIDE.zh-CN.md": {
       "doc-owner": 1,
-      "doc-prose": 174
+      "doc-prose": 175
     },
     "docs/HISTORY_SEARCH_CATALOG.md": {
       "doc-owner": 1,
@@ -153,7 +150,7 @@
       "doc-prose": 325
     },
     "docs/STUDIO_TWEAKS_HANDOFF.md": {
-      "doc-prose": 2
+      "doc-prose": 7
     },
     "docs/THEME_ASSETS.md": {
       "doc-owner": 1,
@@ -1583,6 +1580,9 @@
     },
     "release-notes/studio/2.64.0.md": {
       "release-note": 45
+    },
+    "release-notes/studio/2.65.0.md": {
+      "release-note": 19
     },
     "release-notes/studio/2.7.0.md": {
       "release-note": 26

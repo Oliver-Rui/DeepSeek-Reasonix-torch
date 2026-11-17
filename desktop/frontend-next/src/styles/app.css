@@ -532,7 +532,7 @@
   .lbl { display: flex; align-items: baseline; gap: 9px; font: var(--w-med) var(--fs-micro) var(--ui); letter-spacing: var(--track-cap); text-transform: uppercase; color: var(--ghost) }
   .lbl .c { margin-left: auto; letter-spacing: 0; font-variant-numeric: tabular-nums }
 
-  .rail { border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0 }
+  .rail { border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; -webkit-user-select: none; user-select: none }
 
   .railscroll { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden }
     .ws {

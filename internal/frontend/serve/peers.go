@@ -104,7 +104,7 @@ func (s *Server) peers(w http.ResponseWriter, _ *http.Request) {
 // one has nothing to say.
 func (s *Server) dispatchThreads(w http.ResponseWriter, r *http.Request) {
 	if s.hubThreads == nil {
-		writeJSON(w, []any{})
+		writeJSON(w, []DispatchThreadStatus{})
 		return
 	}
 	writeJSON(w, s.hubThreads(r.URL.Query().Get("path")))

@@ -15,20 +15,21 @@ import (
 	"reasonix/internal/state/store"
 )
 
-func (h *Hub) titleRequest(w http.ResponseWriter, r *http.Request) (string, *string, bool) {
+func (h *Hub) titleRequest(w http.ResponseWriter, r *http.Request) (string, *string, string, bool) {
 	var body struct {
-		Path  string  `json:"path"`
-		Title *string `json:"title"`
+		Path     string  `json:"path"`
+		Title    *string `json:"title"`
+		Guidance string  `json:"guidance,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		badBody(w)
-		return "", nil, false
+		return "", nil, "", false
 	}
 	requested, err := filepath.Abs(strings.TrimSpace(body.Path))
 	name := filepath.Base(requested)
 	if err != nil || !filepath.IsLocal(name) || !store.IsSessionTranscriptName(name) {
 		refuse(w, http.StatusBadRequest, codeSessionBadPath, "the session path could not be resolved", nil)
-		return "", nil, false
+		return "", nil, "", false
 	}
 	for _, root := range h.sessionRoots() {
 		dir, err := filepath.Abs(SessionDirFor(root.dir))
@@ -40,25 +41,25 @@ func (h *Hub) titleRequest(w http.ResponseWriter, r *http.Request) (string, *str
 		resolved, err := filepath.EvalSymlinks(path)
 		if err != nil {
 			writeErr(w, http.StatusNotFound, err)
-			return "", nil, false
+			return "", nil, "", false
 		}
 		physicalDir, err := filepath.EvalSymlinks(dir)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, err)
-			return "", nil, false
+			return "", nil, "", false
 		}
 		if !strings.HasPrefix(resolved, physicalDir+string(os.PathSeparator)) || filepath.Dir(resolved) != physicalDir {
 			refuse(w, http.StatusForbidden, "session.outside_workspace", "path outside a known workspace", nil)
-			return "", nil, false
+			return "", nil, "", false
 		}
-		return path, body.Title, true
+		return path, body.Title, body.Guidance, true
 	}
 	refuse(w, http.StatusForbidden, "session.outside_workspace", "path outside a known workspace", nil)
-	return "", nil, false
+	return "", nil, "", false
 }
 
 func (h *Hub) renameSession(w http.ResponseWriter, r *http.Request) {
-	path, input, ok := h.titleRequest(w, r)
+	path, input, _, ok := h.titleRequest(w, r)
 	if !ok {
 		return
 	}
@@ -85,7 +86,7 @@ func (h *Hub) renameSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Hub) autoNameSession(w http.ResponseWriter, r *http.Request) {
-	path, _, ok := h.titleRequest(w, r)
+	path, _, guidance, ok := h.titleRequest(w, r)
 	if !ok {
 		return
 	}
@@ -105,7 +106,12 @@ func (h *Hub) autoNameSession(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), titleFillTimeout)
 	defer cancel()
-	title, err := generator.tryGenerateTitle(ctx, source)
+	var title string
+	if strings.TrimSpace(guidance) != "" {
+		title, err = generator.tryGenerateGuidedTitle(ctx, source, guidance)
+	} else {
+		title, err = generator.tryGenerateTitle(ctx, source)
+	}
 	if err != nil || title == "" {
 		refuseTitle(w, err)
 		return

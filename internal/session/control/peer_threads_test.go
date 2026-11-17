@@ -76,7 +76,7 @@ func TestADeniedMessageIsDeclinedAndReleasedCountsAsTaken(t *testing.T) {
 		{At: at(5), Receiver: "s-d", Sender: "s-x", ID: "m3", Decision: peermail.DecisionSent}, // someone else's
 	}
 	got := map[string]PeerThreadState{}
-	for _, th := range peerThreadsFrom("s-a", trail) {
+	for _, th := range PeerThreadsFrom("s-a", trail) {
 		got[th.Key] = th.State
 	}
 	if len(got) != 2 || got["s-b"] != PeerDeclined || got["s-c"] != PeerWorking {
@@ -93,7 +93,7 @@ func TestOnlyTheLatestMessageDecidesAndNewestComesFirst(t *testing.T) {
 		{At: at(3), Receiver: "s-b", Sender: "s-a", ID: "new", Decision: peermail.DecisionSent},
 		{At: at(6), Receiver: "s-c", Sender: "s-a", ID: "c1", Decision: peermail.DecisionSent},
 	}
-	got := peerThreadsFrom("s-a", trail)
+	got := PeerThreadsFrom("s-a", trail)
 	if len(got) != 2 || got[0].Key != "s-c" || got[1].Key != "s-b" || got[1].State != PeerWaiting || got[1].MessageID != "new" {
 		t.Fatalf("threads = %+v, want s-c first and s-b waiting on its new message", got)
 	}

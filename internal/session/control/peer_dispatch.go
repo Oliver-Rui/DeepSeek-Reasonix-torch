@@ -126,6 +126,17 @@ func (c *Controller) MarkOpenedByDispatch(parent string, secret []byte, depth in
 	d.rememberPairLocked(parent, secret, true)
 }
 
+// PairWithDispatcher registers the session that handed this one a task, so its
+// messages are accepted by dispatch consent and this one's replies are signed
+// back to it. Unlike MarkOpenedByDispatch it does not claim this pane was opened
+// for the task, so an existing session keeps its own dispatch depth.
+func (c *Controller) PairWithDispatcher(parentKey string, secret []byte) {
+	d := c.dispatch.sessionState()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.rememberPairLocked(parentKey, secret, true)
+}
+
 // OpenedByDispatch reports whether MarkOpenedByDispatch was called.
 func (c *Controller) OpenedByDispatch() bool {
 	d := c.dispatch.sessionState()
