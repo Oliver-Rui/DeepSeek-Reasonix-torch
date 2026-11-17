@@ -220,8 +220,6 @@ export const SESSION: Messages = {
   "session.project_display_name": { zh: "项目名称", en: "Project name" },
   "session.batch_delete_tasks_hint": { zh: "{n} 个任务对话连同其产物一起删除", en: "{n} task conversations delete together with their artifacts" },
   "session.batch_delete_projects_hint": { zh: "{n} 个项目对话只删除对话本身——项目文件夹与其中的产物保留", en: "{n} project conversations delete the conversation only — the folder and its files stay" },
-  "session.hover_updated_at": { zh: "更新于", en: "Updated" },
-  "session.hover_open_session": { zh: "打开会话", en: "Open session" },
   "session.use_no_project": { zh: "不使用项目", en: "Work without a project" },
   "session.enter_a_project": { zh: "进入项目工作", en: "Enter a project" },
   "session.project_name": { zh: "项目名称", en: "Project name" },
