@@ -245,7 +245,7 @@ export const SETTINGS: SettingEntry[] = [
   { section: "appearance", anchor: "graphics", title: "look.graphics", scope: "machine", apply: "restart", keywords: ["硬件加速", "显卡", "gpu", "软件渲染", "占用", "卡顿"] },
   { section: "controls", anchor: "navrail", title: "settings.icon_rail", scope: "machine", apply: "immediate", keywords: ["侧边栏", "导航", "图标", "sidebar", "nav"] },
   { section: "controls", anchor: "naventries", title: "settings.navigation_entries", scope: "machine", apply: "immediate", keywords: ["侧边栏", "导航", "隐藏", "排序", "自定义", "入口", "sidebar", "nav", "hide", "reorder", "customize"] },
-  { section: "controls", anchor: "session-quick-actions", title: "session.session_row_buttons", scope: "machine", apply: "immediate", keywords: ["会话", "归档", "删除", "快捷", "按钮", "hover", "archive", "delete", "session", "row", "sidebar"] },
+  { section: "controls", anchor: "session-quick-actions", title: "session.session_row_buttons", scope: "machine", apply: "immediate", keywords: ["会话", "置顶", "快捷", "按钮", "hover", "pin", "session", "row", "sidebar"] },
   { section: "display", anchor: "new-answer-marker", title: "settings.new_answer_divider", scope: "machine", apply: "immediate", keywords: ["未读", "新回答", "分隔线", "分割线", "unread", "new", "divider", "marker", "transcript"] },
   { section: "controls", anchor: "open-session-limit", title: "settings.session_tabs_kept_open", scope: "machine", apply: "immediate", keywords: ["标签", "窗格", "收起", "保留", "tabs", "panes", "warm", "内存", "memory"] },
   { section: "controls", anchor: "live-stream-budget", title: "settings.session_tabs_kept_live", scope: "machine", apply: "immediate", keywords: ["连接", "实时", "标签", "窗格", "卡死", "停止", "connection", "stream", "tabs", "stuck", "busy"] },
