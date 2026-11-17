@@ -1,5 +1,5 @@
 import { inScope, sessionRuntime } from "./sessionScope";
-import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { hidesLegacySessions, onHidesLegacySessionsChange } from "../state/prefs";
 import { onSessionQuickActionsChange, showsSessionQuickActions } from "../state/sessionQuick";
 import { onRecencySortChange, recencySort, setRecencySort } from "../state/recencySort";
@@ -31,11 +31,9 @@ import { useSlotReorder } from "./useSlotReorder";
 import type { ReorderItem } from "./reorder";
 import { dragGhost } from "./dragghost";
 import { BlankProjectDialog } from "./BlankProjectDialog";
-import { SessionHoverCard } from "./SessionHoverCard";
 import { pinnedFirst } from "./pinorder"; import { Hit } from "./Hit";
 import { Confirm, removeHint, sessionDeleteHint } from "./WorkspaceConfirm";
 import { LeadDot, UnreadCount } from "./UnreadMark";
-import { PeerThreadMark } from "./peerthreads";
 import { NO_PAGING, atCap, answers, unloaded } from "./treewindow";
 import type { WorkspacesProps } from "./workspaceprops";
 import { SessionBatch, useSelectedRows } from "./SessionBatch";
@@ -495,30 +493,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   // Dragging one group's label onto the other swaps the two runs; the label is
   // the handle, and the swap rests in the group-order store.
   const [groupDrag, setGroupDrag] = useState<{ from: "projects" | "tasks"; over: { group: "projects" | "tasks"; edge: "before" | "after" } | null } | null>(null);
-  const hoverable = !needle && !selection && !reorder.dragging && !groupDrag;
 
-  // A row's hover, half a second in: the card that says what the conversation
-  // is and where its dispatches went. A drag, a search or the picking mode
-  // reads as no hover at all.
-  const [rowHover, setRowHover] = useState<{ ws: TreeWorkspace; session: TreeSession; rect: DOMRect } | null>(null);
-  const hoverTimer = useRef(0);
-  // A mode that makes hovering meaningless takes the card with it: otherwise a
-  // card opened a moment before entering picking stays over the tree.
-  useEffect(() => {
-    if (hoverable) return;
-    window.clearTimeout(hoverTimer.current);
-    setRowHover(null);
-  }, [hoverable]);
-  const hoverIn = (ws: TreeWorkspace, session: TreeSession, ev: ReactMouseEvent<HTMLElement>) => {
-    if (!hoverable) return;
-    window.clearTimeout(hoverTimer.current);
-    const target = ev.currentTarget;
-    hoverTimer.current = window.setTimeout(() => setRowHover({ ws, session, rect: target.getBoundingClientRect() }), 450);
-  };
-  const hoverOut = () => {
-    window.clearTimeout(hoverTimer.current);
-    hoverTimer.current = window.setTimeout(() => setRowHover(null), 350);
-  };
   /** The side of the target the carried run lands on. With two runs the only
    *  outcome is a swap, so this is decided by the standing order: a run
    *  carried up from below lands over its target, one carried down from
@@ -851,8 +826,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         role="treeitem"
                         aria-level={2}
                         aria-label={rowLabel(session)}
-                        onMouseEnter={hoverable ? (ev) => hoverIn(ws, session, ev) : undefined}
-                        onMouseLeave={hoverable ? hoverOut : undefined}
                         aria-selected={selection ? selection.has(session.path) : on}
                         data-on={on ? "" : undefined}
                         data-live={session.runtimeId ? "" : undefined}
@@ -943,7 +916,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         )}
                         {!selection && <SessionPinAction target={session.path} title={rowLabel(session)}
                           pinned={pinned.has(session.path)} enabled={quickActions} disabled={mutations.pending.has(session.path)} onPin={() => mutate(session, "pin")} />}
-                        <PeerThreadMark path={session.path} />
                         <SessionTail run={run} at={session.lastActiveAt ?? Date.now()} unread={session.unread} dot={false} />
                         {!selection && <SessionArchiveAction target={session.path} title={rowLabel(session)} archived={!!session.archived}
                           disabled={mutations.pending.has(session.path) || !!session.runtimeId && liveIds([session.runtimeId]).length > 0} onArchive={() => archive(session)} />}
@@ -1044,11 +1016,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   return (
     <>
       {moveTo.dialog}
-      {rowHover && createPortal(
-        <SessionHoverCard hub={hub} ws={rowHover.ws} session={rowHover.session} anchor={rowHover.rect}
-          onClose={() => setRowHover(null)} onKeepOpen={() => window.clearTimeout(hoverTimer.current)}
-          onOpenSession={(path) => { setRowHover(null); void onOpen({ sessionPath: path }); }} />,
-        document.body)}
       {projAdd && createPortal(
         <div className="groupadd" role="menu" aria-label={t("session.add_a_new_project")}
           style={{ left: projAdd.x, top: projAdd.y }}>
