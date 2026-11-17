@@ -103,11 +103,11 @@ describe("conversation overview rail", () => {
     const { view, onJump } = draw(three());
     await waitFor(() => expect(lines(view)[0].style.top).toBe("18px"));
     fireEvent.keyDown(document.body, { key: "ArrowDown", ctrlKey: true });
-    expect(onJump).toHaveBeenLastCalledWith(expect.objectContaining({ id: "b" }));
-    expect(lines(view)[1].hasAttribute("data-keyed")).toBe(true);
+    await waitFor(() => expect(onJump).toHaveBeenLastCalledWith(expect.objectContaining({ id: "b" })));
+    await waitFor(() => expect(lines(view)[1].hasAttribute("data-keyed")).toBe(true));
     expect(lines(view)[1].getAttribute("aria-label")).toContain("第二条");
     fireEvent.keyDown(document.body, { key: "ArrowDown", ctrlKey: true });
-    expect(onJump).toHaveBeenLastCalledWith(expect.objectContaining({ id: "c" }));
+    await waitFor(() => expect(onJump).toHaveBeenLastCalledWith(expect.objectContaining({ id: "c" })));
   });
 });
 
