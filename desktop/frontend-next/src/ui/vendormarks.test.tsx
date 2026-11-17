@@ -31,4 +31,15 @@ describe("the model mark reads through a relay's private names", () => {
     // A name no table knows reads as nothing, leaving the door's own mark.
     expect(markForModelId("auto/m/model")).toBeUndefined();
   });
+
+  // The Hunyuan family ships as hy4-flash on the gateway, so an id that never
+  // spells the family out still has to reach its mark.
+  it.each(["group/hy4-flash", "hy4-flash", "group/hy-7", "hunyuan-turbo", "混元-4"])("reads %s as hunyuan", (id) => {
+    expect(markForModelId(id)).toBe("hunyuan");
+  });
+
+  it("does not read hy inside another word as the family", () => {
+    expect(markForModelId("rhythm")).toBeUndefined();
+    expect(markForModelId("shy-model")).toBeUndefined();
+  });
 });
