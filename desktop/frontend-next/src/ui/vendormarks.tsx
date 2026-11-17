@@ -90,7 +90,9 @@ const FAMILY_KEYS: ReadonlyArray<readonly [RegExp, string]> = [
   [/qwen|qwq|qvq|tongyi/i, "qwen"],
   [/kimi|moonshot/i, "kimi"],
   [/doubao|seed[-_]?\d/i, "doubao"],
-  [/hunyuan/i, "hunyuan"],
+  // The family ships as hy4-flash and hy-… on the gateway, so the family word
+  // alone would miss every id that endpoint actually serves.
+  [/hunyuan|混元|(^|[-_/])hy[-_]?\d/i, "hunyuan"],
   [/minimax|abab/i, "minimax"],
   [/gemini|google/i, "google"],
   [/claude/i, "anthropic"],
