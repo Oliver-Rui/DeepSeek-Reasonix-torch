@@ -11,12 +11,12 @@ const ws = { root: "/w", name: "w", sessions: [] };
 const session = { path: "/w/s/a.jsonl", name: "a", title: "alpha" };
 const anchor = { right: 200, top: 100 } as DOMRect;
 
-function draw(threads: DispatchThread[], dispatch?: () => void) {
+function draw(threads: DispatchThread[]) {
   const onClose = vi.fn();
   const onOpenSession = vi.fn();
   render(<SessionHoverCard hub={{ dispatchThreads: () => Promise.resolve(threads) } as never}
     ws={ws as never} session={session as never} anchor={anchor}
-    onClose={onClose} onKeepOpen={() => {}} onOpenSession={onOpenSession} onDispatch={dispatch} />);
+    onClose={onClose} onKeepOpen={() => {}} onOpenSession={onOpenSession} />);
   return { onClose, onOpenSession };
 }
 
@@ -40,13 +40,10 @@ it("still names the role when an older hub has no state", async () => {
   expect(document.querySelector('[data-action="peer.thread-open"]')?.getAttribute("data-state")).toBeNull();
 });
 
-it("opens the target and offers a dispatch from the card", async () => {
-  const onDispatch = vi.fn();
-  const { onOpenSession } = draw([{ role: "美术", sessionPath: "/p/1.jsonl", state: "replied" }], onDispatch);
+it("opens the target and carries no dispatch entry of its own", async () => {
+  const { onOpenSession } = draw([{ role: "美术", sessionPath: "/p/1.jsonl", state: "replied" }]);
   await waitFor(() => expect(document.querySelector('[data-action="peer.thread-open"]')).toBeTruthy());
   fireEvent.click(document.querySelector('[data-action="peer.thread-open"]')!);
   expect(onOpenSession).toHaveBeenCalledWith("/p/1.jsonl");
-
-  fireEvent.click(document.querySelector('.sesscard-actions [data-action="session.dispatch-start"]')!);
-  expect(onDispatch).toHaveBeenCalledOnce();
+  expect(document.querySelector('[data-action="session.dispatch-start"]')).toBeNull();
 });

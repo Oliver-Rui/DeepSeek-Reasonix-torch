@@ -562,7 +562,6 @@ func (h *Hub) Handler() http.Handler {
 	mux.HandleFunc("POST /runtimes", h.openRuntime)
 	mux.HandleFunc("POST /runtimes/{id}/close", h.closeRuntime)
 	h.registerTreeRoutes(mux)
-	mux.HandleFunc("POST /tree/sessions/dispatch", h.dispatchSessions)
 	h.registerMuxRoutes(mux)
 	h.registerStudioVersionRoutes(mux)
 	mux.HandleFunc("GET /device", notADevice)

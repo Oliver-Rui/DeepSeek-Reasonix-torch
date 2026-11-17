@@ -35,11 +35,6 @@ const (
 	codeWorkspaceOrderBoundary = "workspace.order_boundary"
 	codeSessionOrderBoundary   = "session.order_boundary"
 	// Dispatch-target refusals. Each is a distinct cause a frontend can phrase.
-	codeDispatchSelf          = "session.dispatch_self"
-	codeDispatchTargetUnknown = "session.dispatch_target_unknown"
-	codeDispatchDuplicate     = "session.dispatch_duplicate"
-	codeDispatchLimit         = "session.dispatch_limit"
-	codeDispatchFromUnknown   = "session.dispatch_from_unknown"
 )
 
 // badBody refuses a request whose body did not parse. The parse error itself is

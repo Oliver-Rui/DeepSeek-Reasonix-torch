@@ -7,13 +7,13 @@
     "commented-code": 0,
     "complexity": 662,
     "css-important": 127,
-    "css-size": 8988,
+    "css-size": 8979,
     "doc-language": 0,
     "doc-owner": 27,
     "doc-prose": 1445,
     "error-text": 9,
     "essay": 2540,
-    "file-size": 18505,
+    "file-size": 18494,
     "flat-view": 0,
     "frontend-parity": 13,
     "function-size": 2348,
@@ -24,7 +24,7 @@
     "orphan": 61,
     "process-input": 96,
     "refusal-path": 0,
-    "release-note": 725,
+    "release-note": 724,
     "stray-file": 0,
     "struct-state": 30,
     "temp-dir": 0,
@@ -83,10 +83,10 @@
     },
     "desktop/frontend-next/src/styles/studio.css": {
       "css-important": 103,
-      "css-size": 3732
+      "css-size": 3723
     },
     "desktop/frontend-next/src/ui/Workspaces.tsx": {
-      "file-size": 355
+      "file-size": 344
     },
     "desktop/internal/winuninstall/registry_windows.go": {
       "essay": 1
@@ -1582,7 +1582,7 @@
       "release-note": 45
     },
     "release-notes/studio/2.65.0.md": {
-      "release-note": 19
+      "release-note": 18
     },
     "release-notes/studio/2.7.0.md": {
       "release-note": 26

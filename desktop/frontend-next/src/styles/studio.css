@@ -1176,17 +1176,8 @@ body { background: var(--page) !important; }
 .sesscard-threads button .peerthread-lamp { width: 7px; height: 7px; }
 .sesscard-threads button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sesscard-threads button small { margin-left: auto; flex: none; color: var(--faint); font: var(--w-reg) var(--fs-micro)/1 var(--ui); }
-.sesscard-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
-.sesscard-actions button {
-  display: flex; align-items: center; gap: 6px; min-width: 0; height: 28px; padding: 0 6px;
-  border: 1px solid var(--border); border-radius: var(--r-sm); background: transparent;
-  color: var(--accent); cursor: pointer; font: var(--w-reg) var(--fs-micro)/1.3 var(--ui);
-}
-.sesscard-actions button:hover { background: var(--overlay); }
-.sesscard-actions button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sesscard-actions button .studio-icon { width: 12px; height: 12px; flex: none; }
 .sesscard-open {
-  display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 6px;
+  display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; margin-top: 6px; padding: 0 6px;
   border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted); cursor: pointer;
   font: var(--w-reg) var(--fs-micro)/1.3 var(--ui); text-align: left;
 }

@@ -204,8 +204,8 @@ export interface HistorySearch {
   index: HistoryIndex;
 }
 
-export type { DispatchThread, DispatchTarget, DispatchResult } from "./dispatch";
-import type { DispatchThread, DispatchTarget, DispatchResult } from "./dispatch";
+export type { DispatchThread } from "./dispatch";
+import type { DispatchThread } from "./dispatch";
 
 export interface HubPort extends SharePort {
   runtimes(): Promise<RuntimeView[]>;
@@ -214,8 +214,6 @@ export interface HubPort extends SharePort {
   tree(window?: TreeWindow): Promise<TreeWorkspace[]>;
   /** What this session dispatched: the hub's book, by the session's path. */
   dispatchThreads(path: string): Promise<DispatchThread[]>;
-  /** Hand one task to several sessions at once; one result per target. */
-  dispatch(to: string, targets: DispatchTarget[]): Promise<DispatchResult[]>;
   /** The name a project reads by in the sidebar; the folder keeps its own. */
   setWorkspaceDisplayName(path: string, name: string): Promise<void>;
   /** Pin or unpin a project: a pinned one leads the list. */
@@ -408,10 +406,6 @@ export class SseHub implements HubPort {
 
   dispatchThreads(path: string) {
     return this.get<DispatchThread[]>("/dispatch-threads?path=" + encodeURIComponent(path));
-  }
-
-  dispatch(to: string, targets: DispatchTarget[]) {
-    return this.post<DispatchResult[]>("/tree/sessions/dispatch", { from: to, targets });
   }
 
   setWorkspaceDisplayName(path: string, name: string) {

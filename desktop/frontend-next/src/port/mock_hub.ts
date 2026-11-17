@@ -1,6 +1,5 @@
 import type { AgentPort } from "./port";
 import type { HistorySearch, HubPort, RuntimeView, TreeSession, TreeWindow, TreeWorkspace } from "./hub";
-import type { DispatchResult, DispatchTarget } from "./dispatch";
 import type { RemoteHost, RemoteListing, RemoteProbe } from "./remote";
 import type { PhoneAction, PhoneList, PhoneView, ShareStatus } from "./share";
 import { MockPort } from "./mock";
@@ -205,10 +204,6 @@ export class MockHub implements HubPort {
 
   dispatchThreads(_path: string) {
     return Promise.resolve([]);
-  }
-
-  dispatch(_to: string, targets: DispatchTarget[]): Promise<DispatchResult[]> {
-    return Promise.resolve(targets.map(() => ({ ok: true })));
   }
 
 tree(window?: TreeWindow) {

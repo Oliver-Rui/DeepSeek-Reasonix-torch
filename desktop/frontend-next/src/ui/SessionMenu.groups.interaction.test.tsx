@@ -36,15 +36,6 @@ describe("the session menu", () => {
     ]);
   });
 
-  it("offers the dispatch entry for the row, and hands the conversation over", async () => {
-    const p = menu({ onDispatch: vi.fn() });
-    const item = screen.getByRole("menuitem", { name: "派发任务" });
-    expect(item.getAttribute("data-action")).toBe("session.dispatch-start");
-    expect(item.getAttribute("data-target")).toBe("/p/a.jsonl");
-    await userEvent.click(item);
-    expect(p.onDispatch).toHaveBeenCalledOnce();
-  });
-
   it("hands the whole conversation to the batch-select entry", async () => {
     const p = menu({}, { path: "/p/b.jsonl" });
     const item = screen.getByRole("menuitem", { name: /批量管理/ });
