@@ -24,7 +24,7 @@
     "orphan": 61,
     "process-input": 96,
     "refusal-path": 0,
-    "release-note": 745,
+    "release-note": 725,
     "stray-file": 0,
     "struct-state": 30,
     "temp-dir": 0,
@@ -1583,9 +1583,6 @@
     },
     "release-notes/studio/2.65.0.md": {
       "release-note": 19
-    },
-    "release-notes/studio/2.65.1.md": {
-      "release-note": 20
     },
     "release-notes/studio/2.7.0.md": {
       "release-note": 26
