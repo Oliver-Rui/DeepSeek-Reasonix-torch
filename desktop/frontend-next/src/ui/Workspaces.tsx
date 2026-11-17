@@ -32,7 +32,6 @@ import type { ReorderItem } from "./reorder";
 import { dragGhost } from "./dragghost";
 import { BlankProjectDialog } from "./BlankProjectDialog";
 import { SessionHoverCard } from "./SessionHoverCard";
-import { SessionDispatch } from "./SessionDispatch";
 import { pinnedFirst } from "./pinorder"; import { Hit } from "./Hit";
 import { Confirm, removeHint, sessionDeleteHint } from "./WorkspaceConfirm";
 import { LeadDot, UnreadCount } from "./UnreadMark";
@@ -92,7 +91,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   const [blankOpen, setBlankOpen] = useState(false);
   // 项目 rename: a small card asking for the name the sidebar reads by.
   const [renameFor, setRenameFor] = useState<{ root: string; name: string } | null>(null);
-  const [dispatchFor, setDispatchFor] = useState<TreeSession | null>(null);
   // The projects plus' menu dismisses on anything else: an outside click, a
   // scroll of the tree, Escape.
   useEffect(() => {
@@ -958,7 +956,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                             exporting={busy === "export:" + session.path}
                             autoNaming={busy === "name:" + session.path}
                             onPin={() => mutate(session, "pin")}
-                            onDispatch={() => { setDispatchFor(session); setSessionMenu(""); }}
                             onMarkRead={session.unread ? () => mutate(session, "read") : undefined}
                             onMoveUp={subtitle ? undefined : () => { reorder.moveBy(ws.root, session.path, -1); setSessionMenu(""); }}
                             onMoveDown={subtitle ? undefined : () => { reorder.moveBy(ws.root, session.path, 1); setSessionMenu(""); }}
@@ -1050,16 +1047,8 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
       {rowHover && createPortal(
         <SessionHoverCard hub={hub} ws={rowHover.ws} session={rowHover.session} anchor={rowHover.rect}
           onClose={() => setRowHover(null)} onKeepOpen={() => window.clearTimeout(hoverTimer.current)}
-          onOpenSession={(path) => { setRowHover(null); void onOpen({ sessionPath: path }); }}
-          onDispatch={() => setDispatchFor(rowHover.session)} />,
+          onOpenSession={(path) => { setRowHover(null); void onOpen({ sessionPath: path }); }} />,
         document.body)}
-      {dispatchFor && (
-        <SessionDispatch from={{ path: dispatchFor.path, title: dispatchFor.title || dispatchFor.name }}
-          projects={projectOptions}
-          sessions={tree.flatMap((w) => w.sessions.map((s) => ({ path: s.path, title: s.title || s.name, project: w.name })))}
-          hub={hub} onClose={() => setDispatchFor(null)}
-          onSent={() => { setDispatchFor(null); void reload(); }} />
-      )}
       {projAdd && createPortal(
         <div className="groupadd" role="menu" aria-label={t("session.add_a_new_project")}
           style={{ left: projAdd.x, top: projAdd.y }}>

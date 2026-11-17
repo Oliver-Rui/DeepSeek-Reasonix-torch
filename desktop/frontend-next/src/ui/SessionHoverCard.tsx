@@ -19,7 +19,7 @@ const stampOf = (ms: number | undefined) => {
  *  out of it, one line per task with the session it landed on, each opening
  *  that session. Same project or across projects: the book belongs to the
  *  sender, so a closed pane still answers. */
-export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSession, onKeepOpen, onDispatch }: {
+export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSession, onKeepOpen }: {
   hub: HubPort;
   ws: TreeWorkspace;
   session: TreeSession;
@@ -27,7 +27,6 @@ export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSess
   onClose: () => void;
   onOpenSession: (path: string) => void;
   onKeepOpen: () => void;
-  onDispatch?: () => void;
 }) {
   const [threads, setThreads] = useState<DispatchThread[] | null>(null);
   useEffect(() => {
@@ -78,18 +77,10 @@ export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSess
           })}
         </div>
       )}
-      <div className="sesscard-actions">
-        {onDispatch && (
-          <button type="button" data-action="session.dispatch-start"
-            onClick={() => { onClose(); onDispatch(); }}>
-            <StudioIcon name="send" /><span>{t("chat.dispatch_task")}</span>
-          </button>
-        )}
-        <button type="button" className="sesscard-open" data-action="session.open"
-          onClick={() => { onClose(); onOpenSession(session.path); }}>
-          <StudioIcon name="arrowRight" /><span>{t("session.hover_open_session")}</span>
-        </button>
-      </div>
+      <button type="button" className="sesscard-open" data-action="session.open"
+        onClick={() => { onClose(); onOpenSession(session.path); }}>
+        <StudioIcon name="arrowRight" /><span>{t("session.hover_open_session")}</span>
+      </button>
     </div>,
     document.body,
   );

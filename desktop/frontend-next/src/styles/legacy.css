@@ -57,7 +57,6 @@
 @import "./composition-modules.css" layer(legacy);
 @import "./workspace-path.css" layer(legacy);
 @import "./session-rename.css" layer(legacy);
-@import "./session-dispatch.css" layer(legacy);
 @import "./session-batch.css" layer(legacy);
 @import "./compact-now.css" layer(legacy);
 @import "./composition-presets.css" layer(legacy);

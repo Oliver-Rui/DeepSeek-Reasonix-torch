@@ -12,8 +12,6 @@ export interface SessionMenuProps {
   exporting: boolean;
   autoNaming: boolean;
   onPin: () => void;
-  /** Hand this conversation's work to several sessions at once. */
-  onDispatch?: () => void;
   /** Present where the row can move one slot inside its pinned partition. */
   onMoveUp?: () => void;
   onMoveDown?: () => void;
@@ -43,7 +41,7 @@ export interface SessionMenuProps {
  *  sidebar's clipping cannot cut it. Every action closes the menu itself:
  *  the parent's handlers do that, this only says which one was chosen. */
 export const SessionMenu = forwardRef<HTMLDivElement, SessionMenuProps>(function SessionMenu(
-  { session, live, pinned, exporting, autoNaming, onPin, onDispatch, onMoveUp, onMoveDown, moveUpDisabled, moveDownDisabled, onMarkRead, onRename, onAutoName, onPause, onClose, onArchive, onBranch, onCopyInfo, onExport, onBatchSelect, onDelete, onMoveTo, keptCount = 0, keptOpen, onKept },
+  { session, live, pinned, exporting, autoNaming, onPin, onMoveUp, onMoveDown, moveUpDisabled, moveDownDisabled, onMarkRead, onRename, onAutoName, onPause, onClose, onArchive, onBranch, onCopyInfo, onExport, onBatchSelect, onDelete, onMoveTo, keptCount = 0, keptOpen, onKept },
   ref,
 ) {
   const target = session.path;
@@ -66,16 +64,6 @@ export const SessionMenu = forwardRef<HTMLDivElement, SessionMenuProps>(function
         </button>
       </div>
       <div className="session-pop-divider" />
-      {onDispatch && (
-        <>
-          <div className="session-pop-group">
-            <button role="menuitem" data-action="session.dispatch-start" data-target={target} onClick={onDispatch}>
-              <StudioIcon name="send" /><span>{t("chat.dispatch_task")}</span>
-            </button>
-          </div>
-          <div className="session-pop-divider" />
-        </>
-      )}
       {onMoveUp && onMoveDown && (
         <>
           <div className="session-pop-group">
