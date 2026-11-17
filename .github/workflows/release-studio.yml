@@ -983,6 +983,10 @@ jobs:
       needs.windows-package.result == 'skipped' && needs.windows-verify-package.result == 'skipped' &&
       needs.windows-sign-installer.result == 'skipped')) }}
     runs-on: ubuntu-latest
+    # The key this reads is scoped to the release environment on the publishing
+    # side; a job outside it sees an empty value and skips a release the publish
+    # job could have signed.
+    environment: studio-release
     outputs:
       publish: ${{ steps.decide.outputs.publish }}
     steps:
