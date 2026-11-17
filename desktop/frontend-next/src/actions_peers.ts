@@ -9,4 +9,16 @@ export const PEERS_ACTIONS: UIAction[] = [
   // The outgoing cross-project seg on the switches block: it saves the whole
   // answer through the same settings POST as the switches beside it.
   { id: "peers.cross-project", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
+  // The dispatch dialog: one task to several sessions, each under its own role.
+  // The fan-out writes through the hub, so the proof is the canonical effect.
+  { id: "session.dispatch-start", kind: "view", target: "entity", proof: "interaction" },
+  { id: "session.dispatch", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },
+  { id: "session.dispatch-mode", kind: "view", target: "entity", proof: "interaction" },
+  { id: "session.dispatch-target", kind: "view", target: "entity", proof: "interaction" },
+  { id: "session.dispatch-project", kind: "view", target: "entity", proof: "interaction" },
+  { id: "session.dispatch-role", kind: "view", target: "entity", proof: "interaction" },
+  { id: "session.dispatch-instructions", kind: "view", target: "entity", proof: "interaction" },
+  { id: "session.dispatch-add", kind: "view", target: "none", proof: "interaction" },
+  { id: "session.dispatch-remove", kind: "view", target: "none", proof: "interaction" },
+  { id: "session.dispatch-done", kind: "view", target: "none", proof: "interaction" },
 ];

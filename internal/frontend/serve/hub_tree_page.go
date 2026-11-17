@@ -184,6 +184,44 @@ func (h *Hub) treeSessionRows(root string) (listed, unlisted []sessionstore.Sess
 	return listed, unlisted
 }
 
+// sessionProjectRoots names every member root of the grouped project a session
+// root belongs to, so a move can rank a worktree project's rows as one list.
+func (h *Hub) sessionProjectRoots(root string) []string {
+	id := projectIdentity(root)
+	for _, p := range groupWorkspaces(h.roots()) {
+		if projectIdentity(p.root) == id {
+			return p.roots
+		}
+	}
+	return []string{root}
+}
+
+// treeSessionRowsForProject merges the rows of every member root; the sidebar
+// and the move endpoint answer from this one enumeration.
+func (h *Hub) treeSessionRowsForProject(roots []string) (listed, unlisted []sessionstore.SessionInfo) {
+	seen := map[string]bool{}
+	seenUnlisted := map[string]bool{}
+	for _, root := range roots {
+		l, u := h.treeSessionRows(root)
+		for _, si := range l {
+			c := sessionstore.CanonicalSessionPath(si.Path)
+			if !seen[c] {
+				seen[c] = true
+				listed = append(listed, si)
+			}
+		}
+		for _, si := range u {
+			c := sessionstore.CanonicalSessionPath(si.Path)
+			if !seenUnlisted[c] {
+				seenUnlisted[c] = true
+				unlisted = append(unlisted, si)
+			}
+		}
+	}
+	sortSessions(listed)
+	return listed, unlisted
+}
+
 func sortTreeSessions(listed []sessionstore.SessionInfo, recent bool) {
 	if !recent {
 		sortSessions(listed)

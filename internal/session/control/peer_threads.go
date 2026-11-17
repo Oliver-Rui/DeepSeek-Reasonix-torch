@@ -22,8 +22,8 @@ const (
 	PeerDeclined PeerThreadState = "declined"
 )
 
-// peerThreadWindow bounds how far back the trail is read.
-const peerThreadWindow = 30 * 24 * time.Hour
+// PeerThreadWindow bounds how far back the trail is read.
+const PeerThreadWindow = 30 * 24 * time.Hour
 
 // PeerThread is one session this one has sent to, and where that stands.
 type PeerThread struct {
@@ -53,7 +53,7 @@ func (c *Controller) PeerThreads() []PeerThread {
 	if self == "" {
 		return nil
 	}
-	threads := peerThreadsFrom(self, dir.AuditSince(time.Now().Add(-peerThreadWindow)))
+	threads := PeerThreadsFrom(self, dir.AuditSince(time.Now().Add(-PeerThreadWindow)))
 	live := map[string]peermailLive{}
 	for _, l := range c.livePeers() {
 		live[l.SessionID] = peermailLive{title: l.Title, project: l.Project, path: l.SessionPath}
@@ -68,11 +68,12 @@ func (c *Controller) PeerThreads() []PeerThread {
 
 type peermailLive struct{ title, project, path string }
 
-// peerThreadsFrom folds the trail into one thread per session self has written
+// PeerThreadsFrom folds the trail into one thread per session self has written
 // to. The state is that of self's latest message: undecided means waiting; taken
 // means working; refused means declined; and anything the other session sent to
-// self afterwards makes it replied.
-func peerThreadsFrom(self string, trail []peermail.AuditRecord) []PeerThread {
+// self afterwards makes it replied. It is exported so the serving hub can read
+// the same state off the same durable trail after a restart.
+func PeerThreadsFrom(self string, trail []peermail.AuditRecord) []PeerThread {
 	type last struct {
 		id string
 		at time.Time

@@ -9,7 +9,7 @@ const { existsSync } = require("node:fs");
 const path = require("node:path");
 const { start, shouldRetry, HANDSHAKE_TIMEOUT_MS } = require("./host");
 const { startEmbedded, createQuitGate } = require("./cua");
-const { showStarting } = require("./starting");
+const { startingPage } = require("./starting");
 const { StudioHost } = require("./hostclient");
 const { installTray } = require("./tray");
 const { instanceID, profileFor } = require("./instance");
@@ -95,13 +95,6 @@ let logs = null;
 let windowShortcut = null;
 let handshaken = false;
 
-let starting = null;
-function closeStarting() {
-  const win = starting;
-  starting = null;
-  if (win && !win.isDestroyed()) win.close();
-}
-
 function handshakeTimeout() {
   const ms = Number(process.env.REASONIX_STUDIO_HANDSHAKE_TIMEOUT_MS);
   return Number.isFinite(ms) && ms > 0 ? ms : HANDSHAKE_TIMEOUT_MS;
@@ -118,18 +111,7 @@ async function launchKernel(args) {
     kernel = start(hostBinary, args, {
       systemLanguage: app.getPreferredSystemLanguages()[0] ?? app.getLocale(),
       timeoutMs: handshakeTimeout(),
-      onSlow: () => {
-        logs.shell.line("host: no handshake yet; showing the starting window");
-        if (starting || quitting) return;
-        const win = showStarting(app.getLocale());
-        starting = win;
-        win.once("closed", () => {
-          if (starting !== win) return;
-          starting = null;
-          logs.shell.line("host: starting window closed; ending the launch");
-          app.quit();
-        });
-      },
+      onSlow: () => logs.shell.line("host: no handshake yet"),
       onStderr: (text) => {
         logs.host.raw(text);
         toConsole(text);
@@ -155,7 +137,6 @@ async function launchKernel(args) {
     } catch (err) {
       if (quitting || !shouldRetry(err, attempt, Date.now() - began)) {
         err.attempts = attempt;
-        closeStarting();
         throw err;
       }
       logs.shell.line(`host: ${err.message}; retrying once`);
@@ -165,6 +146,9 @@ async function launchKernel(args) {
 }
 
 async function boot() {
+  // Before the window, so its first paint uses the theme the person chose.
+  followTheme();
+  showStartingWindow();
   // Which build this is belongs to the shell: inside the bundle the kernel's
   // own os.Executable() names the host binary, not the application around it.
   // Only a packaged build has a version worth reporting -- app.getVersion()
@@ -206,9 +190,6 @@ cua = await startEmbedded(computerDriver, contract, text => logs.host.raw(text))
     if (details.statusCode === 403) void restoreIfStale(session.defaultSession, credentialCookie, (line) => logs.shell.line(line));
     if (details.method === "POST" && details.statusCode < 300 && details.url.endsWith("submit")) void powerGuard?.refresh();
   });
-  followTheme();
-  win = createWindow();
-  closeStarting();
   guard(win.webContents);
   win.webContents.once("render-process-gone", (_event, details) => {
     if (win.isVisible() || details.reason !== "crashed") return;
@@ -218,7 +199,6 @@ cua = await startEmbedded(computerDriver, contract, text => logs.host.raw(text))
   installContextMenu(win.webContents, win, uiLang);
   installFullScreenKey(win.webContents, win);
   reload = installReload(win.webContents, win);
-  win.once("ready-to-show", () => win.show());
   // No icon, no backgrounding: the close button can only hide the window where
   // something is left that brings it back.
   tray = installTray(client, { onOpen: showWindow, onQuit: () => app.quit() });
@@ -321,7 +301,6 @@ function onWindowClose(event) {
 // showWindow brings it back from wherever it went. Show alone is a no-op on a
 // window that is merely buried, so the focus is what actually raises it.
 function showWindow() {
-  if (starting && !starting.isDestroyed()) starting.focus();
   if (quitting || !win || win.isDestroyed()) return;
   if (win.isMinimized()) win.restore();
   reload?.revive();
@@ -381,6 +360,19 @@ function createWindow() {
       },
     },
   });
+}
+
+// The kernel has no page to show until it answers, so the window opens on the
+// starting page and the launch replaces it with the workspace once it can.
+function showStartingWindow() {
+  win = createWindow();
+  win.once("ready-to-show", () => win.show());
+  win.once("closed", () => {
+    if (handshaken || quitting) return;
+    logs.shell.line("shell: window closed while starting; ending the launch");
+    app.quit();
+  });
+  void win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(startingPage(app.getLocale()))}`);
 }
 
 // The page may only ever be the origin the kernel handed us. A navigation
@@ -616,8 +608,8 @@ async function hostLastWords() {
   return logs.host.tail();
 }
 
-// Before the handshake the only window is the starting one, and the launch
-// decides for itself whether to go on.
+// Before the handshake the window shows the starting page, and closing it is
+// the launch deciding not to go on; showStartingWindow owns that quit.
 app.on("window-all-closed", () => {
   if (handshaken) app.quit();
 });

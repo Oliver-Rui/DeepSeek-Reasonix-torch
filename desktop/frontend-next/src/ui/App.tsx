@@ -496,15 +496,22 @@ export function App({ hub }: { hub: HubPort }) {
     [hub, reloadTree, fail],
   );
 
-  const archiveSession = useCallback(
+  const archiveSessionQuiet = useCallback(
     async (path: string, archived: boolean, runtimeId?: string) => {
       if (runtimeId) await closePanes([runtimeId]);
       await hub.archiveSession(path, archived);
       if (archived) clearDraftForSession("", path);
       if (archived) unpinSession(path);
+    },
+    [closePanes, hub, unpinSession],
+  );
+
+  const archiveSession = useCallback(
+    async (path: string, archived: boolean, runtimeId?: string) => {
+      await archiveSessionQuiet(path, archived, runtimeId);
       await reloadTree();
     },
-    [closePanes, hub, reloadTree, unpinSession],
+    [archiveSessionQuiet, reloadTree],
   );
 
   const branchSession = useBranchSession({ panePorts, runtimes, runsRef, openPane });
@@ -621,6 +628,7 @@ export function App({ hub }: { hub: HubPort }) {
           onPause={(runtimeId) => void panePorts.get(runtimeId)?.cancel()}
           onBranch={branchSession}
           onArchive={archiveSession}
+          onArchiveQuiet={archiveSessionQuiet}
           onRename={renameSession}
           onCollapse={() => setRail(false)}
           wallet={report.wallet}

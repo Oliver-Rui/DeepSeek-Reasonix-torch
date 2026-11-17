@@ -30,7 +30,7 @@
 }
 
 /* waiting: sent, nobody has picked it up yet. A ring that turns. */
-.peerthread[data-state="waiting"] .peerthread-lamp {
+[data-state="waiting"] > .peerthread-lamp {
   width: 9px;
   height: 9px;
   background: transparent;
@@ -41,22 +41,22 @@
 
 /* working: the other session took it and is acting on it. Amber, filled, and
    breathing so it reads as live without turning like an unanswered send. */
-.peerthread[data-state="working"] .peerthread-lamp {
+[data-state="working"] > .peerthread-lamp {
   background: var(--warn);
   animation: m-pulse 1.6s ease-in-out infinite;
 }
 
 /* replied: an answer is waiting for you. Green, filled, still. */
-.peerthread[data-state="replied"] .peerthread-lamp { background: var(--ok); }
+[data-state="replied"] > .peerthread-lamp { background: var(--ok); }
 
 /* declined: the other user refused it. Red ring, never filled: nothing is
    waiting, and nothing is running. */
-.peerthread[data-state="declined"] .peerthread-lamp {
+[data-state="declined"] > .peerthread-lamp {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--err);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .peerthread[data-state="waiting"] .peerthread-lamp,
-  .peerthread[data-state="working"] .peerthread-lamp { animation: none; }
+  [data-state="waiting"] > .peerthread-lamp,
+  [data-state="working"] > .peerthread-lamp { animation: none; }
 }

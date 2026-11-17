@@ -884,3 +884,102 @@ a dragover to have landed first (`WorkspaceGroupHeaders` takes
 Real-mouse probe: carrying 任务 up onto 项目 paints `before` on 项目 and
 lands 任务 first; carrying 项目 up onto 任务 mirrors it; carrying down
 paints `after` and lands the target first.
+
+### The last position was unreachable (same afternoon)
+
+The user's next report: projects would not move down, and the last position
+could never be reached. The screenshot showed the line painted under
+LidarHub while the drop did nothing — and the row under the last project is
+`Reasonix Studio`, the launch-opened folder that is *not* in the
+remembered order.
+
+- The drag accepted only remembered rows as drop targets (`order.includes`),
+  so a drop on that implicit row was swallowed entirely; since it sits under
+  the last remembered project, "put this last" had no target at all.
+- Fix: the hook takes `rows` (every project row in visual order) beside
+  `order` (the remembered, carriable ones); only remembered rows are carried,
+  but any project row names a place — the next remembered row at or after the
+  pointer's edge, or "" for the end.
+  - `beforeOf` walks `rows`, so a target that is not remembered still
+    resolves to the end. Real mouse: first row onto the neighbour's lower
+    half moves one step; first row onto the implicit row's lower half lands
+    last (`before: ""`).
+
+### One slot model for both sidebar lists (this session)
+
+Every previous fix painted a line in one place and landed the row in
+another: the project hook used a direction heuristic, the session hook
+walked neighbour swaps, and the menu moved rows a different way again.
+The refactor replaces all three with one pointer-slot model.
+
+- `src/ui/reorder.ts` (pure, 14 unit tests) names a slot from the pointer's
+  height, clamps it to the carried row's pinned block, maps it to one
+  kernel `before` target, and paints the line at that target. The
+  remembered/implicit and pinned partitions are the only boundaries.
+- `src/ui/useSlotReorder.ts` is the only place that runs a drag: one native
+  DnD kind per list, one `place` call, one tree read, no timers. A slot the
+  row already fills paints nothing and writes nothing.
+- The kernel keeps the order: `POST /tree/workspaces/move` and
+  `POST /tree/sessions/move` both accept `before` (session place enumerates
+  all member roots of a worktree group). `direction` stays for old
+  clients. Pin/archived boundaries refuse with the new
+  `*.order_boundary` codes (mapped in i18n/kernel.ts).
+- An expanded project's slot is decided by its folder row, not the whole
+  run: dropping over any conversation below that row lands **after** the
+  run, which is what the earlier VRTV → Studio report asked for.
+- Menus and Alt+Arrow use the same `moveBy` path; pinned rows never step
+  out of their partition, and the timeline reading stays read-only.
+- `useWorkspaceDrag`, `useSessionDragEdges`, `useSessionMove` and the dead
+  `WorkspaceOrder` menu component are gone; the action census moved the
+  sidebar ids into `actions_tree.ts` to stay under the file ceiling.
+
+`cd24e34` (kernel) and `85c0468` (frontend) carry the change. The Go serve
+suite takes ~11 minutes for its 1497 cases (the earlier 10-minute runs were
+cut off by the default timeout, not hung). Four skills/capability/MCP cases
+failed on this machine in the post-change run: TestSkillSwitchIsScopedToItsProject,
+TestCapabilitySwitchReachesAnotherProject, TestMCPAuthenticationPendingInstallKeepsChosenScope,
+and the known-noisy TestSkillCatalogProjectsAuthorInvocationFlags. The tests
+themselves are untouched by the order commits; an export of cd24e34^ run
+against the same four names fails them identically on this machine, so they
+are pre-existing environment failures, not regressions.
+
+### The merge-time audit (2.65.0)
+
+The side-bar round was squashed into one commit before release, and the squash
+was audited against REASONIX.md rather than only against tests.
+
+What the audit changed:
+
+- The dispatch UI had shipped ahead of its kernel. `POST /tree/sessions/dispatch`
+  and the enriched `GET /dispatch-threads` fields lived only in an uncommitted
+  worktree; they are part of the same commit now.
+- The ratchet was widened with `-allow-widen`, which the rules forbid.
+  Extracting `ProjectMenu.tsx`, `menuKeys.ts` and one `byPreview` helper brought
+  `Workspaces.tsx` below its recorded size. The baseline update now lowers
+  budgets (file-size 395 to 355, css-size 3738 to 3732).
+- The hover card's state lamps were a second copy of the sidebar's. The card
+  now renders the same `.peerthread-lamp`, matched by any parent carrying
+  `data-state`, so one shape serves both places.
+- Per-target dispatch results are keyed by row id rather than list position.
+  Their codes go through `sayCode`: a known code is spoken in the window's
+  language, an unknown one keeps the producer's text.
+- Dead paths were removed, not left as alternatives: the desktop port's
+  direction-based `moveWorkspace`/`moveSession` (the kernel endpoints stay),
+  the menu's unused `label` prop, the unreachable copy/version skip in batch
+  move, and `Placement`'s unused export.
+- The dispatch actions moved from `actions_tree.ts` to `actions_peers.ts`,
+  which owns the surface they belong to.
+- Two batch runners became one `runBatch`: one parallel pass, per-row failure
+  keeping, and one tree read when a row asked for it.
+- Six more dispatch refusal codes got wording: `dispatch.untrusted`,
+  `dispatch.awaiting_trust`, `dispatch.cross_project`, `dispatch.limit`,
+  `dispatch.disabled` and `dispatch.failed`.
+
+Left as recorded, with reasons:
+
+- `Workspaces.tsx` remains over 800 lines: baseline debt, now smaller.
+- A few stylesheets still carry comments where the rest of the tree does.
+- `prefsnav.tsx`'s session-row keywords still mention archive/delete for a
+  setting that no longer governs them.
+- A menu or keyboard reorder still rests the clock reading, which is the
+  intended "a reorder is a manual order" rule.

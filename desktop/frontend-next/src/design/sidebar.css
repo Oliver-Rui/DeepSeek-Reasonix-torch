@@ -68,7 +68,19 @@
 [data-titlebar="app"][data-platform="darwin"] .rail .studio-brand { height: var(--chrome-h); }
 [data-titlebar="app"][data-platform="darwin"] .rail .studio-brand-lockup { margin-left: calc(var(--lights-w) - 10px); }
 @container (max-width: 300px) { [data-titlebar="app"][data-platform="darwin"] .rail .studio-brand-sub { display: none; } }
-.rail .wsnode { padding: 0; }
+.rail .wsnode { padding: 0; position: relative; }
+.rail .wsnode[data-drop="before"]::before,
+.rail .wsnode[data-drop="after"]::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 2px;
+  border-radius: 1px; background: var(--accent); pointer-events: none; z-index: 1;
+}
+.rail .wsnode[data-drop="before"]::before { top: -1px; }
+.rail .wsnode[data-drop="after"]::after { bottom: -1px; }
+.rail .kids { position: relative; }
+.rail .kids[data-session-drag]::before,
+.rail .kids[data-session-drag]::after { content: ""; position: absolute; left: 0; right: 0; pointer-events: auto; z-index: 1; }
+.rail .kids[data-session-drag]::before { bottom: 100%; height: 40px; }
+.rail .kids[data-session-drag]::after { top: 100%; height: 12px; }
 .rail .wsgroupline {
   display: flex; align-items: center; margin-top: 6px; width: 100%;
 }
@@ -87,25 +99,15 @@
 .rail .wsgroupline:has(button.wsgroup:disabled) { opacity: .45; }
 .rail button.wsgroup:focus-visible { outline: 1px solid var(--focus); outline-offset: -1px; }
 .rail button.wsgroup:disabled { opacity: .4; cursor: default; }
-/* Every drag in the tree speaks one insertion line: a 2px accent bar drawn on
-   the edge the drop will land at — `before` rides the top edge, `after` the
-   bottom — while the row being carried fades. Group-label rows, project rows
-   and conversation rows all read it the same way, so the place the pointer
-   means is said once, in one voice. The group drop swaps the two runs, so the
-   carried label takes the place of the one it lands on: the line rides the
-   row's bottom edge. */
 .rail .wsgroupline, .rail .wsrow, .rail .sessrow { position: relative; }
 .rail .wsgroupline[data-drop="before"]::before,
-.rail .wsrow[data-drop="before"]::before,
 .rail .sessrow[data-drop="before"]::before,
 .rail .wsgroupline[data-drop="after"]::after,
-.rail .wsrow[data-drop="after"]::after,
 .rail .sessrow[data-drop="after"]::after {
   content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px;
   border-radius: 1px; background: var(--accent); pointer-events: none; z-index: 1;
 }
 .rail .wsgroupline[data-drop="after"]::after,
-.rail .wsrow[data-drop="after"]::after,
 .rail .sessrow[data-drop="after"]::after { top: auto; bottom: -1px; }
 .rail .wsgroupline[data-dragging], .rail .wsrow[data-dragging], .rail .sessrow[data-dragging] { opacity: .4; }
 /* The run's plus, at the row's right edge: hidden at rest, revealed on hover

@@ -15,28 +15,27 @@ function draw(over: Partial<TreeWorkspace> = {}, sessions: Record<string, TreeSe
     root: "/" + name, name, remembered: true, sessions: sessions[name] ?? [], ...over,
   }));
   const revealWorkspace = vi.fn().mockResolvedValue(undefined);
-  const moveWorkspace = vi.fn().mockResolvedValue(undefined);
   const removeWorkspace = vi.fn().mockResolvedValue(undefined);
   const reload = vi.fn().mockResolvedValue(undefined);
   const onFold = vi.fn();
   const onOpen = vi.fn().mockResolvedValue(undefined);
   const onError = vi.fn();
-  render(<Workspaces hub={{ revealWorkspace, moveWorkspace, removeWorkspace, openWithTargets: async () => [] } as never} tree={tree} treeRead
+  render(<Workspaces hub={{ revealWorkspace, removeWorkspace, openWithTargets: async () => [] } as never} tree={tree} treeRead
     runtimes={[]} active="" folded={new Set()} onFold={onFold} reload={reload} onOpen={onOpen}
     onFocus={() => {}} onClose={async () => {}} liveIds={() => []} runs={{}} onRename={() => {}}
     onError={onError} adder={{ add: () => {}, close: () => {}, at: null } as never} />);
   const row = (name: string) => screen.getByText(name, { selector: ".wsname" }).closest<HTMLElement>('[role="treeitem"]')!;
-  return { row, revealWorkspace, moveWorkspace, removeWorkspace, reload, onFold, onOpen, onError };
+  return { row, revealWorkspace, removeWorkspace, reload, onFold, onOpen, onError };
 }
 
 it("opens the existing project menu from a right click without folding or opening a session", () => {
   const { row, onFold, onOpen } = draw();
   expect(fireEvent.contextMenu(row("b"), { clientX: 120, clientY: 90 })).toBe(false);
   expect(screen.getByRole("menu", { name: "项目操作" })).toBeTruthy();
-  // The menu opens ON the rename row: it is the reference menu's own first
-  // word, and the focus starts where a rename would begin.
+  // The menu opens on its first enabled word: with the move rows leading,
+  // that is 上移. Rename is still there, just one step into the menu.
   expect(screen.getByRole("menuitem", { name: "重命名项目" })).toBeTruthy();
-  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "重命名项目" }));
+  expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "上移" }));
   expect(screen.getByRole("menuitem", { name: /在文件管理器中显示/ })).toBeTruthy();
   expect(onFold).not.toHaveBeenCalled();
   expect(onOpen).not.toHaveBeenCalled();

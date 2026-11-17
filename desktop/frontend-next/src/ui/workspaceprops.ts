@@ -43,6 +43,8 @@ export interface WorkspacesProps {
   onPause?: (runtimeId: string) => void;
   onBranch?: (runtimeId: string, name: string) => Promise<void>;
   onArchive?: (path: string, archived: boolean, runtimeId?: string) => Promise<void>;
+  /** The same archive without the tree read; a batch reads the tree once. */
+  onArchiveQuiet?: (path: string, archived: boolean, runtimeId?: string) => Promise<void>;
   onRename: (path: string, title: string, mode?: "inline" | "dialog") => void;
   onError: (e: unknown) => void;
   // 打开项目这个动作归 App —— 首启那条横幅按的是同一个它。

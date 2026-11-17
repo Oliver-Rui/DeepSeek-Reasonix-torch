@@ -248,7 +248,7 @@ export const SETTINGS: Messages = {
   "settings.what_a_message_sent_while_running_does": { zh: "运行中发出的消息默认怎么处理", en: "What a message sent while a task runs does by default" },
   "settings.how_long_before_a_page_sleeps": { zh: "网页在后台闲置多久后休眠", en: "How long a background page idles before it sleeps" },
   "settings.hint_text_in_the_composer": { zh: "输入框里的提示文字", en: "The hint text inside the composer" },
-  "settings.buttons_shown_on_row_hover": { zh: "会话行悬停时显示的按钮", en: "Buttons shown when you hover a session row" },
+  "settings.buttons_shown_on_row_hover": { zh: "悬停时在行上显示置顶按钮；行尾的归档按钮始终在", en: "Show the pin button on hover; the archive button always sits at the row's end" },
   "settings.which_entries_the_left_rail_shows": { zh: "选择图标栏与侧栏工具卡片显示的入口和顺序", en: "Choose the entries and order for the icon rail and sidebar tools card" },
   "settings.finished_sessions_stay_in_running": { zh: "会话结束后在进行中列表里再留多久", en: "How long a finished session stays in the running list" },
   "settings.theme_card": { zh: "主题", en: "Theme" },

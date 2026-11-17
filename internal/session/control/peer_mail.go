@@ -88,16 +88,20 @@ type peerMail struct {
 	stop      chan struct{}
 }
 
-// sessionPeerKey is the address a session is filed under: a digest of its
+// PeerKeyForPath is the address a session is filed under: a digest of its
 // canonical path. The file stem alone repeats across projects, and the lease's
-// writer id names a process that holds many sessions.
-func sessionPeerKey(path string) string {
+// writer id names a process that holds many sessions. Exported so a host can
+// read a session's durable thread off the audit trail after a restart.
+func PeerKeyForPath(path string) string {
 	if strings.TrimSpace(path) == "" {
 		return ""
 	}
 	sum := sha256.Sum256([]byte(sessionstore.CanonicalSessionPath(path)))
 	return "s-" + hex.EncodeToString(sum[:8])
 }
+
+// sessionPeerKey is PeerKeyForPath under its in-package name.
+func sessionPeerKey(path string) string { return PeerKeyForPath(path) }
 
 func newPeerMail(opts PeersOptions) *peerMail {
 	p := &peerMail{link: opts.Link, tools: opts.Tools, dispatch: opts.Dispatch, held: map[string]peermail.Message{}, resolving: map[string]bool{}, rejected: map[string]bool{}}

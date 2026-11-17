@@ -42,11 +42,11 @@
       "versions": [
         {
           "version": "0.1.0",
-          "publishTimestamp": 1792315829,
+          "publishTimestamp": 1794491076,
           "source": {
             "type": "git",
             "url": "https://github.com/esengine/DeepSeek-Reasonix",
-            "commit": "79430cf8cf978505a2a8f433e4dc29a6def5e3cf",
+            "commit": "55bd05feb70b6dd081e1313a48155d0d67c85ffb",
             "path": "integrations/dsh-plugin"
           },
           "engines": {

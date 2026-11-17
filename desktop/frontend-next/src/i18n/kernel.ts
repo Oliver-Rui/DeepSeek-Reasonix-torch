@@ -82,6 +82,18 @@ const SAID: Record<string, string> = {
   "session.title_thought_only": "kernel.automatic_naming_failed_the_title_2",
   "session.title_refused": "kernel.automatic_naming_failed_the_title",
   "session.title_save_failed": "kernel.the_session_title_could_not",
+  "session.order_boundary": "kernel.a_session_cannot_be_moved_across_pinned_or_archived",
+  "session.dispatch_self": "kernel.a_session_cannot_be_handed_its_own",
+  "session.dispatch_target_unknown": "kernel.the_dispatch_target_is_not_open",
+  "session.dispatch_duplicate": "kernel.the_same_target_was_named_twice",
+  "session.dispatch_limit": "kernel.too_many_targets_for_one_dispatch",
+  "session.dispatch_from_unknown": "kernel.the_sending_session_is_not_open",
+  "dispatch.untrusted": "kernel.the_project_was_not_trusted",
+  "dispatch.awaiting_trust": "kernel.the_projects_trust_question_is_still",
+  "dispatch.cross_project": "kernel.cross_project_dispatch_is_turned_off",
+  "dispatch.limit": "kernel.the_session_already_has_as_many",
+  "dispatch.disabled": "kernel.dispatch_between_sessions_is_turned",
+  "dispatch.failed": "kernel.the_task_could_not_be_handed",
 
   // ── 忙：不是出错，是「现在不行」 ─────────────────────────────────
   "plan.decision_stale": "kernel.that_decision_is_no_longer",
@@ -226,6 +238,7 @@ const SAID: Record<string, string> = {
   "backup.limit_reached": "kernel.the_backup_limit_is_reached",
   "backup.consent_required": "kernel.some_items_run_programs_here",
   "workspace.limit_reached": "kernel.the_project_list_is_at",
+  "workspace.order_boundary": "kernel.a_project_cannot_be_moved_across_the_pinned",
   "workspace.name_taken": "kernel.a_folder_with_that_name",
   "workspace.bad_name": "kernel.that_name_cannot_be_a",
   "provider.bad_model_price": "kernel.the_price_for_model_must",
@@ -849,6 +862,14 @@ export function say(reason: Reason | null | undefined, fallback = ""): string {
   const zh = reason.code ? SAID[reason.code] : undefined;
   if (zh) return t(zh, reason.params ?? {});
   return reason.error || fallback;
+}
+
+/** A code carried as data rather than thrown (per-target dispatch results):
+ *  the catalogue's sentence when it knows the code, the producer's own text
+ *  otherwise. Never the English for a code this window can say. */
+export function sayCode(code: string | undefined, fallback: string): string {
+  const key = code ? SAID[code] : undefined;
+  return key ? t(key) : fallback;
 }
 
 /** reason is what a catch block hands to the UI: a coded refusal becomes this

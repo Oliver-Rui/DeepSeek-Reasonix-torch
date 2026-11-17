@@ -83,6 +83,37 @@ func TestWorkspaceMovePersistsOrderWithOpenPanes(t *testing.T) {
 	}
 }
 
+func TestWorkspacePlaceRemembersAFolderOnlyShownUntilThen(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	a, b := testenv.TempDir(t), testenv.TempDir(t)
+	shown := testenv.TempDir(t)
+	rememberWorkspace(a)
+	rememberWorkspace(b)
+	// The row may carry a removal on record — the person took the folder off
+	// the sidebar earlier — and dragging it is asking for it back.
+	forgetWorkspace(shown)
+	h := NewHub(HubOptions{})
+	srv := httptest.NewServer(operatorHandler(h))
+	defer srv.Close()
+	body, _ := json.Marshal(map[string]string{"path": shown, "before": a})
+	status, code := postLaunchJSON(t, srv.URL+"/tree/workspaces/move", string(body), nil)
+	if status != http.StatusNoContent {
+		t.Fatalf("place = %d %s, want 204", status, code)
+	}
+	if got, want := Workspaces(), []string{b, shown, a}; !slices.Equal(got, want) {
+		t.Fatalf("saved order = %v, want %v", got, want)
+	}
+	if launch := LaunchWorkspaces(); len(launch) == 0 || launch[0] != b {
+		t.Fatalf("placing a folder changed the launch project: %v", launch)
+	}
+	if list, err := readWorkspaceList(workspacesPath()); err != nil || len(list.Removed) != 0 {
+		t.Fatalf("the drag did not lift the removal: %+v (%v)", list.Removed, err)
+	}
+	if refs := NewHub(HubOptions{}).roots(); len(refs) != 3 || refs[1].dir != shown {
+		t.Fatalf("new hub did not keep the placed folder: %v", refs)
+	}
+}
+
 func TestWorkspaceMoveLegacyListAndValidation(t *testing.T) {
 	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
 	a, b := testenv.TempDir(t), testenv.TempDir(t)

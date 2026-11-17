@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { t } from "../i18n";
+import { current, t } from "../i18n";
 import type { DispatchThread, HubPort, TreeSession, TreeWorkspace } from "../port/hub";
+import type { PeerThread } from "../port/boundary";
 import { StudioIcon } from "./StudioIcon";
+import { wording } from "./peerthreads";
 import { zoom } from "./place";
 
 const stampOf = (ms: number | undefined) => {
   if (!ms) return "";
-  const d = new Date(ms);
-  const pad = (n: number) => `${n}`.padStart(2, "0");
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return new Intl.DateTimeFormat(current() === "zh" ? "zh-CN" : "en", {
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  }).format(new Date(ms));
 };
 
 /** The card a session row's hover opens: the conversation's own facts — title,
@@ -17,7 +19,7 @@ const stampOf = (ms: number | undefined) => {
  *  out of it, one line per task with the session it landed on, each opening
  *  that session. Same project or across projects: the book belongs to the
  *  sender, so a closed pane still answers. */
-export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSession, onKeepOpen }: {
+export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSession, onKeepOpen, onDispatch }: {
   hub: HubPort;
   ws: TreeWorkspace;
   session: TreeSession;
@@ -25,6 +27,7 @@ export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSess
   onClose: () => void;
   onOpenSession: (path: string) => void;
   onKeepOpen: () => void;
+  onDispatch?: () => void;
 }) {
   const [threads, setThreads] = useState<DispatchThread[] | null>(null);
   useEffect(() => {
@@ -55,20 +58,38 @@ export function SessionHoverCard({ hub, ws, session, anchor, onClose, onOpenSess
       {stamp && <div className="sesscard-line"><span>{t("session.hover_updated_at")}</span>{stamp}</div>}
       {threads && threads.length > 0 && (
         <div className="sesscard-threads">
-          {threads.map((th, i) => (
-            <button key={th.sessionPath ?? th.key ?? i} type="button" data-action="peer.thread-open"
-              data-session-path={th.sessionPath}
-              onClick={() => { if (th.sessionPath) { onClose(); onOpenSession(th.sessionPath); } }}>
-              <i aria-hidden="true" />
-              <span>{t("chat.dispatch_thread_handling", { title: th.role || t("chat.dispatch_thread_unnamed") })}</span>
-            </button>
-          ))}
+          {threads.map((th, i) => {
+            // A hub that replays the audit trail gives each target its state;
+            // an older book only knows the role. Both stay one line: the new
+            // lamp says where the hand-off stands, the old says where it went.
+            const lamp = th.state
+              ? wording({ key: th.key ?? "", state: th.state, title: th.targetTitle ?? th.role ?? "", project: th.targetProject } as PeerThread, th.targetTitle || th.role || t("chat.dispatch_thread_unnamed"))
+              : t("chat.dispatch_thread_handling", { title: th.role || t("chat.dispatch_thread_unnamed") });
+            return (
+              <button key={th.sessionPath ?? th.key ?? i} type="button" data-action="peer.thread-open"
+                data-session-path={th.sessionPath}
+                data-state={th.state}
+                onClick={() => { if (th.sessionPath) { onClose(); onOpenSession(th.sessionPath); } }}>
+                <i className="peerthread-lamp" aria-hidden="true" />
+                <span>{lamp}</span>
+                {th.since && <small>{stampOf(typeof th.since === "number" ? th.since : Date.parse(th.since))}</small>}
+              </button>
+            );
+          })}
         </div>
       )}
-      <button type="button" className="sesscard-open" data-action="session.open"
-        onClick={() => { onClose(); onOpenSession(session.path); }}>
-        <StudioIcon name="arrowRight" /><span>{t("session.hover_open_session")}</span>
-      </button>
+      <div className="sesscard-actions">
+        {onDispatch && (
+          <button type="button" data-action="session.dispatch-start"
+            onClick={() => { onClose(); onDispatch(); }}>
+            <StudioIcon name="send" /><span>{t("chat.dispatch_task")}</span>
+          </button>
+        )}
+        <button type="button" className="sesscard-open" data-action="session.open"
+          onClick={() => { onClose(); onOpenSession(session.path); }}>
+          <StudioIcon name="arrowRight" /><span>{t("session.hover_open_session")}</span>
+        </button>
+      </div>
     </div>,
     document.body,
   );

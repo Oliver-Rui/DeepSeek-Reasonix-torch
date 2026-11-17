@@ -73,6 +73,8 @@ interface Props {
   onPause: (runtimeId: string) => void;
   onBranch?: (runtimeId: string, name: string) => Promise<void>;
   onArchive: (path: string, archived: boolean, runtimeId?: string) => Promise<void>;
+  /** The same archive without the tree read; a batch reads the tree once. */
+  onArchiveQuiet?: (path: string, archived: boolean, runtimeId?: string) => Promise<void>;
   onRename: (path: string, title: string, mode?: "inline" | "dialog") => void;
   onCollapse: () => void;
   wallet: string;
@@ -128,6 +130,7 @@ export function Sidebar({
   onPause,
   onBranch,
   onArchive,
+  onArchiveQuiet,
   onRename,
   onCollapse,
   wallet,
@@ -318,6 +321,7 @@ export function Sidebar({
         onPause={(runtimeId) => onPause(runtimeId)}
         onBranch={onBranch}
         onArchive={onArchive}
+        onArchiveQuiet={onArchiveQuiet}
         onRename={onRename}
         onError={onError}
         adder={{ ...adder, add: () => shownRemotes.length ? setProjectPicker(true) : adder.add() }}
