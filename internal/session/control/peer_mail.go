@@ -447,6 +447,11 @@ func (c *Controller) resolvePeerMessage(id string, approve bool, released peerma
 		if err != nil {
 			return err
 		}
+		// The listing keeps a conversation that has peer content even when the
+		// person here has typed no turn yet: it is a dispatched crew member.
+		if err := sessionstore.MarkPeerContent(c.SessionPath()); err != nil {
+			slog.Warn("controller: could not record peer content", "err", err)
+		}
 		decision = peermail.DecisionApproved
 		if released != "" {
 			decision = peermail.DecisionReleased
