@@ -172,6 +172,15 @@ chunks:
 		title = title[1 : len(title)-1]
 	}
 	title = strings.TrimSpace(title)
+	// A title is a label, not a paragraph: a model that answers with a line of
+	// prose or a whole summary must not become the session's name.
+	if line, _, _ := strings.Cut(title, "\n"); strings.TrimSpace(line) != "" {
+		title = strings.TrimSpace(line)
+	}
+	title = strings.Join(strings.Fields(title), " ")
+	if r := []rune(title); len(r) > 48 {
+		title = strings.TrimSpace(string(r[:48])) + "…"
+	}
 	if title == "" {
 		if thought || (usage != nil && usage.ReasoningTokens > 0) {
 			return "", errTitleThought
