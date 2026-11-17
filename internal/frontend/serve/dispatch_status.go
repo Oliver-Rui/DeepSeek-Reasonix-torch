@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"net/http"
 	"strings"
 	"time"
 
@@ -9,6 +10,12 @@ import (
 	"reasonix/internal/state/peermail"
 	"reasonix/internal/state/sessionstore"
 )
+
+// dispatchThreadsHTTP answers the sidebar's record request at the hub. The
+// per-pane route stays for a pane that asks its own server.
+func (h *Hub) dispatchThreadsHTTP(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, h.dispatchThreadsStatus(r.URL.Query().Get("path")))
+}
 
 // DispatchThreadStatus is one target in a sender's dispatch record, as the
 // sidebar's hover card reads it. State and Since come off the durable audit
