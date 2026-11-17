@@ -7,7 +7,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=50%",
     "census": "node tools/ui-census/main.mjs",
     "census:verify": "node tools/ui-census/verify.mjs"
   },
