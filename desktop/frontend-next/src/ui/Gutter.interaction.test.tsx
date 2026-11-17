@@ -66,6 +66,16 @@ describe.each(["l", "r"] as const)("the %s column's drag handle", (edge) => {
     expect(onWidth).toHaveBeenCalledWith((edge === "l" ? RAIL : DOCK).def + 50);
   });
 
+  it("clamps at the minimum instead of shutting the column", () => {
+    const { bar, onWidth, onOpen } = renderHandle(true);
+    const span = edge === "l" ? RAIL : DOCK;
+    send(bar, "pointerdown", 500);
+    send(bar, "pointermove", 500 - widening * (span.def + 100));
+    send(bar, "pointerup", 500 - widening * (span.def + 100));
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(onWidth).toHaveBeenLastCalledWith(span.min);
+  });
+
   it("toggles from the keyboard", () => {
     const { bar, onOpen } = renderHandle(true);
     fireEvent.keyDown(bar, { key: "Enter" });
