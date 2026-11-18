@@ -139,7 +139,7 @@ export const CHAT: Messages = {
   "chat.dispatch_thread_unnamed": { zh: "已派发的会话", en: "Dispatched session" },
   "chat.dispatch_thread_unknown_project": { zh: "未知项目", en: "unknown project" },
   "chat.dispatch_threads_count": { zh: "已派发 {n} 个会话", en: "Dispatched to {n} sessions" },
-  "chat.dispatch_threads_title": { zh: "会话互聊", en: "Session cross-chat" },
+  "chat.dispatch_threads_title": { zh: "会话协作", en: "Session collaboration" },
   "chat.done_in_t": { zh: "已完成 · {t}", en: "Done · {t}" },
   "chat.download_as_file": { zh: "下载为文件", en: "Download as file" },
   "chat.download_the_reply": { zh: "下载回复", en: "Download the reply" },
