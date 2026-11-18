@@ -4,7 +4,20 @@ import (
 	"testing"
 
 	"reasonix/internal/session/control"
+	"reasonix/internal/state/sessionstore"
 )
+
+func archiveSessionForTest(t *testing.T, path string) {
+	t.Helper()
+	m, _, err := sessionstore.LoadBranchMeta(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Archived = true
+	if err := sessionstore.SaveBranchMeta(path, m); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestDispatchBoardCollectsBothEndsOfADispatch(t *testing.T) {
 	f := newDispatchFixture(t, dispatchOn)
@@ -53,6 +66,26 @@ func TestDedupeBoardRepliesKeepsUnpairedMessages(t *testing.T) {
 	}
 	if kept := dedupeBoardReplies(rows); len(kept) != 1 {
 		t.Fatalf("kept = %+v, want the row kept when no role-bearing reverse exists", kept)
+	}
+}
+
+func TestDispatchBoardHidesArchivedEnds(t *testing.T) {
+	f := newDispatchFixture(t, dispatchOn)
+	sender := f.sender(f.project("alpha", true))
+	billing := f.project("billing", true)
+	got, err := sender.DispatchToProject(t.Context(), billing, "rotate the key", "reviewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pane := f.paneOf(got.Key)
+	writeSessionAt(t, pane.SessionPath())
+	if rows := f.hub.dispatchBoard(); len(rows) != 1 {
+		t.Fatalf("board before archive = %+v, want one", rows)
+	}
+
+	archiveSessionForTest(t, pane.SessionPath())
+	if rows := f.hub.dispatchBoard(); len(rows) != 0 {
+		t.Fatalf("board after archiving the assignee = %+v, want empty", rows)
 	}
 }
 
