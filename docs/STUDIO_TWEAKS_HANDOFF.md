@@ -1071,3 +1071,71 @@ the suite.
 - The test serve must carry `-workspace-switch` for the 进入项目工作 pill to
   open; the installed host grants it unconditionally, so only ad-hoc serves
   forget it.
+
+## 15. Session collaboration — the board, the name, the unattended crew
+
+A follow-on round turned the peer tools into a readable, quieter surface. The
+user's words for the feature had drifted across four names; this round fixed
+one and kept it everywhere.
+
+### One name: 会话协作 / Session collaboration
+
+The same loop was called 会话互聊, 会话间消息, 项目协作 and 会话协作 across
+settings, menus and the meter rail. Vendor docs settle on subagents (Claude
+Code) and background agents (Cursor); for a loop that hands a task between
+sessions and shows both ends' state, this fork's word is **会话协作**. Only
+user-visible i18n values and their en-map keys changed — setting IDs and wire
+keys stayed put. Ordinary "回复" in conversation and feedback contexts was left
+alone; only the session-to-session replies became 回信.
+
+### The global board, in the chip's own card
+
+`GET /dispatch-board` walks the machine's sessions and reuses
+`dispatchThreadsStatus` to show every dispatch with both ends named, the role
+and the four-state lamp. It folds the role-less reply back into its role-bearing
+dispatch, and drops a row when either end is archived or no longer exists — the
+bottom 会话协作 chip then goes quiet with it. The card is the meter-rail chip's
+own anchored popover (not a scrim, not a global click listener): a lesson from
+an earlier attempt that opened on every click and buried the conversation.
+The chat chip lives in `DispatchThreadsBar.tsx`; the board computation is in
+`dispatch_board.go`; `/dispatch-board` is in the dev proxy whitelist.
+
+### Naming a session from a conversation
+
+`rename_session` is a peer tool: off with `peers.enabled`, gone from the
+provider block at turn boundaries. The serve layer owns the boundary — the
+caller may name its own session (empty `to`) or one it dispatched to, and the
+path goes through the same known-workspace/symlink gate as the HTTP title
+routes. A name change writes the explicit title into the title cache, which
+the sidebar and the collaboration card both read, so the word replaces a
+timestamp everywhere. `role` (RoleText) and title (CustomTitle) are separate:
+renaming never touches the dispatch role or the system-prompt prefix.
+
+### A crew runs unattended
+
+A dispatched member inherited the lead's `ask` approval posture, so every tool
+raised an approval card and an OS notification in a pane the lead was not
+looking at — with nobody there to answer. `DispatchGrant` now hands `ask` on as
+`auto`: the member still runs under the lead's deny rules and gains no rights,
+but no longer stalls or announces a card per tool. Other postures pass through
+unchanged. `dispatch_grant_test.go` pins the mapping.
+
+### Checked, and deliberately not changed
+
+- **Dispatch reuse on rebuild is not broken.** `TestDispatchAndRepliesSurviveRuntimeReplacement`
+  proves a model switch or extension reload reuses the open pane, re-pairs by
+  migrating dispatch state, and keeps replies out of the approval queue.
+  A "self-healing book" keyed by session path was implemented and reverted: it
+  re-paired with a fresh secret and invalidated the target's migrated pairing.
+  Cross-process reuse needs a persisted pairing secret — a security design,
+  not a quick fix.
+- **No A→B→A loop.** `peer_reply_test.go` pins the two rules that prevent it: only the opener is answered, and a reply is itself never answered. Depth limits, pairing proofs, idempotency and send rate limits back them up.
+
+### Verification
+
+Go: `dispatch_board_test.go` (both ends, dedupe, archived ends), `hub_rename_test.go`
+(own / dispatched member / foreign key / empty name), `dispatch_grant_test.go`
+(posture mapping), boot tool-surface expectations and golden schemas regenerated
+for the new tool. Frontend: i18n and peer/chip component tests, `pnpm build`.
+repolint clean. Known machine-only failures (capability-scope labels, several boot
+snapshot tests) reproduce on a clean tree and are unrelated.
