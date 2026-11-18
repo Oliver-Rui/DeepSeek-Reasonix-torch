@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
-import type { AgentPort } from "../port/port";
 import type { DispatchBoardRow } from "../port/dispatch";
 import type { HubPort } from "../port/hub";
-import { usePeers } from "./usePeers";
 import { StudioIcon } from "./StudioIcon";
 
 const POLL_MS = 3000;
@@ -20,9 +18,7 @@ const STATE_KEY: Record<DispatchBoardRow["state"], string> = {
  *  anchored above the chip, never a full-screen layer — listing every dispatch
  *  on this machine with both ends named and the state lamp, grouped into this
  *  project and cross-project. */
-export function DispatchThreadsBar({ port, hub, onOpen }: { port: AgentPort; hub?: Pick<HubPort, "dispatchBoard">; onOpen?: (path: string) => void }) {
-  const { state } = usePeers(port, POLL_MS);
-  const threads = state.enabled ? (state.threads ?? []) : [];
+export function DispatchThreadsBar({ hub, onOpen }: { hub?: Pick<HubPort, "dispatchBoard">; onOpen?: (path: string) => void }) {
   const [rows, setRows] = useState<DispatchBoardRow[]>([]);
   const alive = useRef(true);
   const refresh = useCallback(async () => {
@@ -36,8 +32,10 @@ export function DispatchThreadsBar({ port, hub, onOpen }: { port: AgentPort; hub
     return () => { alive.current = false; clearInterval(timer); };
   }, [refresh]);
 
-  if (threads.length === 0 && rows.length === 0) return null;
-  const count = Math.max(threads.length, rows.length);
+  // The board is the authority for what is still live: the hub drops archived
+  // and removed ends there, so a chip driven by it disappears with them.
+  if (rows.length === 0) return null;
+  const count = rows.length;
   const renderRow = (r: DispatchBoardRow, i: number) => {
     const stateText = t(STATE_KEY[r.state]);
     const go = (path?: string) => { if (path) onOpen?.(path); };

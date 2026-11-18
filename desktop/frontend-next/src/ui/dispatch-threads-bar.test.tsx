@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "./testkit";
-import { MockPort } from "../port/mock";
 import type { DispatchBoardRow } from "../port/dispatch";
 import { DispatchThreadsBar } from "./DispatchThreadsBar";
 
@@ -19,19 +18,13 @@ const row = (over: Partial<DispatchBoardRow> = {}): DispatchBoardRow => ({
   ...over,
 });
 
-function portWith() {
-  const port = new MockPort();
-  vi.spyOn(port, "peers").mockResolvedValue({ enabled: true, peers: [], held: [], threads: [] });
-  return port;
-}
-
 function hubWith(rows: DispatchBoardRow[]) {
   return { dispatchBoard: vi.fn(async () => rows) };
 }
 
 function draw(rows: DispatchBoardRow[], onOpen = vi.fn()) {
   const hub = hubWith(rows);
-  const view = render(<DispatchThreadsBar port={portWith()} hub={hub} onOpen={onOpen} />);
+  const view = render(<DispatchThreadsBar hub={hub} onOpen={onOpen} />);
   return { onOpen, hub, container: view.container };
 }
 
