@@ -88,6 +88,7 @@ func (h *Hub) dispatchBoard() []DispatchBoardRow {
 			})
 		}
 	}
+	out = dedupeBoardReplies(out)
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Since == out[j].Since {
 			return out[i].Assignee.SessionPath < out[j].Assignee.SessionPath
@@ -95,4 +96,27 @@ func (h *Hub) dispatchBoard() []DispatchBoardRow {
 		return out[i].Since > out[j].Since
 	})
 	return out
+}
+
+// dedupeBoardReplies drops the role-less row that is a dispatch's reply: when
+// the reverse direction carries a role, that row is the dispatch itself and
+// carries the state lamp, so the reply must not appear as a second task.
+func dedupeBoardReplies(rows []DispatchBoardRow) []DispatchBoardRow {
+	kept := make([]DispatchBoardRow, 0, len(rows))
+	for _, row := range rows {
+		if row.Role == "" {
+			reply := false
+			for _, other := range rows {
+				if other.Role != "" && other.Dispatcher.SessionPath == row.Assignee.SessionPath && other.Assignee.SessionPath == row.Dispatcher.SessionPath {
+					reply = true
+					break
+				}
+			}
+			if reply {
+				continue
+			}
+		}
+		kept = append(kept, row)
+	}
+	return kept
 }

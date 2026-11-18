@@ -67,7 +67,7 @@ describe("the dispatch status bar", () => {
     expect(await screen.findByText(/处理『组员B · VR面板式』的回信/)).toBeTruthy();
     expect(screen.getByText(/处理『评审』的回信/)).toBeTruthy();
     // One chip names the whole rail; the lamps inside its card are the rows.
-    expect(screen.getByRole("button", { name: "会话互聊" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "会话协作" })).toBeTruthy();
     const lamps = [...document.querySelectorAll<HTMLElement>(".peerthread")];
     expect(lamps).toHaveLength(2);
     expect(lamps[1].getAttribute("data-session-path")).toBe("/sessions/review.jsonl");
@@ -84,7 +84,7 @@ describe("the dispatch status bar", () => {
 
   it("names the card for the cross-chat it reports", async () => {
     draw(portWith([thread("waiting")]));
-    expect(await screen.findByRole("dialog", { name: /会话互聊/ })).toBeTruthy();
+    expect(await screen.findByRole("dialog", { name: /会话协作/ })).toBeTruthy();
   });
 
   it("draws nothing while the kernel lists no threads", async () => {

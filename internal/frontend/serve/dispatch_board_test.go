@@ -36,6 +36,26 @@ func TestDispatchBoardCollectsBothEndsOfADispatch(t *testing.T) {
 	}
 }
 
+func TestDedupeBoardRepliesKeepsTheRoleBearingRow(t *testing.T) {
+	rows := []DispatchBoardRow{
+		{Dispatcher: DispatchBoardParty{SessionPath: "/member"}, Assignee: DispatchBoardParty{SessionPath: "/lead"}, State: "working"},
+		{Dispatcher: DispatchBoardParty{SessionPath: "/lead"}, Assignee: DispatchBoardParty{SessionPath: "/member"}, Role: "研究员", State: "replied"},
+	}
+	kept := dedupeBoardReplies(rows)
+	if len(kept) != 1 || kept[0].Role != "研究员" || kept[0].Dispatcher.SessionPath != "/lead" {
+		t.Fatalf("kept = %+v, want the single role-bearing dispatch", kept)
+	}
+}
+
+func TestDedupeBoardRepliesKeepsUnpairedMessages(t *testing.T) {
+	rows := []DispatchBoardRow{
+		{Dispatcher: DispatchBoardParty{SessionPath: "/a"}, Assignee: DispatchBoardParty{SessionPath: "/b"}, State: "waiting"},
+	}
+	if kept := dedupeBoardReplies(rows); len(kept) != 1 {
+		t.Fatalf("kept = %+v, want the row kept when no role-bearing reverse exists", kept)
+	}
+}
+
 func TestDispatchBoardEmptyWhenNothingDispatched(t *testing.T) {
 	f := newDispatchFixture(t, dispatchOn)
 	f.sender(f.project("alpha", true))

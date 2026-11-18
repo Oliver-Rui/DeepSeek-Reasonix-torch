@@ -28,7 +28,7 @@ const port = (state: PeersState) => new PeerPort(state) as unknown as AgentPort;
 describe("messages between sessions", () => {
   it("offers the switch to turn it on, and no sending, when the kernel has it disabled", async () => {
     render(<Messages port={port({ enabled: false, peers: [], held: [] })} />);
-    expect(await screen.findByRole("switch", { name: "启用会话间消息" })).toBeTruthy();
+    expect(await screen.findByRole("switch", { name: "启用会话协作" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "发送" })).toBeNull();
   });
 

@@ -13,6 +13,7 @@ import type { AgentPort, ProviderSetup } from "../port/port";
 import type { HubPort, RuntimeView } from "../port/hub";
 import { workspaceContains } from "../port/hub";
 import { Chrome } from "./Chrome";
+import { DispatchBoard } from "./DispatchBoard";
 import { RailToggle } from "./RailToggle";
 import { useFirstRunRead, useLaunchHealth } from "./launchhealth";
 import { Nav } from "./Nav";
@@ -791,6 +792,7 @@ export function App({ hub }: { hub: HubPort }) {
         </Suspense>
         </Boundary>
       )}
+      <DispatchBoard hub={hub} onOpen={openPeerSessionStable} />
       <RailToggle rail={rail} onRail={() => setRail((v) => !v)} />
       <StopHint armed={stopArmed} />
     </div>

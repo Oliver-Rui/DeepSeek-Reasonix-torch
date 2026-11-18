@@ -36,17 +36,17 @@ function draw(initial: PeersSettings = base) {
 
 it("turning session messages on unlocks the projects block without reopening the page", async () => {
   draw();
-  await screen.findByText("先启用会话间消息，再放行项目。");
+  await screen.findByText("先启用会话协作，再放行项目。");
   expect(screen.queryByLabelText("放行这个项目")).toBeNull();
-  await userEvent.click(screen.getByRole("switch", { name: "启用会话间消息" }));
+  await userEvent.click(screen.getByRole("switch", { name: "启用会话协作" }));
   expect(await screen.findByLabelText("放行这个项目")).toBeTruthy();
-  expect(screen.queryByText("先启用会话间消息，再放行项目。")).toBeNull();
+  expect(screen.queryByText("先启用会话协作，再放行项目。")).toBeNull();
 });
 
 it("turning them off locks the projects block again", async () => {
   draw({ ...base, enabled: true });
   await screen.findByLabelText("放行这个项目");
-  await userEvent.click(screen.getByRole("switch", { name: "启用会话间消息" }));
+  await userEvent.click(screen.getByRole("switch", { name: "启用会话协作" }));
   await waitFor(() => expect(screen.queryByLabelText("放行这个项目")).toBeNull());
-  expect(screen.getByText("先启用会话间消息，再放行项目。")).toBeTruthy();
+  expect(screen.getByText("先启用会话协作，再放行项目。")).toBeTruthy();
 });
