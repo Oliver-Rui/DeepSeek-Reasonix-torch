@@ -157,11 +157,13 @@ The host-control tools ride the same surface at every setting: `todo_write` and 
 `setting` finds the user's settings and asks the user to confirm a change. A refusal that a setting would lift ends with `(fix: setting ...)`.
 
 Session messaging and cross-project dispatch are enabled by default. Their direct
-tools are `list_peers`, `send_peer_message`, `dispatch_to_project` and `open_projects`.
-User-only `peers.enabled = false` removes all four; `peers.dispatch = false` removes
-the last two. Explicit opt-outs are preserved.
+tools are `list_peers`, `send_peer_message`, `dispatch_to_project`, `open_projects`
+and `rename_session`.
 
-These four schemas enlarge the default provider prefix and cause one cold prefix
+`peers.enabled = false` removes all five; `peers.dispatch = false` removes the
+last two. Explicit opt-outs are preserved.
+
+These five schemas enlarge the default provider prefix and cause one cold prefix
 on upgrade. They stay stable within each turn; changing the switches takes effect
 between turns. The golden boot contract records the enabled default surface.
 

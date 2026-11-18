@@ -25,6 +25,7 @@ import (
 	"reasonix/internal/contract/event"
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/surface"
+	"reasonix/internal/contract/tool"
 	"reasonix/internal/platform/notify"
 	"reasonix/internal/platform/update"
 	"reasonix/internal/session/control"
@@ -698,7 +699,8 @@ func (h *Hub) publish(rt *Runtime) error {
 		rt.Server.bindMu.Lock()
 		rt.Server.mu.Lock()
 		ctrl, concrete := rt.Server.ctrl.(*control.Controller)
-		projects := projectBindings{dispatch: h.dispatcherFor(rt), open: openProjects}
+		projects := projectBindings{dispatch: h.dispatcherFor(rt), open: openProjects,
+			rename: func(to, title string) (tool.RenamedSession, error) { return h.renameSessionFor(rt, to, title) }}
 		if concrete {
 			rt.Server.currency = &h.currency
 		}

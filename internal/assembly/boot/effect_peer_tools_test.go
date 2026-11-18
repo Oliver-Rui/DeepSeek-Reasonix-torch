@@ -125,7 +125,7 @@ func TestEffectDefaultPeerToolsAndExplicitOptOutReachTheProvider(t *testing.T) {
 		for _, name := range rec.toolNames() {
 			has[name] = true
 		}
-		if has["list_peers"] != enabled || has["send_peer_message"] != enabled || has["dispatch_to_project"] != enabled || has["open_projects"] != enabled {
+		if has["list_peers"] != enabled || has["send_peer_message"] != enabled || has["dispatch_to_project"] != enabled || has["open_projects"] != enabled || has["rename_session"] != enabled {
 			t.Fatalf("enabled=%v: tools in the first request = %v", enabled, rec.toolNames())
 		}
 	}

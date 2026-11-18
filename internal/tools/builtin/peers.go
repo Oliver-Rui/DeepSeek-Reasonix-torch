@@ -14,7 +14,7 @@ import (
 // of them text. They exist only in a session that turned messages between
 // sessions on, so a session with them off has no such tool in its schema.
 func PeerTools(link *tool.PeerLink) []tool.Tool {
-	return []tool.Tool{&listPeers{link: link}, &sendPeerMessage{link: link}}
+	return append([]tool.Tool{&listPeers{link: link}, &sendPeerMessage{link: link}}, RenameTools(link)...)
 }
 
 type listPeers struct{ link *tool.PeerLink }

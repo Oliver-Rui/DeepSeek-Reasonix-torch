@@ -24,6 +24,7 @@ func stableBootToolNames() []string {
 		"open_projects",
 		"read_file",
 		"recall",
+		"rename_session",
 		"send_peer_message",
 		"todo_write",
 		"use_capability",
