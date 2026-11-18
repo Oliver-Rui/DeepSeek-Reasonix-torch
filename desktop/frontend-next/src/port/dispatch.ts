@@ -11,3 +11,23 @@ export interface DispatchThread {
   state?: "waiting" | "working" | "replied" | "declined";
   since?: string | number;
 }
+
+/** One end of a session-collaboration board row: a session that handed a task
+ *  out or the one that received it. */
+export interface DispatchBoardParty {
+  key?: string;
+  sessionPath?: string;
+  title?: string;
+  project?: string;
+}
+
+/** One task on the global board, from both ends' point of view. No task text:
+ *  the kernel audit keeps only a digest, never the words. */
+export interface DispatchBoardRow {
+  dispatcher: DispatchBoardParty;
+  assignee: DispatchBoardParty;
+  role?: string;
+  state: "waiting" | "working" | "replied" | "declined";
+  since?: string;
+  crossProject: boolean;
+}

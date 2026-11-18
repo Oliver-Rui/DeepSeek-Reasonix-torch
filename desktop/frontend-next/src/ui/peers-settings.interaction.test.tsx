@@ -52,19 +52,19 @@ describe("the session messages switches", () => {
   it("turns messages on from the page instead of asking for a hand-written config", async () => {
     const { port, save } = portWith(settings());
     render(<Messages port={port} />);
-    const on = await screen.findByRole("switch", { name: "启用会话间消息" });
+    const on = await screen.findByRole("switch", { name: "启用会话协作" });
     expect(on.getAttribute("aria-checked")).toBe("false");
     expect(screen.queryByText(/\[peers\] enabled = true/)).toBeNull();
     await userEvent.click(on);
     expect(save).toHaveBeenCalledExactlyOnceWith({ enabled: true });
-    await waitFor(() => expect(screen.getByRole("switch", { name: "启用会话间消息" }).getAttribute("aria-checked")).toBe("true"));
+    await waitFor(() => expect(screen.getByRole("switch", { name: "启用会话协作" }).getAttribute("aria-checked")).toBe("true"));
   });
 
   it("says a saved switch takes effect from the next turn, never at once", async () => {
     const { port } = portWith(settings());
     render(<Messages port={port} />);
     expect(screen.queryByText(/下个回合起生效/)).toBeNull();
-    await userEvent.click(await screen.findByRole("switch", { name: "启用会话间消息" }));
+    await userEvent.click(await screen.findByRole("switch", { name: "启用会话协作" }));
     expect(await screen.findByText(/下个回合起生效/)).toBeTruthy();
     expect(screen.queryByText(/立即/)).toBeNull();
   });
@@ -121,7 +121,7 @@ describe("the session messages switches", () => {
     const { port } = portWith(settings({ enabled: true, available: false }));
     render(<Messages port={port} />);
     expect(await screen.findByText(/此会话不支持/)).toBeTruthy();
-    for (const name of ["启用会话间消息", "允许模型把任务交给别的会话"]) expect((screen.getByRole("switch", { name }) as HTMLButtonElement).disabled).toBe(true);
+    for (const name of ["启用会话协作", "允许模型把任务交给别的会话"]) expect((screen.getByRole("switch", { name }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
 
@@ -134,7 +134,7 @@ describe("remembering a project when a held message is let through", () => {
     render(<HeldPeerMessage port={port} held={held} project={project} onDone={() => {}} />);
     expect(screen.getByRole("button", { name: /批准并记住项目「site」/ })).toBeTruthy();
     expect(screen.getByText(/\/work\/site/)).toBeTruthy();
-    expect(screen.getByText(/设置 → 会话互聊/)).toBeTruthy();
+    expect(screen.getByText(/设置 → 会话协作/)).toBeTruthy();
   });
 
   it("approves once without remembering anything by default", async () => {
