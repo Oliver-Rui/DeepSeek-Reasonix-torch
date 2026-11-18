@@ -10,7 +10,7 @@
     "css-size": 8949,
     "doc-language": 0,
     "doc-owner": 27,
-    "doc-prose": 1449,
+    "doc-prose": 1451,
     "error-text": 9,
     "essay": 2540,
     "file-size": 18461,
@@ -24,7 +24,7 @@
     "orphan": 61,
     "process-input": 96,
     "refusal-path": 0,
-    "release-note": 740,
+    "release-note": 745,
     "stray-file": 0,
     "struct-state": 30,
     "temp-dir": 0,
@@ -1585,7 +1585,8 @@
       "release-note": 18
     },
     "release-notes/studio/2.66.0.md": {
-      "release-note": 16
+      "doc-prose": 2,
+      "release-note": 21
     },
     "release-notes/studio/2.7.0.md": {
       "release-note": 26

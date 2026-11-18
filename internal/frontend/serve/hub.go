@@ -567,6 +567,7 @@ func (h *Hub) Handler() http.Handler {
 	// The sidebar's hover card asks the hub, not a pane: the sender can be
 	// closed and still has a record. Serving it here keeps cookie authority.
 	mux.HandleFunc("GET /dispatch-threads", h.dispatchThreadsHTTP)
+	mux.HandleFunc("GET /dispatch-board", h.dispatchBoardHTTP)
 	mux.HandleFunc("GET /device", notADevice)
 	mux.HandleFunc("POST /device/leave", notADevice)
 	mux.HandleFunc(runtimePrefix+"{id}/", h.routeRuntime)
