@@ -161,12 +161,6 @@ export function Chrome({ port, status, workspace: ws, title, steer, host, task =
           )}
         </TooltipButton>
         {port && <ViewSwitch view={view} rows={rows} surfaces={surfaces} onView={onView} />}
-        {port && (
-          <TooltipButton type="button" className="thbtn top-action" data-action="session.board"
-            aria-label={t("chat.dispatch_board_title")} title={t("chat.dispatch_board_title")}>
-            <StudioIcon name="send" />
-          </TooltipButton>
-        )}
         </div>
         <WindowControls />
       </div>
