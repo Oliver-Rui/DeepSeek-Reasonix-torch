@@ -42,6 +42,7 @@ func (h *Hub) dispatchBoard() []DispatchBoardRow {
 	type partyMeta struct {
 		title, project string
 		archived       bool
+		present        bool
 	}
 	meta := map[string]partyMeta{}
 	paths := map[string]bool{}
@@ -51,7 +52,7 @@ func (h *Hub) dispatchBoard() []DispatchBoardRow {
 		for _, row := range append(rows, unlisted...) {
 			paths[row.Path] = true
 			name := strings.TrimSuffix(sessionstore.BranchID(row.Path), ".jsonl")
-			meta[control.PeerKeyForPath(row.Path)] = partyMeta{title: rowTitle(titles, row, name)(), project: projectOfRow(row, ref.dir), archived: row.Archived}
+			meta[control.PeerKeyForPath(row.Path)] = partyMeta{title: rowTitle(titles, row, name)(), project: projectOfRow(row, ref.dir), archived: row.Archived, present: true}
 		}
 	}
 
@@ -73,9 +74,10 @@ func (h *Hub) dispatchBoard() []DispatchBoardRow {
 			seen[id] = true
 			dm := meta[control.PeerKeyForPath(path)]
 			am := meta[control.PeerKeyForPath(th.SessionPath)]
-			// An archived (or removed) end is a closed chapter: its dispatch no
-			// longer asks for the person's attention on the board.
-			if dm.archived || am.archived {
+			// Both ends must still exist and be live: an archived or deleted
+			// session is a closed chapter, and must not keep asking for the
+			// person's attention on the board.
+			if !dm.present || !am.present || dm.archived || am.archived {
 				continue
 			}
 			disp := DispatchBoardParty{Key: control.PeerKeyForPath(path), SessionPath: path, Title: dm.title, Project: dm.project}

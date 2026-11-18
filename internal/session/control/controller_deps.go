@@ -140,6 +140,9 @@ type controllerDeps struct {
 	// dispatch is the state behind the cross-project dispatch tool; see peer_dispatch.go.
 	dispatch dispatchState
 
+	// rename is the state behind the rename_session tool; see peer_rename.go.
+	rename renameState
+
 	// goalRetry is the unattended retry of an evaluator pause; see goal_retry.go.
 	goalRetry goalRetry
 	// awaitResume is the unattended wait behind an await_user gate; see await_resume.go.

@@ -30,6 +30,14 @@ func (d peerDirectory) SendPeerMessage(to, text string) (tool.PeerReceipt, error
 	return tool.PeerReceipt{ID: r.ID, To: tool.PeerView{Key: r.To.Key, Title: r.To.Title, Project: r.To.Project}}, nil
 }
 
+func (d peerDirectory) RenameSession(to, title string) (tool.RenamedSession, error) {
+	r, err := d.c.RenameSession(to, title)
+	if err != nil {
+		return tool.RenamedSession{}, fmt.Errorf("%s: %w", peerErrorCode(err), err)
+	}
+	return r, nil
+}
+
 // fmtPeerError is the refusal a peer tool reports: the error's identity, and
 // the setting whose change would lift it where one would.
 func fmtPeerError(err error) error {
@@ -56,7 +64,7 @@ func peerErrorCode(err error) string {
 	for code, sentinel := range map[string]error{
 		"peer.disabled": ErrPeersDisabled, "peer.not_found": ErrPeerNotFound, "peer.ambiguous": ErrPeerAmbiguous,
 		"peer.self": ErrPeerSelf, "peer.refused": ErrPeerRefused, "peer.rate_limited": ErrPeerRateLimited,
-		"peer.empty": ErrPeerEmpty, "peer.too_large": ErrPeerTooLarge,
+		"peer.empty": ErrPeerEmpty, "peer.too_large": ErrPeerTooLarge, "rename.unavailable": ErrRenameUnavailable,
 		"dispatch.disabled": ErrDispatchDisabled, "dispatch.unavailable": ErrDispatchUnavailable, "dispatch.not_local": ErrDispatchNotLocal, "dispatch.unknown_project": ErrDispatchUnknownProject,
 		"dispatch.ambiguous": ErrDispatchAmbiguous, "dispatch.nested": ErrDispatchNested,
 		"dispatch.untrusted": ErrDispatchUntrusted, "dispatch.awaiting_trust": ErrDispatchAwaitingTrust, "dispatch.same_project": ErrDispatchSameProject, "dispatch.cross_project": ErrDispatchCrossProject, "dispatch.failed": ErrDispatchFailed, "dispatch.limit": ErrDispatchLimit,
