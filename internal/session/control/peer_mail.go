@@ -183,6 +183,18 @@ func (c *Controller) rebindPeers() {
 	c.publishPeerLiveLocked(path)
 }
 
+// peerTitle is the name this session goes by in another session's card and
+// label. A session the person named goes by that name; one they did not falls
+// back to its file name, which is what a dispatched session has until renamed.
+func (c *Controller) peerTitle(path string) string {
+	if meta, ok, err := sessionstore.LoadBranchMeta(path); err == nil && ok {
+		if title := peerAttribute(firstNonEmptyStr(meta.CustomTitle, meta.TopicTitle)); title != "" {
+			return title
+		}
+	}
+	return peerAttribute(sessionstore.BranchID(path))
+}
+
 // publishPeerLiveLocked writes this session's record with a fresh beat; it is
 // called when the session changes and on every ingest tick.
 func (c *Controller) publishPeerLiveLocked(path string) {
@@ -195,7 +207,7 @@ func (c *Controller) publishPeerLiveLocked(path string) {
 	now := time.Now().UTC()
 	err := dir.PublishLive(peermail.Live{
 		SessionID: p.key, Instance: p.instance, SessionPath: path, PID: os.Getpid(), Hostname: host,
-		Title: peerAttribute(sessionstore.BranchID(path)), Project: peerAttribute(filepath.Base(c.WorkspaceRoot())),
+		Title: c.peerTitle(path), Project: peerAttribute(filepath.Base(c.WorkspaceRoot())),
 		StartedAt: now, BeatAt: now, Inbound: "hold",
 	})
 	if err != nil {
@@ -443,7 +455,7 @@ func (c *Controller) resolvePeerMessage(id string, approve bool, released peerma
 		receipt, err := c.EnqueueInbox(InboxRequest{
 			Intent: sessioninbox.IntentFollowup, Origin: sessioninbox.OriginHost,
 			Source: peerSourcePrefix + m.From.SessionID, Idempotency: "peer-" + m.ID,
-			Display: display, Submit: submit, Peer: c.peerSourceOf(m, false),
+			Display: display, Submit: submit, Peer: c.peerSourceOf(m, m.From.SessionID == c.dispatchOpenerKey()),
 		})
 		if err != nil {
 			return err
@@ -503,9 +515,9 @@ func (c *Controller) startPeerItem(id string, standing bool) {
 
 // peerSourceOf is the label a reader of the delivered message sees. The host
 // writes it from the sender's published record, so a body cannot claim a
-// different origin, and a sender that has gone quiet still names itself. The
-// path comes from the live record because the spooled message carries none: it
-// is what lets the label open the conversation it came from.
+// different origin, and a quiet sender still names itself. The path comes from
+// the live record — the spooled message carries none — so the label can open
+// that conversation. reply says whether the sender opened this session.
 func (c *Controller) peerSourceOf(m peermail.Message, reply bool) *provider.PeerSource {
 	src := &provider.PeerSource{SessionID: m.From.SessionID, Title: peerAttribute(m.From.Title), Reply: reply}
 	if dir := c.peers.dirOrNil(); dir != nil {

@@ -31,10 +31,9 @@ import { nameQueued, QUEUE_HELD, withoutPendingRow } from "./queued";
 import { capToolOutput } from "./outputcap";
 import { dropTool, foldProgress, foldTool, isSubagentProgress, mergeReads, notePhase, noteRan } from "./fold";
 import { rebuild } from "./rebuild";
+import { peerMessageBody } from "./peer_message";
 export { chipLabel };
-export { quoteAmount };
-
-// doing is what the status chip prints. These two values are also read back by
+export { quoteAmount };// doing is what the status chip prints. These two values are also read back by
 // the reducer, so they get a name: a comparison against a sentence is one copy
 // pass away from never matching again, and nothing fails when it stops.
 const WAITING_WORKSPACE = "app.waiting_for_the_workspace";
@@ -716,11 +715,11 @@ export function fromHistory(msgs: HistoryMessage[], options: { snapshot?: string
       // turn that was nothing but a dropped file still has text here. What is
       // left with none is host chrome, and so is a line the host composed —
       // the kernel says which, and drawing it would put words in your mouth.
-      // Older sessions predate hostAuthored on this repair prompt. It is kernel
-      // guidance, not something the person said, so keep those transcripts clean
-      // after an upgrade as well as for newly written history.
+      // Older sessions predate hostAuthored on this repair prompt, which is
+      // kernel guidance, not something the person said. A relayed message is
+      // the exception: host-authored, but the kernel attaches its source.
       const legacyHostRepair = m.content.startsWith("The following tools are unavailable in the current workflow phase:");
-      const text = m.hostAuthored || legacyHostRepair ? "" : stripControl(m.content);
+      const text = (m.peer && peerMessageBody(m.content)) || (m.hostAuthored || legacyHostRepair ? "" : stripControl(m.content));
       if (text) out.push({ t: "user", id: allocate(), text, msgIndex: m.msgIndex, steer: m.steer, via: m.via, peer: m.peer, attachments: m.attachments, at: m.createdAt });
       continue;
     }

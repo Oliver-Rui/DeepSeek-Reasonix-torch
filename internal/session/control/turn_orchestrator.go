@@ -352,14 +352,19 @@ func (c *Controller) openTurnBoundary(ctx context.Context, turn orchestratedTurn
 }
 
 // continueAnnouncedTurn hands a run the boundary of the turn it belongs to. A
-// synthetic continuation — approved plan execution, a goal's next step, a
-// readiness follow-up — is more work inside the turn the host already named,
-// not a turn of its own, so it opens no boundary and closes none.
+// synthetic continuation — approved plan execution, a goal's next step — is
+// more work inside the turn the host already named, so it opens no boundary.
+// It still owes that turn's provenance: a host-origin item, which a relayed
+// session message becomes, runs this way, so a rebuild must keep the source.
 func (c *Controller) continueAnnouncedTurn(ctx context.Context) context.Context {
-	return agent.WithHostTurnBoundary(ctx, agent.HostTurnBoundary{HostAuthored: true})
+	return agent.WithHostTurnBoundary(ctx, agent.HostTurnBoundary{
+		HostAuthored: true,
+		Via:          turnVia(ctx),
+		Peer:         turnPeer(ctx),
+	})
 }
 
-// gatePlanApproval turns a finished planning turn// gatePlanApproval turns a finished planning turn into the user's decision and,
+// gatePlanApproval turns a finished planning turn into the user's decision and,
 // if they approve, into the execution that follows it. Each step is a lifecycle
 // transition, so a decision answered after the workflow moved grants nothing.
 func (o *turnOrchestrator) gatePlanApproval(ctx context.Context) error {

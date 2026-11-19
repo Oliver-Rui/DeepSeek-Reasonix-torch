@@ -1,28 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
-import type { PeerThread } from "../port/boundary";
+import type { DispatchThread, HubPort } from "../port/hub";
 import { ageWord } from "./age";
 
 const OPEN_DELAY_MS = 320;
 const CLOSE_DELAY_MS = 140;
 
-/** What a session row's hover card needs about one session: the facts the row
- *  itself cannot show, plus the chat links the row is in the middle of. */
+/** What a session row's hover card needs about the session it belongs to. The
+ *  chat links are not here: they belong to the row being hovered, not to the
+ *  session looking at it, so the card asks the hub for them itself. */
 export interface HoverFacts {
+  path: string;
   title?: string;
   project?: string;
   root?: string;
   updatedAt?: number;
-  /** The other sessions this one is talking to, as the peer ledger folds them. */
-  threads?: PeerThread[];
 }
 
 /** The card a sidebar row opens on hover, worded and shaped like the shipped
  *  product's: the title, the project, the folder, when it last moved, then one
  *  line per chat link — 等待「X」回信 for a task handed out, 处理「X」的消息 for one
  *  received — each opening the other session. It is anchored beside the row and
- *  never covers the conversation. */
-export function SessionHoverCard({ facts, anchor, onOpen, onEnter, onLeave }: {
+ *  never covers the conversation.
+ *
+ *  The links are the hovered session's own record, read once when the card
+ *  opens. The catalog behind the read is shared and cached, so a hover costs a
+ *  map lookup rather than a directory walk. */
+export function SessionHoverCard({ hub, facts, anchor, onOpen, onEnter, onLeave }: {
+  hub?: Pick<HubPort, "dispatchThreads">;
   facts: HoverFacts;
   anchor: DOMRect;
   onOpen: (path: string) => void;
@@ -31,6 +36,7 @@ export function SessionHoverCard({ facts, anchor, onOpen, onEnter, onLeave }: {
 }) {
   const card = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState({ left: 0, top: 0 });
+  const [threads, setThreads] = useState<DispatchThread[]>([]);
 
   useEffect(() => {
     const width = 288;
@@ -40,8 +46,16 @@ export function SessionHoverCard({ facts, anchor, onOpen, onEnter, onLeave }: {
     setAt({ left, top });
   }, [anchor]);
 
+  useEffect(() => {
+    if (!hub || !facts.path) return;
+    let alive = true;
+    Promise.resolve(hub.dispatchThreads(facts.path))
+      .then((got) => { if (alive) setThreads(got ?? []); })
+      .catch(() => { if (alive) setThreads([]); });
+    return () => { alive = false; };
+  }, [hub, facts.path]);
+
   const stamp = facts.updatedAt ? ageWord(facts.updatedAt, Date.now()) : "";
-  const threads = facts.threads ?? [];
 
   return (
     <div className="hovercard" role="dialog" aria-label={facts.title || t("chat.dispatch_thread_unnamed")}
@@ -54,19 +68,20 @@ export function SessionHoverCard({ facts, anchor, onOpen, onEnter, onLeave }: {
       {threads.length > 0 && (
         <div className="hovercard-links">
           {threads.map((th, i) => {
-            const peer = th.title?.trim() || t("chat.dispatch_thread_unnamed");
-            const text = th.state === "waiting" || th.state === "working"
+            const peer = th.targetTitle?.trim() || th.role?.trim() || t("chat.dispatch_thread_unnamed");
+            const outbound = th.state === "waiting" || th.state === "working";
+            const text = outbound
               ? t("chat.peer_link_waiting", { peer })
               : t("chat.peer_link_incoming", { peer });
             const go = th.sessionPath;
             return go ? (
-              <button key={th.key ?? i} type="button" className="hovercard-link" data-action="peer.source-open" data-session-path={go}
+              <button key={go || i} type="button" className="hovercard-link" data-action="peer.source-open" data-session-path={go}
                 title={t("chat.peer_source_open", { title: peer })} onClick={() => onOpen(go)}>
-                <span className="hovercard-dot" data-direction={th.state === "waiting" || th.state === "working" ? "outbound" : "inbound"} aria-hidden="true" />
+                <span className="hovercard-dot" data-direction={outbound ? "outbound" : "inbound"} aria-hidden="true" />
                 <span>{text}</span>
               </button>
             ) : (
-              <div key={th.key ?? i} className="hovercard-link">
+              <div key={i} className="hovercard-link">
                 <span className="hovercard-dot" aria-hidden="true" /><span>{text}</span>
               </div>
             );
@@ -85,26 +100,26 @@ export function useHoverCard() {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const leave = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const clear = useCallback(() => {
+  const clear = () => {
     clearTimeout(timer.current);
     clearTimeout(leave.current);
-  }, []);
+  };
 
-  const enter = useCallback((key: string, facts: HoverFacts, el: HTMLElement) => {
+  const enter = (key: string, facts: HoverFacts, el: HTMLElement) => {
     clear();
     timer.current = setTimeout(() => setOpen({ key, facts, anchor: el.getBoundingClientRect() }), OPEN_DELAY_MS);
-  }, [clear]);
+  };
 
-  const exit = useCallback(() => {
+  const exit = () => {
     clearTimeout(timer.current);
     leave.current = setTimeout(() => setOpen(null), CLOSE_DELAY_MS);
-  }, []);
+  };
 
-  const keep = useCallback(() => {
+  const keep = () => {
     clearTimeout(leave.current);
-  }, []);
+  };
 
-  useEffect(() => clear, [clear]);
+  useEffect(() => clear, []);
 
   return { open, enter, exit, keep, close: () => setOpen(null) };
 }

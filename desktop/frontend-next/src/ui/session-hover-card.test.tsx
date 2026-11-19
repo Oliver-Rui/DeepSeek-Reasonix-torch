@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "./testkit";
-import type { PeerThread } from "../port/boundary";
+import type { DispatchThread } from "../port/hub";
 import { SessionHoverCard, useHoverCard, OPEN_DELAY_MS } from "./SessionHoverCard";
 import { peerSourceLabel } from "./source";
 
@@ -12,43 +12,61 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const thread = (over: Partial<PeerThread> = {}): PeerThread => ({
+const thread = (over: Partial<DispatchThread> = {}): DispatchThread => ({
   key: "s-member",
-  title: "组员B",
-  project: "billing",
+  role: "组员B",
   sessionPath: "/sessions/member.jsonl",
+  targetTitle: "组员B",
+  targetProject: "billing",
   state: "waiting",
   since: "2026-11-19T10:00:00Z",
-  messageId: "m1",
   ...over,
 });
 
+const hubWith = (threads: DispatchThread[]) => ({ dispatchThreads: vi.fn(async () => threads) });
 const anchor = { top: 100, right: 260, bottom: 130, left: 0, width: 260, height: 30, x: 0, y: 100 } as DOMRect;
+const base = { path: "/sessions/lead.jsonl", title: "组长" };
 
 describe("the session hover card", () => {
-  it("names the session and the facts the row cannot show", () => {
-    render(<SessionHoverCard facts={{ title: "组长", project: "alpha", root: "D:\\work\\alpha", threads: [] }} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+  it("names the session and the facts the row cannot show", async () => {
+    render(<SessionHoverCard hub={hubWith([])} facts={{ ...base, project: "alpha", root: "D:\\work\\alpha" }} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
     expect(screen.getByText("组长")).toBeTruthy();
     expect(screen.getByText("alpha")).toBeTruthy();
     expect(screen.getByText("D:\\work\\alpha")).toBeTruthy();
+    await act(async () => { await Promise.resolve(); });
+  });
+
+  it("asks the hub for the hovered session's own links", async () => {
+    const hub = hubWith([thread()]);
+    render(<SessionHoverCard hub={hub} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+    await screen.findByText(/等待「组员B」回信/);
+    expect(hub.dispatchThreads).toHaveBeenCalledWith("/sessions/lead.jsonl");
   });
 
   it("lists a waiting link as 等待「X」回信 and opens it", async () => {
     const onOpen = vi.fn();
-    render(<SessionHoverCard facts={{ title: "组长", threads: [thread()] }} anchor={anchor} onOpen={onOpen} onEnter={vi.fn()} onLeave={vi.fn()} />);
-    const link = screen.getByRole("button", { name: /等待「组员B」回信/ });
-    await userEvent.click(link);
+    render(<SessionHoverCard hub={hubWith([thread()])} facts={base} anchor={anchor} onOpen={onOpen} onEnter={vi.fn()} onLeave={vi.fn()} />);
+    await userEvent.click(await screen.findByRole("button", { name: /等待「组员B」回信/ }));
     expect(onOpen).toHaveBeenCalledWith("/sessions/member.jsonl");
   });
 
-  it("lists an answered link as 处理「X」的消息", () => {
-    render(<SessionHoverCard facts={{ title: "组长", threads: [thread({ state: "replied" })] }} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
-    expect(screen.getByText(/处理「组员B」的消息/)).toBeTruthy();
+  it("lists an answered link as 处理「X」的消息", async () => {
+    render(<SessionHoverCard hub={hubWith([thread({ state: "replied" })])} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+    expect(await screen.findByText(/处理「组员B」的消息/)).toBeTruthy();
   });
 
-  it("draws no link block when nothing is talking", () => {
-    const { container } = render(<SessionHoverCard facts={{ title: "组长" }} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+  it("draws no link block when the hub knows nothing", async () => {
+    const { container } = render(<SessionHoverCard hub={hubWith([])} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+    await act(async () => { await Promise.resolve(); });
     expect(container.querySelector(".hovercard-links")).toBeNull();
+  });
+
+  it("survives a hub that refuses the read", async () => {
+    const hub = { dispatchThreads: vi.fn(async () => { throw new Error("no"); }) };
+    const { container } = render(<SessionHoverCard hub={hub} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+    await act(async () => { await Promise.resolve(); });
+    expect(container.querySelector(".hovercard-links")).toBeNull();
+    expect(screen.getByText("组长")).toBeTruthy();
   });
 
   it("opens after the dwell, not on the first pixel", async () => {
@@ -58,7 +76,7 @@ describe("the session hover card", () => {
     function Probe() {
       const hover = useHoverCard();
       if (hover.open) seen.push(hover.open.key);
-      fire = () => hover.enter("row-1", { title: "组长" }, document.body);
+      fire = () => hover.enter("row-1", { path: "/sessions/x.jsonl", title: "组长" }, document.body);
       return null;
     }
     render(<Probe />);
