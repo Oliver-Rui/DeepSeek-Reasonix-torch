@@ -84,7 +84,7 @@ describe("the projects whose sessions take a message without asking", () => {
 
   it("offers nothing to add before messages are on, but still takes a project back", async () => {
     const { save } = draw(settings({ enabled: false, release_projects: [{ path: "/work/site", name: "site" }] }), [ws("/work/api", "api")]);
-    expect(await screen.findByText(/先启用会话协作/)).toBeTruthy();
+    expect(await screen.findByText(/先启用会话互聊/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "放行" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /撤销放行/ }));
     await waitFor(() => expect(save).toHaveBeenCalledExactlyOnceWith({ release_projects: [] }));

@@ -63,7 +63,7 @@ function draw(initial: PeersSettings = settings()) {
 describe("the session cross-chat page", () => {
   it("draws the messages block, the two dispatch ceilings, the collaboration card and the runtime reload foot", async () => {
     draw();
-    expect([...document.querySelectorAll(".prefs-card > header h3")].map((h) => h.textContent)).toEqual(["会话协作", "协作"]);
+    expect([...document.querySelectorAll(".prefs-card > header h3")].map((h) => h.textContent)).toEqual(["会话互聊", "协作"]);
     for (const id of ["peers", "peer-projects", "peers-dispatch-depth", "peers-dispatched-sessions", "session-ref", "subagent-claims"]) {
       await waitFor(() => expect(document.querySelector(`[data-setting="${id}"]`), id).toBeTruthy());
     }
@@ -78,9 +78,9 @@ describe("the session cross-chat page", () => {
     expect((dispatch as HTMLButtonElement).disabled).toBe(true);
     await userEvent.click(dispatch);
     expect(save).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("switch", { name: "启用会话协作" }));
+    await userEvent.click(screen.getByRole("switch", { name: "启用会话互聊" }));
     expect(save).toHaveBeenCalledExactlyOnceWith({ enabled: true });
-    await waitFor(() => expect(screen.getByRole("switch", { name: "启用会话协作" }).getAttribute("aria-checked")).toBe("true"));
+    await waitFor(() => expect(screen.getByRole("switch", { name: "启用会话互聊" }).getAttribute("aria-checked")).toBe("true"));
   });
 
   it("saves each dispatch ceiling through the switches file, on its own", async () => {

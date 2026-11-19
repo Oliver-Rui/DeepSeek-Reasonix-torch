@@ -39,8 +39,8 @@ describe("the session-collaboration chip", () => {
 
   it("names the chip and the card", async () => {
     draw([row()]);
-    expect(await screen.findByRole("button", { name: "会话协作" })).toBeTruthy();
-    expect(screen.getByRole("dialog", { name: /会话协作工作板/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "会话互聊" })).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: /会话互聊工作板/ })).toBeTruthy();
   });
 
   it("shows both ends, the role and the state, grouped into this project", async () => {

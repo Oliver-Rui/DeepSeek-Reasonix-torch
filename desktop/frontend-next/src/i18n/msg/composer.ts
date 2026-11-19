@@ -233,7 +233,7 @@ export const COMPOSER: Messages = {
   "composer.send_shortcut": { zh: "发送快捷键", en: "Send shortcut" },
   "composer.send_with_enter_or_with": { zh: "Enter 发送还是 Ctrl+Enter 发送", en: "Send with Enter or with Ctrl+Enter" },
   "composer.server_returned_http_status": { zh: "服务器返回 HTTP {status}", en: "Server returned HTTP {status}" },
-  "composer.session_messages_waiting_for_your": { zh: "等你决定的会话协作消息", en: "Session collaboration messages waiting for your decision" },
+  "composer.session_messages_waiting_for_your": { zh: "等你决定的会话互聊消息", en: "Session chat messages waiting for your decision" },
   "composer.show_amounts": { zh: "显示金额", en: "Show amounts" },
   "composer.show_the_largest_items_in": { zh: "展开{name}中最大的几项", en: "Show the largest items in {name}" },
   "composer.side_badge_gone": { zh: "关掉就没了", en: "Gone when closed" },
