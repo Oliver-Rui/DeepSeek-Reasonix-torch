@@ -58,16 +58,6 @@ func (p *settingProvider) toolResult() string {
 	return ""
 }
 
-func (p *settingProvider) toolNames(i int) []string {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	var names []string
-	for _, t := range p.reqs[i].Tools {
-		names = append(names, t.Name)
-	}
-	return names
-}
-
 func settingSession(t *testing.T, id, val string) (*settingProvider, *control.Controller, string, chan event.Approval) {
 	t.Helper()
 	home := statedBootHome(t)
