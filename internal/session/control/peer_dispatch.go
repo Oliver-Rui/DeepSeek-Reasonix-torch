@@ -117,13 +117,27 @@ func (c *Controller) SetProjectDispatcher(d ProjectDispatcher) {
 }
 
 // MarkOpenedByDispatch records that the session filed under parent opened this
-// one to hand it a task, with the secret the host made for the pair.
+// one to hand it a task, with the secret the host made for the pair. The
+// approval gate is rebuilt as part of this: it is built when the pane opens,
+// before anyone knows a dispatch will claim it, and an unattended session needs
+// a gate that refuses rather than asks.
 func (c *Controller) MarkOpenedByDispatch(parent string, secret []byte, depth int) {
 	d := c.dispatch.sessionState()
 	d.mu.Lock()
-	defer d.mu.Unlock()
 	d.opened, d.depth = true, depth
 	d.rememberPairLocked(parent, secret, true)
+	d.mu.Unlock()
+	c.rebuildApprovalGate()
+}
+
+// rebuildApprovalGate re-derives the gate from the session's current posture.
+// Only the dispatch path needs it: everything else about a session's approval
+// posture is set before its first turn.
+func (c *Controller) rebuildApprovalGate() {
+	if c.executor == nil || c.observe != nil {
+		return
+	}
+	c.executor.SetGate(c.newInteractiveGate())
 }
 
 // PairWithDispatcher registers the session that handed this one a task, so its
