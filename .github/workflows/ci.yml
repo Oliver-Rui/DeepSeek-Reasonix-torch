@@ -1,21 +1,20 @@
 name: CI
 
-# studio is a parallel release line, not a feature branch: it carries the
-# kernel changes Studio is built on, so it needs the same kernel gates main-v2
-# has. Studio's own surface (desktop/next, desktop/frontend-next) exists only
-# there and is covered by studio.yml.
+# torch is the one line — the complete application, releases included — so it
+# carries the kernel gates and Studio's own surface (desktop/next,
+# desktop/frontend-next, covered by studio.yml) on the same branch.
 on:
   push:
-    branches: [main-v2, studio]
+    branches: [torch]
   pull_request:
-    branches: [main-v2, studio]
+    branches: [torch]
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/studio' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/torch' }}
 
 jobs:
   # Cheap path gate for pull requests. PRs confined to docs/release-notes

@@ -20,8 +20,8 @@ Workflow: `.github/workflows/release-studio.yml`. Trigger: push of a `studio-vX.
 
 | ID | Check | Command |
 | --- | --- | --- |
-| P1 | The release commit is the fetched head of `origin/studio`. | `git fetch origin studio && git rev-parse origin/studio` |
-| P2 | Every job of `CI` and `Studio` succeeded on that commit. A flaky job is rerun, not ignored. | `gh run list --branch studio --commit <sha> --json name,conclusion` |
+| P1 | The release commit is the fetched head of `origin/torch`. | `git fetch origin torch && git rev-parse origin/torch` |
+| P2 | Every job of `CI` and `Studio` succeeded on that commit. A flaky job is rerun, not ignored. | `gh run list --branch torch --commit <sha> --json name,conclusion` |
 | P3 | `release-notes/studio/X.Y.Z.md` is in that commit and passes `make check`. | `git cat-file -e <sha>:release-notes/studio/X.Y.Z.md` |
 | P4 | The version is valid semver and above the latest tag. | `git tag -l 'studio-v*' --sort=-v:refname \| head -1` |
 | P5 | The Windows signing mode is known. `true` signs with Certum and blocks the release if signing fails; anything else ships unsigned and the body says so. | `gh variable list \| grep STUDIO_SIGNING` |
@@ -29,15 +29,15 @@ Workflow: `.github/workflows/release-studio.yml`. Trigger: push of a `studio-vX.
 
 ## 3. Steps
 
-1. Gather `release-notes/studio/unreleased/*.md` (one file per pull request, named by its number, items named after it) into `release-notes/studio/X.Y.Z.md` (format in section 6), `git rm` the fragments in the same commit, push to `studio`.
+1. Gather `release-notes/studio/unreleased/*.md` (one file per pull request, named by its number, items named after it) into `release-notes/studio/X.Y.Z.md` (format in section 6), `git rm` the fragments in the same commit, push to `torch`.
 2. Wait until P2 holds for the commit that contains the notes.
 3. Tag the verified commit and push the tag:
 
    ```bash
-   git fetch origin studio
-   SHA=$(git rev-parse origin/studio)
+   git fetch origin torch
+   SHA=$(git rev-parse origin/torch)
    git tag studio-vX.Y.Z "$SHA"
-   git fetch origin studio && test "$(git rev-parse origin/studio)" = "$SHA"
+   git fetch origin torch && test "$(git rev-parse origin/torch)" = "$SHA"
    git push origin studio-vX.Y.Z
    ```
 
