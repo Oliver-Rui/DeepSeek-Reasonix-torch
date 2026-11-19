@@ -176,9 +176,27 @@ change to the delivery path, the board, or the card.
 | 8 | The board appears without a reload after the page was in the background | It stays empty until the window is reloaded |
 | 9 | Archiving or deleting an end removes its board row and its card link | A closed chapter keeps asking for attention |
 | 10 | A leader that waits with a sleep still receives the answer | It burns its turn waiting and reads the reply late |
+| 11 | Neither dispatched session asks the person to approve a tool; only the session the person opened does | A crew member sits mid-task on a card nobody is looking at |
 
-Checks 2, 6, 8 and 10 are the ones a unit test cannot fully stand in for: they
-depend on a real turn running and a real window being hidden or scrolled.
+Checks 2, 6, 8, 10 and 11 are the ones a unit test cannot fully stand in for:
+they depend on a real turn running, a real window being hidden or scrolled, or a
+real pane being claimed by a dispatch.
+
+## An unattended session
+
+A session another session opened for a task has nobody at its window. The person
+is looking at the pane that dispatched it, and the dispatcher cannot answer a
+card either — so a card there is a stall, not a question. Three rules follow:
+
+| Rule | Why |
+|---|---|
+| The grant hands `ask` on as `auto` | The lead cannot answer for a pane it is not looking at |
+| Auto covers shapes static analysis cannot read (nested shells, interpreter `-c`) | The same reason the headless path allows them: refusing unattended only buys a round trip |
+| A rule that still wants a person refuses with its reason | The model does the rest and reports what it could not do, instead of waiting |
+
+The gate is built when a pane opens, before anyone knows a dispatch will claim
+it, so claiming it must rebuild the gate. A pane that keeps the gate it was born
+with keeps the posture of a session somebody is watching, and stalls.
 
 ## Rebuild order
 
