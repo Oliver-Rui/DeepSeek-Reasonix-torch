@@ -1125,10 +1125,10 @@ body { background: var(--page) !important; }
 .studio-peers-anchor { position: relative; height: 25px; display: flex; align-items: center; }
 .studio-meterrail .studio-peers-anchor > button .studio-icon { width: 12px; height: 12px; color: var(--faint); }
 .studio-meterrail .studio-peers-anchor > button b { color: var(--text); }
-.studio-peers-anchor:is(:hover, :focus-within)::before { content: ""; position: absolute; left: 0; bottom: 100%; width: 300px; height: 10px; }
+.studio-peers-anchor:is(:hover, :focus-within)::before { content: ""; position: absolute; left: 0; bottom: 100%; width: min(440px, calc(100vw - 32px)); height: 10px; }
 .studio-peers-detail {
-  position: absolute; z-index: 80; right: 0; bottom: calc(100% + 9px); width: 300px; padding: 12px;
-  max-height: 240px; overflow-y: auto; overscroll-behavior: contain;
+  position: absolute; z-index: 80; right: 0; bottom: calc(100% + 9px); width: min(440px, calc(100vw - 32px)); padding: 12px;
+  max-height: min(320px, 60vh); overflow-y: auto; overscroll-behavior: contain;
   border: 1px solid var(--border); border-radius: var(--r-md);
   background: color-mix(in srgb, var(--float) 96%, transparent); color: var(--text);
   box-shadow: var(--shadow-float); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);

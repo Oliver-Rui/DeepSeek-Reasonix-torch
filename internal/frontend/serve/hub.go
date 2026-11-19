@@ -89,6 +89,8 @@ type Hub struct {
 	muxes   *eventMuxes
 	// dispatch remembers the panes a task was handed to; see dispatch.go.
 	dispatch dispatchBook
+	// board is the shared directory snapshot the board and thread reads use.
+	board dispatchCatalogCache
 }
 
 // approvalStance is the Ask/Auto/YOLO posture the frontend is in, held by the

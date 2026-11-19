@@ -3,10 +3,10 @@ import type { AgentPort, PeerProject } from "../port/port";
 import { HeldPeerMessage } from "./HeldPeerMessage";
 import { usePeers } from "./usePeers";
 
-const POLL_MS = 3000;
+const POLL_MS = 5000;
 
-export function PeerHeldBar({ port, project }: { port: AgentPort; project?: PeerProject }) {
-  const { state, refresh } = usePeers(port, POLL_MS);
+export function PeerHeldBar({ port, project, active = true }: { port: AgentPort; project?: PeerProject; active?: boolean }) {
+  const { state, refresh } = usePeers(port, POLL_MS, active);
   if (!state.enabled || state.held.length === 0) return null;
   return (
     <section className="peerbar" aria-label={t("composer.session_messages_waiting_for_your")}>

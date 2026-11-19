@@ -95,4 +95,81 @@ func TestDispatchBoardEmptyWhenNothingDispatched(t *testing.T) {
 	if rows := f.hub.dispatchBoard(); len(rows) != 0 {
 		t.Fatalf("board rows = %+v, want empty", rows)
 	}
+	if builds := f.hub.board.buildCount(); builds != 0 {
+		t.Fatalf("catalog builds = %d, want none for an idle machine", builds)
+	}
+}
+
+func TestDispatchBoardReusesOneCatalogBuild(t *testing.T) {
+	f := newDispatchFixture(t, dispatchOn)
+	sender := f.sender(f.project("alpha", true))
+	billing := f.project("billing", true)
+	got, err := sender.DispatchToProject(t.Context(), billing, "rotate the key", "reviewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeSessionAt(t, f.paneOf(got.Key).SessionPath())
+
+	if rows := f.hub.dispatchBoard(); len(rows) != 1 {
+		t.Fatalf("first board = %+v, want one", rows)
+	}
+	if rows := f.hub.dispatchBoard(); len(rows) != 1 {
+		t.Fatalf("second board = %+v, want one", rows)
+	}
+	if builds := f.hub.board.buildCount(); builds != 1 {
+		t.Fatalf("catalog builds = %d, want one walk shared by both reads", builds)
+	}
+}
+
+func TestDispatchBoardArchivedEndDoesNotRebuildCatalog(t *testing.T) {
+	f := newDispatchFixture(t, dispatchOn)
+	sender := f.sender(f.project("alpha", true))
+	billing := f.project("billing", true)
+	got, err := sender.DispatchToProject(t.Context(), billing, "rotate the key", "reviewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pane := f.paneOf(got.Key)
+	writeSessionAt(t, pane.SessionPath())
+	if rows := f.hub.dispatchBoard(); len(rows) != 1 {
+		t.Fatalf("board before archive = %+v, want one", rows)
+	}
+
+	archiveSessionForTest(t, pane.SessionPath())
+	if rows := f.hub.dispatchBoard(); len(rows) != 0 {
+		t.Fatalf("board after archive = %+v, want empty", rows)
+	}
+	if builds := f.hub.board.buildCount(); builds != 1 {
+		t.Fatalf("catalog builds = %d, want the sidecar recheck without a new walk", builds)
+	}
+}
+
+func TestDispatchBoardRescansForANewTarget(t *testing.T) {
+	f := newDispatchFixture(t, dispatchOn)
+	sender := f.sender(f.project("alpha", true))
+	first := f.project("billing", true)
+	got, err := sender.DispatchToProject(t.Context(), first, "rotate the key", "reviewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeSessionAt(t, f.paneOf(got.Key).SessionPath())
+	if rows := f.hub.dispatchBoard(); len(rows) != 1 {
+		t.Fatalf("first board = %+v, want one", rows)
+	}
+	if builds := f.hub.board.buildCount(); builds != 1 {
+		t.Fatalf("catalog builds = %d, want one", builds)
+	}
+
+	second := f.project("gamma", true)
+	next, err := sender.DispatchToProject(t.Context(), second, "second task", "reviewer-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeSessionAt(t, f.paneOf(next.Key).SessionPath())
+	if rows := f.hub.dispatchBoard(); len(rows) != 2 {
+		t.Fatalf("board after a new target = %+v, want two", rows)
+	}
+	if builds := f.hub.board.buildCount(); builds != 2 {
+		t.Fatalf("catalog builds = %d, want a forced walk for the new target", builds)
+	}
 }

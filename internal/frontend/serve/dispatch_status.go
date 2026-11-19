@@ -7,7 +7,6 @@ import (
 
 	"reasonix/internal/contract/config"
 	"reasonix/internal/session/control"
-	"reasonix/internal/state/peermail"
 	"reasonix/internal/state/sessionstore"
 )
 
@@ -41,15 +40,14 @@ func (h *Hub) dispatchThreadsStatus(senderPath string) []DispatchThreadStatus {
 	if senderPath == "" {
 		return []DispatchThreadStatus{}
 	}
+	return h.dispatchThreadsFor(senderPath, h.loadDispatchTrail(false))
+}
+
+func (h *Hub) dispatchThreadsFor(senderPath string, trail dispatchTrail) []DispatchThreadStatus {
 	self := control.PeerKeyForPath(senderPath)
-	dir, err := peermail.Open(h.peersDir())
-	var audit []peermail.AuditRecord
-	if err == nil {
-		audit = dir.AuditSince(time.Now().Add(-control.PeerThreadWindow))
-	}
-	threads := control.PeerThreadsFrom(self, audit)
+	threads := control.PeerThreadsFrom(self, trail.audit)
 	book := h.dispatch.threadsFrom(senderPath)
-	join := h.dispatchTargetJoins()
+	join := trail.joins
 
 	out := make([]DispatchThreadStatus, 0, len(threads)+len(book))
 	seen := map[string]bool{}
@@ -91,9 +89,13 @@ func (h *Hub) dispatchThreadsStatus(senderPath string) []DispatchThreadStatus {
 		if key == "" || seen[key] {
 			continue
 		}
+		since := b.At
+		if since.IsZero() {
+			since = time.Now()
+		}
 		row := DispatchThreadStatus{
 			Role: b.Role, SessionPath: b.SessionPath,
-			State: control.PeerWaiting, Since: time.Now(),
+			State: control.PeerWaiting, Since: since,
 		}
 		if j, ok := join[key]; ok {
 			row.TargetTitle, row.TargetProject = j.title, j.project
@@ -117,32 +119,10 @@ func bookByKey(book []DispatchThread, key string) (DispatchThread, bool) {
 	return DispatchThread{}, false
 }
 
-type dispatchTargetJoin struct {
-	title, project, sessionPath string
-}
-
 // dispatchTargetJoins maps peer key to the title and project the tree knows for
 // a session. Titles are read from the cached listing, never generated here.
 func (h *Hub) dispatchTargetJoins() map[string]dispatchTargetJoin {
-	out := map[string]dispatchTargetJoin{}
-	for _, ref := range h.sessionRoots() {
-		rows, unlisted := h.treeSessionRows(ref.dir)
-		titles := h.titleCacheFor(SessionDirFor(ref.dir)).snapshot()
-		for _, row := range append(rows, unlisted...) {
-			key := control.PeerKeyForPath(row.Path)
-			if key == "" {
-				continue
-			}
-			name := strings.TrimSuffix(sessionstore.BranchID(row.Path), ".jsonl")
-			title := rowTitle(titles, row, name)()
-			out[key] = dispatchTargetJoin{
-				title:       title,
-				project:     projectOfRow(row, ref.dir),
-				sessionPath: row.Path,
-			}
-		}
-	}
-	return out
+	return h.dispatchCatalog(false)
 }
 
 func projectOfRow(row sessionstore.SessionInfo, fallback string) string {

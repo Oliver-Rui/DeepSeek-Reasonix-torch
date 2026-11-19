@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"reasonix/internal/contract/agentcomposition"
 	"reasonix/internal/contract/config"
@@ -36,9 +37,10 @@ type dispatchBook struct {
 // DispatchThread is one entry in a sender's record of its dispatches: the role
 // the target was opened under and the session the task landed on.
 type DispatchThread struct {
-	Role        string `json:"role,omitempty"`
-	SessionPath string `json:"sessionPath,omitempty"`
-	Key         string `json:"key,omitempty"`
+	Role        string    `json:"role,omitempty"`
+	SessionPath string    `json:"sessionPath,omitempty"`
+	Key         string    `json:"key,omitempty"`
+	At          time.Time `json:"at,omitempty"`
 }
 
 func (b *dispatchBook) noteThread(senderPath, role, targetPath, key string) {
@@ -50,14 +52,15 @@ func (b *dispatchBook) noteThread(senderPath, role, targetPath, key string) {
 	if b.threads == nil {
 		b.threads = map[string][]DispatchThread{}
 	}
+	now := time.Now()
 	for i := range b.threads[senderPath] {
 		t := &b.threads[senderPath][i]
 		if t.SessionPath == targetPath || (key != "" && t.Key == key) {
-			t.Role, t.SessionPath, t.Key = role, targetPath, key
+			t.Role, t.SessionPath, t.Key, t.At = role, targetPath, key, now
 			return
 		}
 	}
-	b.threads[senderPath] = append(b.threads[senderPath], DispatchThread{Role: role, SessionPath: targetPath, Key: key})
+	b.threads[senderPath] = append(b.threads[senderPath], DispatchThread{Role: role, SessionPath: targetPath, Key: key, At: now})
 }
 
 func (b *dispatchBook) threadsFrom(senderPath string) []DispatchThread {
@@ -67,6 +70,18 @@ func (b *dispatchBook) threadsFrom(senderPath string) []DispatchThread {
 		return nil
 	}
 	return append([]DispatchThread(nil), b.threads[senderPath]...)
+}
+
+// snapshotThreads is the board's one read of the in-memory book: it needs every
+// sender to decide which sessions are worth looking up at all.
+func (b *dispatchBook) snapshotThreads() map[string][]DispatchThread {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	out := make(map[string][]DispatchThread, len(b.threads))
+	for sender, threads := range b.threads {
+		out[sender] = append([]DispatchThread(nil), threads...)
+	}
+	return out
 }
 
 type dispatchKey struct{ from, root, role string }

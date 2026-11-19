@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentPort, PeersState } from "../port/port";
+import { singleFlight } from "./singleflight";
 
 const EMPTY: PeersState = { enabled: false, peers: [], held: [] };
 
-export function usePeers(port: AgentPort | null, everyMs: number) {
+export function usePeers(port: AgentPort | null, everyMs: number, active = true) {
   const [state, setState] = useState<PeersState>(EMPTY);
   const [failed, setFailed] = useState(false);
   const alive = useRef(true);
-  const refresh = useCallback(async () => {
+  const refresh = useMemo(() => singleFlight(async () => {
     if (!port) return;
     try {
       const next = await port.peers();
@@ -18,19 +19,27 @@ export function usePeers(port: AgentPort | null, everyMs: number) {
     } catch {
       if (alive.current) setFailed(true);
     }
-  }, [port]);
+  }), [port]);
   useEffect(() => {
+    if (!active) return;
     alive.current = true;
-    void refresh();
-    const timer = everyMs > 0
-      ? setInterval(() => {
-          if (typeof document === "undefined" || !document.hidden) void refresh();
-        }, everyMs)
-      : null;
-    return () => {
-      alive.current = false;
-      if (timer) clearInterval(timer);
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) {
+        if (everyMs > 0) timer = setTimeout(tick, everyMs);
+        return;
+      }
+      void refresh().then(() => {
+        if (!stopped && everyMs > 0) timer = setTimeout(tick, everyMs);
+      });
     };
-  }, [refresh, everyMs]);
+    tick();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      alive.current = false;
+    };
+  }, [refresh, everyMs, active]);
   return { state, failed, refresh };
 }

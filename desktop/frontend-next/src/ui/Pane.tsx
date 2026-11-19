@@ -662,7 +662,7 @@ function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFoc
           <AgentCompositionPicker port={port} binding={status?.agentComposition} locked={status?.agentCompositionLocked} running={running} onChanged={refreshStatus} onSettings={() => onSettings("persona")} onError={notify} />
         </RunLine>}
         <div className="composeaux">
-          <PeerHeldBar port={port} project={rt.host ? undefined : { path: rt.root, name: rt.name }} />
+          <PeerHeldBar port={port} project={rt.host ? undefined : { path: rt.root, name: rt.name }} active={visible && tab === "flow"} />
           {connect && <ConnectNote offer={connect} />}
           {!connect && <PostureNote port={port} status={status} onChanged={refreshStatus} />}
           {!connect && !rt.readOnly && <MemorySuggestRow port={port} running={running} onError={notify} />}
@@ -698,7 +698,7 @@ function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFoc
           onOpenJob={jobsLive.open}
           usage={status?.sessionUsage} quote={status?.sessionCostQuote} tariff={status?.tariff} onTariffFlip={refreshStatus}
           authoredTurns={status?.authoredTurns}
-          peers={<DispatchThreadsBar hub={hub} onOpen={onOpenPeerSession} />}
+          peers={<DispatchThreadsBar hub={hub} onOpen={onOpenPeerSession} active={visible && tab === "flow"} />}
         />
         {reloadFailure && <ReloadNotice failure={reloadFailure} onReload={onReloadSession} />}
         {/* Below the box, under a ceiling of their own. Both arrive unbidden and

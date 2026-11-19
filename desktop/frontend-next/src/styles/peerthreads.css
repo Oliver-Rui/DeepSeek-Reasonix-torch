@@ -63,9 +63,22 @@
 
 /* The session-collaboration card hanging off the meter-rail chip: a compact
    anchored popover, never a layer over the conversation. */
-.studio-peers-detail { width: 340px }
+.studio-peers-detail { width: min(440px, calc(100vw - 32px)); max-height: min(320px, 60vh) }
 .peergroup h4 { margin: 8px 0 2px; color: var(--ghost); font: var(--w-med) var(--fs-micro)/1.4 var(--ui) }
-.studio-peers-detail .peerrow { gap: 6px }
+.studio-peers-detail .peerrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "from arrow to" "meta meta meta";
+  align-items: center;
+  gap: 3px 6px;
+}
+.studio-peers-detail .peername { grid-area: from }
+.studio-peers-detail .boardarrow { grid-area: arrow }
+.studio-peers-detail .peerstate-name { grid-area: to }
+.studio-peers-detail .peerrow-meta { grid-area: meta; display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--faint) }
+.studio-peers-detail .peerrole { max-width: 160px }
+.studio-peers-detail .peerproject, .studio-peers-detail .peertime { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.studio-peers-detail .peerstate { max-width: none }
 .peername, .peerstate-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; border: 0; background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer }
 .peername:hover, .peerstate-name:hover { color: var(--accent) }
 .boardarrow { flex: none; color: var(--ghost) }
