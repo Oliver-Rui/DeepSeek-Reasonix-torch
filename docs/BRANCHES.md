@@ -97,5 +97,6 @@ commit, and the area branches are fast-forwarded to it.
 - `area/<module>` is a full application. It includes every other module at the time it was branched, plus the module-scoped commits made on it.
 - A module branch that omits shared code or a sibling module's API cannot build, so the branch is deliberately cumulative.
 - The consolidated history on `torch` has one final-state commit per module.
+- Those module commits are review snapshots, not standalone builds: the shared `port` contract changed, so a final core tree beside a 2.61 UI cannot type-check. Check out `torch` or an `area/*` branch to build.
 - Use `git log --oneline torch` and the `core:`, `kernel:`, `sidebar:` prefixes to review a module's complete 2.61 → current change.
 - The old incremental history is not part of the public line; a local bundle/mirror holds it for rollback, and the upstream repository remains the 2.61.0 reference.

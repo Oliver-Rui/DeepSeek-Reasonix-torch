@@ -1139,3 +1139,40 @@ Go: `dispatch_board_test.go` (both ends, dedupe, archived ends), `hub_rename_tes
 for the new tool. Frontend: i18n and peer/chip component tests, `pnpm build`.
 repolint clean. Known machine-only failures (capability-scope labels, several boot
 snapshot tests) reproduce on a clean tree and are unrelated.
+
+## 16. The 2.66.2 round — a clean history, a board that reads once, and branch workstreams
+
+### History and branches
+
+- `studio` is a new root commit whose tree is upstream v2.61.0 verbatim.
+- `torch` is the integration and release line, built from that root with one final-state commit per module.
+- The module order is `core`, `kernel`, `collab`, `settings`, `workbench`, `sidebar`, `conversation`, `chrome`, `docs`.
+- The old 144-commit chain and its tags/releases are gone from the public repo; a local bundle/mirror keeps it for rollback.
+- Each module commit is a review snapshot, not a standalone build: the shared `port` contract changed, so a final core tree beside a 2.61 UI cannot type-check.
+- The buildable units are `torch` and the `area/*` branches cut from its tip.
+- `tools/branchmap` answers which area a path belongs to; `docs/BRANCHES.md` records the workflow.
+
+### The board reads the catalog once
+
+- `dispatchBoard` used to call `dispatchThreadsStatus` for every session path, and each call re-walked every root and re-read the 30-day audit.
+- `dispatch_catalog.go` now owns a 15-second snapshot shared by every pane; the mutex rebuilds it once when ten panes ask together.
+- The board starts from the audit's `DecisionSent` senders plus the book, so only sessions that actually dispatched are folded.
+- A machine with no dispatch record returns before the catalog walk.
+- Archive/delete still hide immediately because the two ends are re-checked from their sidecars.
+- A brand-new book target forces one rescan; only recent book entries can force it, so a deleted old target cannot scan forever.
+- `DispatchThread.At` gives book-only rows a stable `Since`.
+
+### Peers and the card
+
+- `/peers` no longer re-parses the same audit month for every pane: `peermail` caches each month until its size or modification time changes, and `Audit` drops the entry on append.
+- The held bar and the board poll only the visible pane, and both use chained reads (10s board, 5s peers) instead of `setInterval`.
+- The name buttons used to share the leftover width of a 340px row, so the ellipsis hid most of each name and the `title` was the session path.
+- The card is now `min(440px, 100vw - 32px)`; each row is two grid lines, the `title` is the full name, and the second line carries role, project, state and age.
+- `ageWord` moved to `ui/age.ts` so the session list and the board share one answer.
+
+### Verification
+
+- `pnpm build` green; `dispatch-threads-bar.test.tsx` and `SessionAge.test.tsx` green, including no-overlap and inactive-pane cases.
+- `go test ./internal/frontend/serve ./internal/state/peermail` green; `go test ./tools/branchmap` green; repolint clean.
+- The full `go test ./...` still reports the machine-only failures already known on this host (e2ebench reference graders, extension conformance, workspacelease, vendor-dir grep); the collaboration packages are green.
+
