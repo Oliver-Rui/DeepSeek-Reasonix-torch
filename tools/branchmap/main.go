@@ -63,13 +63,13 @@ func main() {
 				fmt.Printf("unmatched\t%s\n", file)
 				continue
 			}
-			fmt.Fprintf(os.Stderr, "branchmap: %s has no rule; assigned to %s\n", file, area.Branch)
+			fmt.Fprintf(os.Stderr, "branchmap: %s has no rule; assigned to %s\n", file, area.Prefix)
 		}
 		if *unmatched {
 			continue
 		}
-		fmt.Printf("%s\t%s\n", area.Branch, file)
-		seen[area.Branch] = true
+		fmt.Printf("%s\t%s\n", area.Prefix, file)
+		seen[area.Prefix] = true
 	}
 
 	if *check {
@@ -90,7 +90,7 @@ func main() {
 
 func printAreas() {
 	for _, area := range areas {
-		fmt.Printf("%s  %s\n", area.Branch, area.Note)
+		fmt.Printf("%s  %s\n", area.Prefix, area.Note)
 		for _, pattern := range area.Patterns {
 			fmt.Printf("    %s\n", pattern)
 		}

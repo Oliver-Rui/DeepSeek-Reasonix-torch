@@ -54,9 +54,6 @@ type historyMessage struct {
 	// Via is the paired device a user message was sent from; absent is the
 	// window. Written when the message landed, so a reload still says it.
 	Via *eventwire.Via `json:"via,omitempty"`
-	// Peer names the other session a user message came from, when one relayed
-	// it. Written when the message landed, so a reload still labels it.
-	Peer *peerSourceWire `json:"peer,omitempty"`
 	// Which model wrote this assistant turn. A reopened transcript has no
 	// turn_started to read it off, and the composer's current setting is a
 	// different fact that has usually moved on.
@@ -127,7 +124,6 @@ func historyMessageWindow(msgs []provider.Message, attachments func(string) []ev
 			hm.Content = sessionstore.UserMessageText(m)
 			hm.Images = len(m.Images)
 			hm.Via = eventwire.ToWireVia(m.Via)
-			hm.Peer = peerSourceView(m.Peer)
 			hm.CreatedAt = m.CreatedAt
 			if !m.HostAuthored {
 				hm.Attachments = attached(hm.Content)

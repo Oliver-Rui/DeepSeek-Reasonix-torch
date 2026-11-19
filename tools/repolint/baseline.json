@@ -7,21 +7,21 @@
     "commented-code": 0,
     "complexity": 662,
     "css-important": 127,
-    "css-size": 8949,
+    "css-size": 8921,
     "doc-language": 0,
     "doc-owner": 27,
     "doc-prose": 1468,
     "error-text": 9,
-    "essay": 2540,
-    "file-size": 18479,
+    "essay": 2541,
+    "file-size": 18454,
     "flat-view": 0,
     "frontend-parity": 13,
-    "function-size": 2348,
+    "function-size": 2349,
     "layer-order": 0,
     "layering": 0,
     "marker": 0,
     "narrative": 0,
-    "orphan": 61,
+    "orphan": 63,
     "process-input": 96,
     "refusal-path": 0,
     "release-note": 752,
@@ -29,7 +29,7 @@
     "struct-state": 30,
     "temp-dir": 0,
     "window-state": 0,
-    "wire-parity": 0
+    "wire-parity": 6
   },
   "files": {
     ".github/pull_request_template.md": {
@@ -83,10 +83,10 @@
     },
     "desktop/frontend-next/src/styles/studio.css": {
       "css-important": 103,
-      "css-size": 3693
+      "css-size": 3665
     },
     "desktop/frontend-next/src/ui/Workspaces.tsx": {
-      "file-size": 329
+      "file-size": 311
     },
     "desktop/internal/winuninstall/registry_windows.go": {
       "essay": 1
@@ -272,7 +272,7 @@
     },
     "internal/contract/config/config.go": {
       "essay": 25,
-      "file-size": 785,
+      "file-size": 783,
       "process-input": 3
     },
     "internal/contract/config/credentials.go": {
@@ -350,8 +350,8 @@
     "internal/contract/config/render.go": {
       "complexity": 82,
       "essay": 1,
-      "file-size": 251,
-      "function-size": 353
+      "file-size": 252,
+      "function-size": 354
     },
     "internal/contract/config/vision.go": {
       "essay": 1,
@@ -761,7 +761,7 @@
       "essay": 2
     },
     "internal/frontend/serve/hub_tree.go": {
-      "file-size": 81
+      "file-size": 87
     },
     "internal/frontend/serve/hub_tree_page.go": {
       "essay": 3
@@ -771,7 +771,7 @@
     },
     "internal/frontend/serve/serve.go": {
       "essay": 17,
-      "file-size": 161
+      "file-size": 157
     },
     "internal/frontend/serve/serve_lease_test.go": {
       "essay": 3
@@ -784,6 +784,9 @@
     },
     "internal/frontend/serve/switch_recovery_test.go": {
       "essay": 2
+    },
+    "internal/frontend/serve/workspace_archive.go": {
+      "essay": 1
     },
     "internal/frontend/termrender/mathnode.go": {
       "essay": 1
@@ -1217,7 +1220,7 @@
     },
     "internal/session/control/controller.go": {
       "essay": 29,
-      "file-size": 418
+      "file-size": 412
     },
     "internal/session/control/controller_test.go": {
       "essay": 9
@@ -1259,6 +1262,18 @@
     },
     "internal/session/control/memory_command.go": {
       "essay": 2
+    },
+    "internal/session/control/peer_mail.go": {
+      "wire-parity": 1
+    },
+    "internal/session/control/peer_mail_send.go": {
+      "wire-parity": 2
+    },
+    "internal/session/control/peer_settings.go": {
+      "wire-parity": 2
+    },
+    "internal/session/control/peer_threads.go": {
+      "wire-parity": 1
     },
     "internal/session/control/plan_todos.go": {
       "essay": 6
@@ -1361,7 +1376,7 @@
     },
     "internal/state/sessionstore/branch.go": {
       "essay": 10,
-      "orphan": 3
+      "orphan": 5
     },
     "internal/state/sessionstore/migrate.go": {
       "complexity": 15,
@@ -1387,7 +1402,7 @@
     "internal/state/sessionstore/save.go": {
       "complexity": 36,
       "essay": 109,
-      "file-size": 1185,
+      "file-size": 1183,
       "function-size": 95
     },
     "internal/state/sessionstore/save_test.go": {

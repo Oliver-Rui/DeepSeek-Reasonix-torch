@@ -44,7 +44,6 @@ import { workspaceRemoval } from "./workspaceRemove";
 import { SessionTail } from "./SessionAge";
 import { SessionArchiveAction, SessionPinAction } from "./SessionRowActions";
 import { useSessionMutation, type SessionMutation } from "./useSessionMutation";
-import { SessionHoverCard, useHoverCard } from "./SessionHoverCard";
 
 const parentOf = (root: string) => root.replace(/[/\\]+$/, "").split(/[/\\]/).slice(-2, -1)[0] ?? "";
 
@@ -122,7 +121,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
   const groupOrder = useSyncExternalStore(onRailGroupOrderChange, railGroupOrder, railGroupOrder);
   const timeGroups = useSyncExternalStore(onRailTimeGroupsChange, railTimeGroups, railTimeGroups);
   const [sessionMenu, setSessionMenu] = useState("");
-  const hover = useHoverCard();
   const moveTo = useSessionMoveTo(hub, tree, reload, rowLabel, () => adder.add());
   const [sessionMenuAt, setSessionMenuAt] = useState({ x: 0, y: 0 });
   const sessionMenuBox = useRef<HTMLDivElement>(null);
@@ -855,8 +853,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         }}
                         data-action-dragstart={subtitle ? undefined : "session.reorder"}
                         data-action-dragend={subtitle ? undefined : "session.reorder"}
-                        onMouseEnter={subtitle || selection ? undefined : (ev) => hover.enter(session.path, { path: session.path, title: session.title || session.name, project: ws.name, root: ws.root, updatedAt: session.lastActiveAt }, ev.currentTarget)}
-                        onMouseLeave={subtitle ? undefined : hover.exit}
                         onDragStart={subtitle ? undefined : (ev) => { if (!needle && !selection) reorder.start(ev, ws.root, session.path, rowLabel(session)); }}
                         onDragEnd={subtitle ? undefined : reorder.end}
                         tabIndex={0}
@@ -956,16 +952,6 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                           />
                         )}
                       </div>
-                      {hover.open?.key === session.path && (
-                        <SessionHoverCard
-                          hub={hub}
-                          facts={hover.open.facts}
-                          anchor={hover.open.anchor}
-                          onOpen={(path) => { hover.close(); void onOpen({ sessionPath: path }).catch(onError); }}
-                          onEnter={hover.keep}
-                          onLeave={hover.exit}
-                        />
-                      )}
                       {open &&
                         kept.map(({ s: copy, version }) =>
                           confirm === copy.path ? (

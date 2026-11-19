@@ -22,11 +22,11 @@ describe("the index at the top of a settings page", () => {
 
   it("goes to the setting that was pressed, with the entry it was drawn from", async () => {
     const go = vi.fn();
-    const items = entries("peers");
+    const items = entries("tools");
     render(<PageIndex items={items} onGo={go} />);
-    const peers = items.find((e) => e.anchor === "peers")!;
-    await userEvent.click(document.querySelector(`[data-target="peers"]`) as HTMLElement);
-    expect(go).toHaveBeenCalledWith(peers);
+    const rules = items.find((e) => e.anchor === "rules")!;
+    await userEvent.click(document.querySelector(`[data-target="rules"]`) as HTMLElement);
+    expect(go).toHaveBeenCalledWith(rules);
   });
 
   it("says nothing on a page too small to need it", () => {

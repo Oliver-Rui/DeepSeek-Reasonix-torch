@@ -86,9 +86,6 @@ func (c *Controller) RunTurnWithRaw(ctx context.Context, input, raw, invokedSkil
 type turnTags struct {
 	format string
 	via    *provider.Via
-	// peer is the other session the message came from, nil when a person here
-	// wrote it. Declared by the host that delivered it, never read off the body.
-	peer *provider.PeerSource
 	// refuseUnknownSlash answers a slash command nothing resolves with a notice
 	// instead of sending the line to the model as prose.
 	refuseUnknownSlash bool
@@ -96,11 +93,9 @@ type turnTags struct {
 
 type turnViaKey struct{}
 
-type turnPeerKey struct{}
-
 // withTurnTags binds a submission's tags to the turn context.
 func (c *Controller) withTurnTags(ctx context.Context, tags turnTags) context.Context {
-	return withTurnPeer(withTurnVia(c.withTurnFormat(ctx, tags.format), tags.via), tags.peer)
+	return withTurnVia(c.withTurnFormat(ctx, tags.format), tags.via)
 }
 
 func withTurnVia(ctx context.Context, via *provider.Via) context.Context {
@@ -115,20 +110,6 @@ func withTurnVia(ctx context.Context, via *provider.Via) context.Context {
 func turnVia(ctx context.Context) *provider.Via {
 	via, _ := ctx.Value(turnViaKey{}).(*provider.Via)
 	return via
-}
-
-func withTurnPeer(ctx context.Context, peer *provider.PeerSource) context.Context {
-	if peer == nil {
-		return ctx
-	}
-	return context.WithValue(ctx, turnPeerKey{}, peer)
-}
-
-// turnPeer is the other session the turn's message came from, nil when a person
-// here wrote it.
-func turnPeer(ctx context.Context) *provider.PeerSource {
-	peer, _ := ctx.Value(turnPeerKey{}).(*provider.PeerSource)
-	return peer
 }
 
 // withTurnFormat binds a structured-output format to the turn context

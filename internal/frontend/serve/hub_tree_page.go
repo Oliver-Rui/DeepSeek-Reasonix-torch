@@ -148,11 +148,9 @@ func (h *Hub) treeSessionRows(root string) (listed, unlisted []sessionstore.Sess
 	return h.treeSessionRowsIn(SessionDirFor(root), root)
 }
 
-// treeSessionRowsIn is treeSessionRows for a session folder found some other way
-// than from an open workspace — the dispatch catalog walks every project folder,
-// including ones this window has never opened. root is only used to find open
-// sessions that have no transcript yet; an empty root finds none, which is the
-// right answer for a folder nobody has opened.
+// treeSessionRowsIn is treeSessionRows for a session folder named explicitly.
+// root is only used to find open sessions that have no transcript yet; an empty
+// root finds none, which is the right answer for a folder nobody has opened.
 func (h *Hub) treeSessionRowsIn(dir, root string) (listed, unlisted []sessionstore.SessionInfo) {
 	rows := h.listTreeSessions(dir, listingStatusFor(false), false)
 	sortSessions(rows)

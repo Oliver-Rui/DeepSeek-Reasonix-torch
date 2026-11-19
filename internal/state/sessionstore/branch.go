@@ -56,11 +56,7 @@ type BranchMeta struct {
 	AgentPreset string `json:"agent_preset,omitempty"`
 	// RoleText is the dispatch role this session was opened under. It rides the
 	// sidecar so a resumed dispatch keeps the role in its system prompt.
-	RoleText string `json:"role_text,omitempty"`
-	// PeerContent records that this conversation received a message from
-	// another session. It has turns nobody here typed, so the listing keeps it
-	// for the sidebar while a turns-only rule would hide it.
-	PeerContent      bool   `json:"peer_content,omitempty"`
+	RoleText         string `json:"role_text,omitempty"`
 	Mode             string `json:"mode,omitempty"`
 	ToolApprovalMode string `json:"tool_approval_mode,omitempty"`
 	// SessionGrants are the tool answers the person gave for the rest of this
@@ -645,28 +641,6 @@ func RenameSession(sessionPath string, title string) error {
 		return err
 	}
 	m.CustomTitle = strings.TrimSpace(title)
-	return saveBranchMeta(sessionPath, m, false)
-}
-
-// MarkPeerContent records that a peer-delivered message reached this session.
-// Idempotent: the first peer message writes the flag, later ones read it.
-func MarkPeerContent(sessionPath string) error {
-	if sessionPath == "" {
-		return fmt.Errorf("empty session path")
-	}
-	unlock, err := LockSessionMetaPath(sessionPath)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	m, err := ensureBranchMetaUnlocked(sessionPath)
-	if err != nil {
-		return err
-	}
-	if m.PeerContent {
-		return nil
-	}
-	m.PeerContent = true
 	return saveBranchMeta(sessionPath, m, false)
 }
 

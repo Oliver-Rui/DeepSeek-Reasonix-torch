@@ -1959,9 +1959,7 @@ func ListNativeSessions(dir string) ([]SessionInfo, error) {
 			out = append(out, sessionInfoFromOrder(session, preview, turns, false))
 			continue
 		}
-		// A dispatched crew has peer turns and no human ones; the sidecar marks
-		// it so the row survives its pane.
-		if turns == 0 && !session.PeerContent {
+		if turns == 0 {
 			continue
 		}
 		out = append(out, sessionInfoFromOrder(session, preview, turns, true))

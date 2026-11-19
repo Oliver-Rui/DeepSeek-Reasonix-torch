@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -97,7 +95,7 @@ func settingSession(t *testing.T, id, val string) (*settingProvider, *control.Co
 	ctrl.EnableInteractiveApproval()
 	path := config.UserConfigPath()
 	cfg := config.LoadForEdit(path)
-	cfg.Peers.Enabled, cfg.Permissions.Mode = false, ""
+	cfg.Permissions.Mode = ""
 	if err := cfg.SaveTo(path); err != nil {
 		t.Fatal(err)
 	}
@@ -112,51 +110,6 @@ func runSetting(ctrl *control.Controller) chan error {
 		done <- ctrl.Run(ctx, "get the other project to do it")
 	}()
 	return done
-}
-
-// A model that asks to loosen a switch gets a card even in YOLO, nothing is
-// written until the click, and the next request carries the same tool block.
-// The process's user config is shared, so these run one after another.
-func TestEffectTheModelProposesASettingAndTheUserClickDecidesIt(t *testing.T) {
-	for _, allow := range []bool{true, false} {
-		t.Run(fmt.Sprintf("allow=%v", allow), func(t *testing.T) {
-			rec, ctrl, userFile, approvals := settingSession(t, "peers.enabled", "true")
-			done := runSetting(ctrl)
-			var card event.Approval
-			select {
-			case card = <-approvals:
-			case <-time.After(20 * time.Second):
-				t.Fatal("no card for a proposed setting")
-			}
-			if card.Tool != control.SettingElevatedApprovalTool || !card.Fresh || card.AllowsSession {
-				t.Fatalf("card = %+v", card)
-			}
-			if config.LoadForEdit(userFile).Peers.Enabled {
-				t.Fatal("the file changed before the click")
-			}
-			ctrl.Approve(card.ID, allow, false, false)
-			if err := <-done; err != nil {
-				t.Fatalf("Run: %v", err)
-			}
-			if got := config.LoadForEdit(userFile).Peers.Enabled; got != allow {
-				t.Fatalf("peers.enabled = %v after allow=%v", got, allow)
-			}
-			result := rec.toolResult()
-			want := `"via":"click"`
-			if !allow {
-				want = "setting.declined"
-			}
-			if !strings.Contains(result, want) {
-				t.Fatalf("tool result = %q, want %q", result, want)
-			}
-			if !reflect.DeepEqual(rec.toolNames(0), rec.toolNames(1)) {
-				t.Fatalf("the tool block moved between requests:\n%v\n%v", rec.toolNames(0), rec.toolNames(1))
-			}
-			if slices.Contains(rec.toolNames(0), "setting") {
-				t.Fatalf("setting is in the first-round schema: %v", rec.toolNames(0))
-			}
-		})
-	}
 }
 
 // A boundary setting is never proposed: no card, nothing written, and the

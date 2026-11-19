@@ -2,7 +2,6 @@ import { SCHEDULE_ACTIONS } from "./actions_schedule";
 import { DOCUMENT_ACTIONS } from "./actions_document";
 import { FEEDBACK_ACTIONS } from "./actions_feedback";
 import { WORKBENCH_ACTIONS } from "./actions_workbench";
-import { PEERS_ACTIONS } from "./actions_peers";
 import { TREE_ACTIONS } from "./actions_tree";
 
 // The census oracle is independent of production literals so disagreements fail.
@@ -714,18 +713,8 @@ export const ACTIONS: UIAction[] = [
   { id: "plan-approval.auto", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "default-mode.plan", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "tool-list.toggle", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.expand", kind: "view", target: "none", proof: "interaction" },
-  { id: "peers.approve", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.approve-project", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.incoming", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.enable", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.dispatch", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.open-nested", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.release-revoke", kind: "kernel-mutation", target: "entity", proof: "authority-effect" },
-  { id: "peers.release-add", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "peers.release-pick", kind: "view", target: "none", proof: "interaction" },
-  { id: "peers.deny", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  ...PEERS_ACTIONS,
+  { id: "session-ref.tokens", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
+  { id: "session-ref.reset", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   // Read by the running turn at its next round, so no rebuild stands between the
   // click and the canonical change.
   { id: "auto-archive.notice-dismiss", kind: "view", target: "none", proof: "interaction" },
@@ -743,8 +732,6 @@ export const ACTIONS: UIAction[] = [
   { id: "currency.mode", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "ask-timeout.enabled", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "ask-timeout.seconds", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "session-ref.tokens", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
-  { id: "session-ref.reset", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "session.reference-match", kind: "view", target: "entity", proof: "interaction" },
   { id: "mods.enabled", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "mods.budget", kind: "kernel-mutation", target: "none", proof: "authority-effect" },

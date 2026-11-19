@@ -202,14 +202,6 @@ export class MockHub implements HubPort {
     return Promise.resolve();
   }
 
-  dispatchThreads(_path: string) {
-    return Promise.resolve([]);
-  }
-
-  dispatchBoard() {
-    return Promise.resolve([]);
-  }
-
 tree(window?: TreeWindow) {
     const open = new Map(this.views.filter((v) => v.sessionPath).map((v) => [v.sessionPath!, v.id]));
     return Promise.resolve(

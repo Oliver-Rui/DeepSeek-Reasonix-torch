@@ -5,7 +5,6 @@ import type { UIAction } from "./actions";
 // an existing session is not starting a new one, and the host asked differs.
 // A drag or a menu move is one kernel place, so its proof is the order itself.
 export const TREE_ACTIONS: UIAction[] = [
-  { id: "peer.thread-open", kind: "navigation", target: "none", proof: "interaction" },
   { id: "session.open", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "remote.open", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   // Asking a machine whether it answers. Nothing on either side changes, and

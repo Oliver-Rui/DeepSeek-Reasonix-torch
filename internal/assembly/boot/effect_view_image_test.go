@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,6 +17,38 @@ import (
 	"reasonix/internal/contract/event"
 	"reasonix/internal/contract/provider"
 )
+
+// toolNameRecorder records the tools each request carried and then completes
+// the turn, so a test can assert the provider-visible surface.
+type toolNameRecorder struct {
+	mu   sync.Mutex
+	reqs []provider.Request
+}
+
+func (*toolNameRecorder) Name() string { return "boot-tool-names" }
+
+func (p *toolNameRecorder) Stream(_ context.Context, req provider.Request) (<-chan provider.Chunk, error) {
+	p.mu.Lock()
+	p.reqs = append(p.reqs, req)
+	p.mu.Unlock()
+	ch := make(chan provider.Chunk, 2)
+	ch <- provider.Chunk{Type: provider.ChunkText, Text: "done"}
+	ch <- provider.Chunk{Type: provider.ChunkDone}
+	close(ch)
+	return ch, nil
+}
+
+func (p *toolNameRecorder) toolNames() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	var names []string
+	if len(p.reqs) > 0 {
+		for _, t := range p.reqs[0].Tools {
+			names = append(names, t.Name)
+		}
+	}
+	return names
+}
 
 // view_image is offered to a model that reads images and to no other: a session
 // on a text-only model keeps exactly the tool block it had, and so its cached
@@ -46,7 +79,7 @@ func TestEffectViewImageReachesOnlyAModelThatReadsImages(t *testing.T) {
 				writeFile(t, home, "config.toml", fmt.Sprintf("[tools]\nenabled = %s\nweb_search_backends = [\"searxng\"]\nsearxng_url = %q\n", tc.enabled, search.URL))
 			}
 			dir := testenv.TempDir(t)
-			rec := &peerToolProvider{}
+			rec := &toolNameRecorder{}
 			kind := fmt.Sprintf("boot-view-image-%s", strings.ReplaceAll(t.Name(), "/", "-"))
 			provider.Register(kind, func(provider.Config) (provider.Provider, error) { return rec, nil })
 			writeFile(t, dir, "reasonix.toml", fmt.Sprintf(`

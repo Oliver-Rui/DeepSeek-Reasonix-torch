@@ -14,12 +14,27 @@ import (
 
 var tariffKinds atomic.Int64
 
+// okProvider answers every request with one text chunk and ends the turn; a
+// test that exercises the surrounding assembly only needs a provider that
+// completes.
+type okProvider struct{}
+
+func (okProvider) Name() string { return "boot-ok" }
+
+func (okProvider) Stream(context.Context, provider.Request) (<-chan provider.Chunk, error) {
+	ch := make(chan provider.Chunk, 2)
+	ch <- provider.Chunk{Type: provider.ChunkText, Text: "ok"}
+	ch <- provider.Chunk{Type: provider.ChunkDone}
+	close(ch)
+	return ch, nil
+}
+
 func tariffOf(t *testing.T, baseURL string, price string) bool {
 	t.Helper()
 	home := statedBootHome(t)
 	dir := testenv.TempDir(t)
 	kind := fmt.Sprintf("boot-tariff-%s-%d", strings.ReplaceAll(t.Name(), "/", "-"), tariffKinds.Add(1))
-	provider.Register(kind, func(provider.Config) (provider.Provider, error) { return &peerRecorder{}, nil })
+	provider.Register(kind, func(provider.Config) (provider.Provider, error) { return okProvider{}, nil })
 	body := `
 default_model = "test-model"
 

@@ -29,9 +29,9 @@ func (s *Server) modsSettings(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, s.ctl().ModsSettings())
 }
 
-// saveModsSettings rides the provider-edit grant like the peer settings: turning
-// mods on lets code an installed package ships run on this machine, which a
-// networked client must not decide for the machine's owner.
+// saveModsSettings rides the provider-edit grant: turning mods on lets code an
+// installed package ships run on this machine, which a networked client must not
+// decide for the machine's owner.
 func (s *Server) saveModsSettings(w http.ResponseWriter, r *http.Request) {
 	if !s.grants.at(r).providerEdit {
 		refuse(w, http.StatusForbidden, "mods.editing_disabled", "mod settings are not enabled for this client", nil)
@@ -51,8 +51,6 @@ func (s *Server) saveModsSettings(w http.ResponseWriter, r *http.Request) {
 		refuse(w, http.StatusConflict, codeModsWithheld, "the Claude Code mods switch is not available yet", nil)
 	case errors.Is(err, control.ErrModsBudgetInvalid):
 		refuse(w, http.StatusBadRequest, codeModsBadBudget, "a hook budget is 0 to 55000 milliseconds", nil)
-	case errors.Is(err, control.ErrPeerSettingsUnwritable):
-		saveFailed(w, http.StatusInternalServerError, codePeerSettings, err)
 	case err != nil:
 		writeErr(w, http.StatusInternalServerError, err)
 	default:

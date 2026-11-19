@@ -8,7 +8,7 @@ import { rankTerms, type SettingTerms } from "./settingRank";
 /** The settings table of contents: which sections exist, what each is called,
  *  what mark it carries and which question it answers. Kept out of Settings
  *  itself because it is a table, not a screen — the screen reads it. */
-export type Section = "common" | "display" | "controls" | "session" | "persona" | "model" | "providers" | "tools" | "peers" | "hooks" | "ext" | "network" | "remote" | "memory" | "usage" | "storage" | "account" | "versions" | "appearance" | "advanced";
+export type Section = "common" | "display" | "controls" | "session" | "persona" | "model" | "providers" | "tools" | "hooks" | "ext" | "network" | "remote" | "memory" | "usage" | "storage" | "account" | "versions" | "appearance" | "advanced";
 
 export const ICON: Record<Section, ReactNode> = {
   display: <StudioIcon name="monitor" />,
@@ -18,7 +18,6 @@ export const ICON: Record<Section, ReactNode> = {
   persona: <StudioIcon name="user" />,
   model: <StudioIcon name="brain" />,
   providers: <StudioIcon name="server" />,
-  peers: <StudioIcon name="network" />,
   tools: <StudioIcon name="shield" />,
   hooks: <StudioIcon name="bolt" />,
   ext: <StudioIcon name="plug" />,
@@ -44,7 +43,6 @@ export const NAV: [string, [Section, string][]][] = [
       ["common", "settings.common"],
       ["model", "common.models"],
       ["session", "settings.agent_behaviour"],
-      ["peers", "settings.session_cross_chat"],
       ["tools", "settings.permissions_and_safety"],
       ["ext", "ext.extension"],
       ["display", "settings.conversation_display"],
@@ -62,7 +60,6 @@ export const SECTION_DESC: Partial<Record<Section, string>> = {
   common: "settings.the_few_settings_changed_most",
   model: "settings.which_service_to_use_which",
   session: "settings.how_it_thinks_how_it",
-  peers: "settings.session_cross_chat_quoted_context",
   tools: "settings.what_it_can_touch_approval",
   ext: "settings.skills_external_tools_plugins_automation",
   display: "settings.what_the_conversation_shows_and",
@@ -155,6 +152,8 @@ export const SETTINGS: SettingEntry[] = [
   { section: "session", anchor: "ask-timeout", title: "safety.question_wait_time", scope: "machine", apply: "immediate", keywords: ["ask", "跳过", "无人回答", "长任务", "超时", "自动继续"] },
   { section: "ext", anchor: "mods", title: "Claude Code mod", scope: "machine", apply: "on-open", hidden: !MODS_SHOWN, keywords: ["mod", "钩子", "hook", "Claude Code", "完全信任", "插件", "扩展"] },
   { section: "session", anchor: "progress-watch", title: "panels.long_stretches_without_progress", scope: "machine", apply: "immediate", keywords: ["暂停", "无进展", "空转", "卡住", "循环", "轮次", "token"] },
+  { section: "session", anchor: "subagent-claims", title: "session.sub_agent_write_scope", scope: "machine", apply: "on-open", keywords: ["子代理", "写入", "范围", "subagent", "claims", "optimistic", "strict"] },
+  { section: "session", anchor: "session-ref", title: "composer.size_of_a_referenced_conversation", scope: "machine", apply: "on-open", keywords: ["引用", "会话", "长度", "quote", "session-ref", "tokens"] },
   { section: "display", anchor: "changed-files", title: "settings.file_changes", scope: "machine", apply: "immediate", keywords: ["改动", "变更", "文件", "已更改", "药丸", "输入框"] },
   { section: "display", anchor: "feedback-level-notices", title: "feedback.level_notices", scope: "machine", apply: "immediate", hidden: FEEDBACK_RETIRED, keywords: ["等级", "晋级", "升级", "反馈", "提示"] },
   { section: "session", anchor: "turn-narration", title: "settings.narration_between_tool_calls", scope: "machine", apply: "immediate", keywords: ["叙述", "总结", "小轮", "工具之间", "详细", "简短", "思路", "监控", "narration"] },
@@ -195,19 +194,7 @@ export const SETTINGS: SettingEntry[] = [
   // one. The shared [browser] enabled key belongs to the 1.x command line.
   // The lease is built with the session and a rebuild adopts the one it holds, so
   // the save reaches only sessions opened afterwards; the handler rebuilds nothing.
-  { section: "peers", anchor: "peers", title: "remote.messages_between_sessions_experimental", scope: "machine", apply: "next-turn", keywords: ["peer", "会话间", "互聊", "会话互聊", "消息", "发送", "批准", "挂起", "另一个会话"] },
-  { section: "peers", anchor: "peer-projects", within: "peers", title: "remote.projects_allowed_through", scope: "machine", apply: "next-turn", keywords: ["放行", "项目", "不再询问", "长期", "撤销", "peer", "release", "会话间", "会话互聊"] },
-  // The two ceilings on handing a task over: how deep a dispatch may chain, and
-  // how many sessions one turn may hand to at once. Saved with the switches
-  // above, and read the same way — at the next turn boundary.
-  { section: "peers", anchor: "peers-dispatch-depth", title: "settings.peers_dispatch_depth", scope: "machine", apply: "next-turn", keywords: ["穿透", "层", "深度", "dispatch", "depth"] },
-  { section: "peers", anchor: "peers-dispatched-sessions", title: "settings.peers_dispatched_sessions", scope: "machine", apply: "next-turn", keywords: ["并发", "同时派发", "上限", "concurrent"] },
-  // The outgoing answer: what this session's model may hand into the user's
-  // other projects. Saved with the switches above, applied at the next turn.
-  { section: "peers", anchor: "peers-cross-project", within: "peers", title: "remote.cross_project", scope: "machine", apply: "next-turn", keywords: ["跨项目", "派发", "白名单", "始终允许", "配对", "禁止", "dispatch"] },
   { section: "tools", anchor: "write-lease", title: "session.several_sessions_writing_one_project", scope: "machine", apply: "on-open", keywords: ["lease", "写锁", "并行", "多会话", "乐观", "optimistic", "write_lease", "等待"] },
-  { section: "peers", anchor: "session-ref", title: "composer.size_of_a_referenced_conversation", scope: "machine", apply: "immediate", keywords: ["引用", "历史会话", "过往会话", "上下文", "长度", "token", "session"] },
-  { section: "peers", anchor: "subagent-claims", title: "session.sub_agent_write_scope", scope: "machine", apply: "runtime-rebuild", keywords: ["subagent", "子代理", "并发", "write_paths", "乐观", "optimistic", "写锁"] },
   { section: "account", anchor: "trace-export", title: "data.trace_export", scope: "machine", apply: "on-open", keywords: ["追踪", "opentelemetry", "otlp", "观测", "遥测", "trace", "collector", "收集器"] },
   { section: "tools", anchor: "web-access", title: "models.web_search_and_fetch", scope: "machine", apply: "on-open", keywords: ["搜索", "searxng", "deepseek", "抓取", "计费", "付费", "web search", "fetch"] },
   { section: "tools", anchor: "browser-tools", title: "common.built_in_browser", scope: "machine", apply: "runtime-rebuild", keywords: ["browser", "网页", "chrome", "浏览器工具"] },
@@ -290,7 +277,6 @@ export const SECTION_NAME: Partial<Record<Section, string>> = {
   remote: "settings.remote",
   hooks: "settings.automation",
   persona: "settings.persona",
-  peers: "settings.session_cross_chat",
   memory: "data.memory",
   usage: "app.usage",
   versions: "common.version",

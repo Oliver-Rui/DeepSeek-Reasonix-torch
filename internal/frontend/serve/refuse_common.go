@@ -34,7 +34,6 @@ const (
 	codeSessionTitleSaveFailed = "session.title_save_failed"
 	codeWorkspaceOrderBoundary = "workspace.order_boundary"
 	codeSessionOrderBoundary   = "session.order_boundary"
-	// Dispatch-target refusals. Each is a distinct cause a frontend can phrase.
 )
 
 // badBody refuses a request whose body did not parse. The parse error itself is

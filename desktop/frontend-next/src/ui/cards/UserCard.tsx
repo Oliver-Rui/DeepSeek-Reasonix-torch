@@ -10,8 +10,7 @@ import { reason } from "../../i18n/kernel";
 import { t } from "../../i18n";
 import { clock } from "../../i18n/format";
 import { StudioIcon } from "../StudioIcon";
-import { messageSource, peerSourceLabel } from "../source";
-import { PeerSourceChip } from "./PeerSourceChip";
+import { messageSource } from "../source";
 import { useSendShortcut } from "../../state/prefs";
 import { sendAria, sendHint, sendsOnKey } from "../sendkey";
 import { useIme } from "../ime";
@@ -38,7 +37,6 @@ export function UserCard({
   onWithdraw,
   onPrepareRewind,
   onCommitRewind,
-  onOpenPeer,
 }: {
   item: Extract<Item, { t: "user" }>;
   port?: Pick<AgentPort, "workspaceImageURL">;
@@ -47,9 +45,6 @@ export function UserCard({
   onWithdraw?: (itemId: string) => void | Promise<void>;
   onPrepareRewind?: (turn: number, scope: RewindScope) => Promise<RewindPlan>;
   onCommitRewind?: (planId: string, text?: string) => Promise<RewindResult>;
-  /** Opens the session a relayed message came from. Absent leaves the label
-   *  inert, which is what a transcript read outside a window gets. */
-  onOpenPeer?: (path: string) => void;
 }) {
   // A rewind needs a turn the kernel claimed, and a queued line has not
   // happened yet — there is nothing behind it to take back.
@@ -64,7 +59,6 @@ export function UserCard({
   const [failed, setFailed] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
   const source = messageSource(item.via, useViewer());
-  const peer = peerSourceLabel(item.peer);
   const reopen = editable && draft === null;
   const rewind = !!(cp && onPrepareRewind && onCommitRewind);
   const pin = useMemo(() => parseSkillPin(item.text), [item.text]);
@@ -111,12 +105,11 @@ export function UserCard({
         <span className="sym"><StudioIcon name="user" /><span className="sr-only">{t("chat.you")}</span></span>
       </div>
       <div className="c">
-        {(item.steer || source || peer) && <div className="hl user-hl">
+        {(item.steer || source) && <div className="hl user-hl">
           {/* It reached the model inside a turn already running, which is why
               there is no checkpoint on this row to rewind to. */}
           {item.steer && <span className="steermark">{t("common.steer")}</span>}
           {source && <span className="viamark">{source}</span>}
-          {peer && <PeerSourceChip peer={item.peer!} label={peer} onOpen={onOpenPeer} />}
         </div>}
         <div className="out">
           {draft === null ? (

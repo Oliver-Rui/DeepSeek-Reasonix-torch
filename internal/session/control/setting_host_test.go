@@ -112,8 +112,8 @@ func jsonBool(b bool) string {
 
 func TestAnElevatedChangeOffersNoSessionGrantAndAsksEveryTime(t *testing.T) {
 	c, requests, _ := settingController(t)
-	setDispatchSwitch(t, false, false)
-	done := propose(c, "peers.enabled", "true", "")
+	was := userFile().ProgressWatch.Pause
+	done := propose(c, "progress_watch.pause", jsonBool(!was), "")
 	a := nextApproval(t, requests)
 	if a.Tool != SettingElevatedApprovalTool || a.AllowsSession {
 		t.Fatalf("approval = %+v, want the elevated card with no session grant", a)
@@ -123,7 +123,7 @@ func TestAnElevatedChangeOffersNoSessionGrantAndAsksEveryTime(t *testing.T) {
 		t.Fatalf("receipt = %+v err=%v", got.receipt, got.err)
 	}
 	c.settings.proposals.Store(0)
-	again := propose(c, "peers.enabled", "false", "")
+	again := propose(c, "progress_watch.pause", jsonBool(was), "")
 	b := nextApproval(t, requests)
 	if b.Tool != SettingElevatedApprovalTool {
 		t.Fatalf("second card = %+v", b)
@@ -235,9 +235,10 @@ func TestTheModelsReasonIsQuotedTidyAndBounded(t *testing.T) {
 
 func TestSettingsListFindsByWordsAndNeverShowsASecret(t *testing.T) {
 	c, _, _ := settingController(t)
-	rows := c.SettingsList("peers dispatch")
-	// The switch first, then the two ceilings that share its words.
-	if len(rows) != 3 || rows[0].ID != "peers.dispatch" || rows[0].Class != "elevated" || rows[1].ID != "peers.max_dispatch_depth" || rows[2].ID != "peers.max_dispatched_sessions" {
+	rows := c.SettingsList("progress watch")
+	// Every row shares both words; the elevated pause comes first by id.
+	if len(rows) != 4 || rows[0].ID != "progress_watch.pause" || rows[0].Class != "elevated" ||
+		rows[1].ID != "progress_watch.perseveration_retries" || rows[2].ID != "progress_watch.rounds" || rows[3].ID != "progress_watch.token_multiple" {
 		t.Fatalf("rows = %+v", rows)
 	}
 	for _, r := range c.SettingsList("serve token") {
@@ -259,26 +260,6 @@ func TestOpeningASettingEmitsANoticeAndChangesNothing(t *testing.T) {
 	}
 	if refusalCode(c.OpenSetting("no.such")) != "setting.unknown" {
 		t.Fatal("an undeclared id was opened")
-	}
-}
-
-func TestADisabledDispatchNamesTheSwitchThatWouldLiftIt(t *testing.T) {
-	c, requests, _ := settingController(t)
-	setDispatchSwitch(t, false, false)
-	_, err := peerDirectory{c}.DispatchToProject(context.Background(), "other", "do it", "")
-	r, ok := asRefusal(err)
-	if !ok || r.Code != "dispatch.disabled" || r.Remedy == nil || r.Remedy.Setting != "peers.enabled" || r.Remedy.Op != tool.RemedyPropose {
-		t.Fatalf("err = %#v, want the refusal to name peers.enabled", err)
-	}
-	done := propose(c, r.Remedy.Setting, string(r.Remedy.Value), "hand a task to the other project")
-	c.Approve(nextApproval(t, requests).ID, true, false, false)
-	if got := <-done; got.err != nil || !userFile().Peers.Enabled {
-		t.Fatalf("applying the remedy: %+v err=%v enabled=%v", got.receipt, got.err, userFile().Peers.Enabled)
-	}
-	c.settings.proposals.Store(0)
-	_, err = peerDirectory{c}.DispatchToProject(context.Background(), "other", "do it", "")
-	if r, ok = asRefusal(err); !ok || r.Remedy == nil || r.Remedy.Setting != "peers.dispatch" {
-		t.Fatalf("with messaging on, err = %#v, want the dispatch switch next", err)
 	}
 }
 

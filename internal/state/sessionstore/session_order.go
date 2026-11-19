@@ -132,7 +132,6 @@ func orderInfoOf(full string, e fs.DirEntry) (SessionOrderInfo, bool) {
 	row.ParentID = meta.ParentID
 	row.RecoveryRootID = meta.RecoveryRootID
 	row.Turns = meta.Turns
-	row.PeerContent = meta.PeerContent
 	row.Preview = meta.Preview
 	row.SchemaVersion = meta.SchemaVersion
 	row.Revision = meta.Revision

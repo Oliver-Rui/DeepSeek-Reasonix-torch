@@ -175,10 +175,6 @@ type PromptEnvelope struct {
 	// Kept with the item, because the turn it becomes runs long after the
 	// request that queued it is gone.
 	Via *provider.Via `json:"via,omitempty"`
-	// Peer is the other session the item was delivered from, when the host
-	// relayed it from one. Kept with the item for the same reason as Via, and
-	// stripped before any provider request.
-	Peer *provider.PeerSource `json:"peer,omitempty"`
 }
 
 // Capacity describes current usage against limits.

@@ -194,15 +194,9 @@ func (c *Controller) EnableInteractiveApproval() {
 func (c *Controller) newInteractiveGate() *permission.Gate {
 	policy := c.policy
 	mode := c.approval.mode()
-	// A session another session opened for a task has nobody at its window, so
-	// a card there is a stall, not a question.
-	unattended := c.OpenedByDispatch()
 	switch mode {
 	case ToolApprovalAuto, ToolApprovalYolo:
 		policy.Mode = permission.Allow
-		if unattended {
-			policy.AllowDynamicBash = true
-		}
 	case ToolApprovalDontAsk:
 		policy.Mode = permission.Deny
 	case ToolApprovalReadOnly:
@@ -224,13 +218,7 @@ func (c *Controller) newInteractiveGate() *permission.Gate {
 		)
 	}
 	var approver permission.Approver = gateApprover{c}
-	switch {
-	case mode == ToolApprovalDontAsk:
-		approver = denyPermissionApprover{}
-	case unattended:
-		// What still reaches here wants a person — a memory write, plan approval,
-		// a folder the user never trusted. Refusing with the reason lets the model
-		// do the rest and report what it could not, instead of stalling.
+	if mode == ToolApprovalDontAsk {
 		approver = denyPermissionApprover{}
 	}
 	gate := permission.NewGate(policy, approver)

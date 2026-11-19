@@ -65,8 +65,6 @@ import { useBrowserFull } from "./browserfull";
 import { refreshTodos } from "../state/restore";
 import { speedOf } from "./speed";
 import { RuntimeBar } from "./RuntimeBar";
-import { PeerHeldBar } from "./PeerHeldBar";
-import { DispatchThreadsBar } from "./DispatchThreadsBar";
 import { PostureNote, postureNote } from "./PostureNote";
 import { MemorySuggestRow } from "./MemorySuggestRow";
 import { SidePanel } from "./SidePanel";
@@ -107,7 +105,7 @@ const totalsOf = (st: SessionStatus) => ({
   incompleteReason: st.sessionCostQuote?.incompleteReason,
 });
 
-function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFocus, onReport, onSessionChanged, onTurnDone, pulse, findPulse, findTogglePulse = 0, filesPulse = 0, terminalPulse = 0, viewRequest, sessionRef, onSettings, onFeedback, onOpenSession, onOpenPeerSession, onOpenProject, projectTree = [], remotes = null, remoteTrees = {}, runtimes = [], adder, connect, theme, dockW, dockMax, onDockW, manualBrowser = false, onManualBrowser, alert, failure }: PaneProps) {
+function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFocus, onReport, onSessionChanged, onTurnDone, pulse, findPulse, findTogglePulse = 0, filesPulse = 0, terminalPulse = 0, viewRequest, sessionRef, onSettings, onFeedback, onOpenSession, onOpenProject, projectTree = [], remotes = null, remoteTrees = {}, runtimes = [], adder, connect, theme, dockW, dockMax, onDockW, manualBrowser = false, onManualBrowser, alert, failure }: PaneProps) {
   const [s, dispatch] = useReducer(reduce, initialState);
   const [traj, trajDispatch] = useReducer(reduceTraj, initialTraj);
   const [sessionRead, setSessionRead] = useState<SessionRead>({ kind: "pending" });
@@ -579,7 +577,6 @@ function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFoc
         checkpoints={paired}
         onPrepareRewind={onPrepareRewind}
         onCommitRewind={onCommitRewind}
-        onOpenPeer={onOpenPeerSession}
         onPrepareFileRevert={onPrepareFileRevert}
         onCommitFileRevert={onCommitFileRevert}
         onSuggest={(text) => setInserted((was) => ({ n: was.n + 1, text }))}
@@ -663,7 +660,6 @@ function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFoc
           <AgentCompositionPicker port={port} binding={status?.agentComposition} locked={status?.agentCompositionLocked} running={running} onChanged={refreshStatus} onSettings={() => onSettings("persona")} onError={notify} />
         </RunLine>}
         <div className="composeaux">
-          <PeerHeldBar port={port} project={rt.host ? undefined : { path: rt.root, name: rt.name }} active={visible && tab === "flow"} />
           {connect && <ConnectNote offer={connect} />}
           {!connect && <PostureNote port={port} status={status} onChanged={refreshStatus} />}
           {!connect && !rt.readOnly && <MemorySuggestRow port={port} running={running} onError={notify} />}
@@ -699,7 +695,6 @@ function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFoc
           onOpenJob={jobsLive.open}
           usage={status?.sessionUsage} quote={status?.sessionCostQuote} tariff={status?.tariff} onTariffFlip={refreshStatus}
           authoredTurns={status?.authoredTurns}
-          peers={<DispatchThreadsBar hub={hub} onOpen={onOpenPeerSession} active={visible && tab === "flow"} />}
         />
         {reloadFailure && <ReloadNotice failure={reloadFailure} onReload={onReloadSession} />}
         {/* Below the box, under a ceiling of their own. Both arrive unbidden and

@@ -505,13 +505,9 @@ func (h *Hub) addWorkspace(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, treeWorkspace{Root: dir, Name: fileutil.RootName(dir), Sessions: []treeSession{}})
 }
 
-// removeWorkspace drops a folder from the sidebar and archives what it held.
-//
-// Taking the row away used to leave its conversations in the list with no
-// project to belong to, or in a project the person had just said they were done
-// with. So the conversations go with it: archived, not deleted, so they can be
-// found in 归档 and brought back. Nothing on disk is removed, and adding the
-// folder again brings the row back with them.
+// removeWorkspace drops a folder from the sidebar and archives what it held, so
+// the conversations go with it — archived, not deleted, still found in 归档, and
+// back again when the folder is added.
 func (h *Hub) removeWorkspace(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Path string `json:"path"`
@@ -538,35 +534,6 @@ func (h *Hub) removeWorkspace(w http.ResponseWriter, r *http.Request) {
 	forgetWorkspace(dir)
 	h.treeChanged()
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// archiveWorkspaceSessions archives every conversation the folder holds, so a
-// removed project leaves nothing behind in the everyday list. A session that
-// could not be archived is reported rather than skipped: half a removal is a
-// state the person did not ask for.
-func (h *Hub) archiveWorkspaceSessions(dir string) error {
-	sessionDir := SessionDirFor(dir)
-	if sessionDir == "" {
-		return nil
-	}
-	infos, err := sessionstore.ListSessions(sessionDir)
-	if err != nil {
-		return err
-	}
-	open := h.openSessions()
-	excluded := make([]string, 0, len(open))
-	for openPath := range open {
-		excluded = append(excluded, openPath)
-	}
-	for _, info := range infos {
-		if info.Archived || store.IsSubagentTranscriptName(filepath.Base(info.Path)) {
-			continue
-		}
-		if err := sessionstore.SetSessionLineageArchived(info.Path, true, excluded...); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // removeSession deletes a conversation the sidebar lists. A pane showing it is

@@ -433,24 +433,6 @@ type ToolCallStopper interface {
 	CancelToolCall(id string) bool
 }
 
-// PeerMail is messages between sessions: who can be written to, sending, what
-// other sessions sent and the user has not decided, and the decision.
-type PeerMail interface {
-	PeersEnabled() bool
-	Peers() []PeerView
-	PeerThreads() []PeerThread
-	// DispatchRoles names, by peer key, the role each of this session's
-	// dispatches was opened under — the sender's own record, which outlives
-	// the dispatched panes.
-	DispatchRoles() map[string]string
-	SendPeerMessage(to, text string) (PeerReceipt, error)
-	HeldPeerMessages() []PeerHeld
-	ResolvePeerMessage(id string, approve bool) error
-	ResolvePeerMessageRemembering(id string, approve bool, remember PeerRemember) error
-	PeersSettings() PeersSettings
-	SavePeersSettings(patch PeersPatch) (PeersSettings, error)
-}
-
 // SubagentView reads the sub-agent runs of the session: the ones it spawned,
 // running or finished, and any one run's conversation.
 type SubagentView interface {
@@ -598,7 +580,7 @@ type SessionAPI interface {
 	BackgroundJobs
 	ToolCallStopper
 	SubagentView
-	PeerMail
+
 	Mods
 	Schedules
 	MCPSignIn
@@ -643,16 +625,16 @@ type AgentPresetManagement interface {
 // the full port, so frontend migrations to the interfaces are mechanical and can
 // never silently drift from the implementation.
 var (
-	_ EditorAPI          = (*Controller)(nil)
-	_ Lifecycle          = (*Controller)(nil)
-	_ TurnControl        = (*Controller)(nil)
-	_ Approvals          = (*Controller)(nil)
-	_ FolderTrust        = (*Controller)(nil)
-	_ Goals              = (*Controller)(nil)
-	_ BackgroundJobs     = (*Controller)(nil)
-	_ ToolCallStopper    = (*Controller)(nil)
-	_ SubagentView       = (*Controller)(nil)
-	_ PeerMail           = (*Controller)(nil)
+	_ EditorAPI       = (*Controller)(nil)
+	_ Lifecycle       = (*Controller)(nil)
+	_ TurnControl     = (*Controller)(nil)
+	_ Approvals       = (*Controller)(nil)
+	_ FolderTrust     = (*Controller)(nil)
+	_ Goals           = (*Controller)(nil)
+	_ BackgroundJobs  = (*Controller)(nil)
+	_ ToolCallStopper = (*Controller)(nil)
+	_ SubagentView    = (*Controller)(nil)
+
 	_ Mods               = (*Controller)(nil)
 	_ Schedules          = (*Controller)(nil)
 	_ MCPSignIn          = (*Controller)(nil)

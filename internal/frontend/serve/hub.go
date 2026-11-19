@@ -25,7 +25,6 @@ import (
 	"reasonix/internal/contract/event"
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/surface"
-	"reasonix/internal/contract/tool"
 	"reasonix/internal/platform/notify"
 	"reasonix/internal/platform/update"
 	"reasonix/internal/session/control"
@@ -87,10 +86,6 @@ type Hub struct {
 	stance  *approvalStance
 	changes *Broadcaster
 	muxes   *eventMuxes
-	// dispatch remembers the panes a task was handed to; see dispatch.go.
-	dispatch dispatchBook
-	// board is the shared directory snapshot the board and thread reads use.
-	board dispatchCatalogCache
 }
 
 // approvalStance is the Ask/Auto/YOLO posture the frontend is in, held by the
@@ -327,19 +322,15 @@ func (h *Hub) Open(ctx context.Context, req OpenRequest) (*Runtime, error) {
 	return h.openBound(ctx, req, nil)
 }
 
-type sessionBuildPostureResult struct{ preset, model, role string }
+type sessionBuildPostureResult struct{ preset, model string }
 
-// sessionBuildPosture resolves the saved model, preset and dispatch role of a
-// session being opened. The request's own role wins over the sidecar's so a
-// fresh dispatch can name a new pane; a resumed one reads it from the sidecar.
+// sessionBuildPosture resolves the saved model and preset of a session being
+// opened; a resumed session reads both from its sidecar.
 func sessionBuildPosture(req OpenRequest, settings *sessionstore.BranchMeta) sessionBuildPostureResult {
-	out := sessionBuildPostureResult{model: req.Model, role: strings.TrimSpace(req.RoleText)}
+	out := sessionBuildPostureResult{model: req.Model}
 	if settings != nil {
 		out.model = strings.TrimSpace(settings.Model)
 		out.preset = settings.AgentPreset
-		if out.role == "" {
-			out.role = strings.TrimSpace(settings.RoleText)
-		}
 	}
 	return out
 }
@@ -366,7 +357,6 @@ func (h *Hub) openBound(ctx context.Context, req OpenRequest, inherited *agentco
 	}
 	posture := sessionBuildPosture(req, settings)
 	req.Model = posture.model
-	roleText := posture.role
 	bc := NewBroadcaster()
 	paneSink := h.decorateSink(bc)
 	build := func(model string, fallback bool) (*boot.BuildResult, error) {
@@ -376,7 +366,6 @@ func (h *Hub) openBound(ctx context.Context, req OpenRequest, inherited *agentco
 			ComputerDriver:           h.opts.ComputerDriver,
 			Model:                    strings.TrimSpace(model),
 			AgentPreset:              posture.preset,
-			RoleText:                 roleText,
 			WorkspaceRoot:            root,
 			SessionDir:               SessionDirFor(root),
 			Sink:                     paneSink,
@@ -567,10 +556,6 @@ func (h *Hub) Handler() http.Handler {
 	h.registerTreeRoutes(mux)
 	h.registerMuxRoutes(mux)
 	h.registerStudioVersionRoutes(mux)
-	// The sidebar's hover card asks the hub, not a pane: the sender can be
-	// closed and still has a record. Serving it here keeps cookie authority.
-	mux.HandleFunc("GET /dispatch-threads", h.dispatchThreadsHTTP)
-	mux.HandleFunc("GET /dispatch-board", h.dispatchBoardHTTP)
 	mux.HandleFunc("GET /device", notADevice)
 	mux.HandleFunc("POST /device/leave", notADevice)
 	mux.HandleFunc(runtimePrefix+"{id}/", h.routeRuntime)
@@ -701,8 +686,6 @@ func (h *Hub) publish(rt *Runtime) error {
 		rt.Server.bindMu.Lock()
 		rt.Server.mu.Lock()
 		ctrl, concrete := rt.Server.ctrl.(*control.Controller)
-		projects := projectBindings{dispatch: h.dispatcherFor(rt), open: openProjects,
-			rename: func(to, title string) (tool.RenamedSession, error) { return h.renameSessionFor(rt, to, title) }}
 		if concrete {
 			rt.Server.currency = &h.currency
 		}
@@ -715,13 +698,6 @@ func (h *Hub) publish(rt *Runtime) error {
 				rt.Server.bindMu.Unlock()
 				return err
 			}
-		}
-		if concrete {
-			rt.Server.mu.Lock()
-			rt.Server.projects = projects
-			rt.Server.hubThreads = h.dispatchThreadsStatus
-			projects.bind(ctrl)
-			rt.Server.mu.Unlock()
 		}
 		rt.Server.bindMu.Unlock()
 		rt.Server.bc.observeTree(h.treeChanged)

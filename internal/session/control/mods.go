@@ -115,7 +115,7 @@ func (c *Controller) SaveModsSettings(patch ModsPatch) (ModsSettings, error) {
 		return nil
 	})
 	if err != nil {
-		return c.ModsSettings(), fmt.Errorf("%w: %w", ErrPeerSettingsUnwritable, err)
+		return c.ModsSettings(), err
 	}
 	if patch.Enabled != nil && !*patch.Enabled {
 		modhost.Default.Forget()

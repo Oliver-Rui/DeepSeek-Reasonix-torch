@@ -53,14 +53,13 @@ lint-install:
 check:
 	go run ./tools/repolint -changed
 
-# Which module branch a working-tree change belongs to. The tool owns the path
-# table; this target is the one-command answer for a person or an agent.
+# Which commit-subject prefix a working-tree change wants. The tool owns the
+# path table; this target is the one-command answer for a person or an agent.
 branch-for:
 	go run ./tools/branchmap --changed
 
-# A change that spans modules belongs on torch as one reviewed commit, or on
-# area/core after the shared part is split out. This target makes that visible
-# before the commit is made.
+# A change that spans modules takes the prefix of the area it is mostly about
+# and says the rest in the body. This target makes the split visible first.
 branch-check:
 	go run ./tools/branchmap --check --changed
 

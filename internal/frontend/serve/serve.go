@@ -58,7 +58,6 @@ type Server struct {
 	// skillNotices is the hub's record of skill warnings already shown; nil for a server no hub claimed.
 	skillNotices *skillNotices
 	currency     *control.DisplayCurrencyGroup
-	projects     projectBindings
 	// buildController builds the replacement controller during a model switch.
 	// Nil in production (switchModel falls back to boot.Build); tests inject a
 	// fake so switchModel can be exercised without real provider IO.
@@ -93,9 +92,6 @@ type Server struct {
 	// siblings lists the other local panes open on the same workspace, set by
 	// the hub; nil for a server outside one.
 	siblings func(self *Server) []*Server
-	// hubThreads reads one session's enriched dispatch record by path; set by
-	// the hub for its own panes, nil elsewhere.
-	hubThreads func(path string) []DispatchThreadStatus
 	// resolver is what every rebuild of this pane resolves models through, set
 	// by the hub. Nil leaves boot reading this machine's own config.
 	resolver provider.Resolver

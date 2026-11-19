@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-// Area names one long-lived module branch. Patterns are checked in order and
-// the first match wins, so a specific component must appear before the shared
-// fallback it would otherwise be swallowed by.
+// Area names one module of the tree. Prefix is the commit subject prefix its
+// changes take. Patterns are checked in order and the first match wins, so a
+// specific component must appear before the shared fallback it would hit.
 type Area struct {
 	Name     string
-	Branch   string
+	Prefix   string
 	Patterns []string
 	Note     string
 }
@@ -18,7 +18,7 @@ type Area struct {
 var areas = []Area{
 	{
 		Name:   "docs",
-		Branch: "area/docs",
+		Prefix: "docs:",
 		Patterns: []string{
 			"docs/", "release-notes/", "tools/", ".github/", "scripts/",
 			"README", "README.zh-CN.md", "CONTRIBUTING.md", "SECURITY.md",
@@ -29,30 +29,25 @@ var areas = []Area{
 	},
 	{
 		Name:   "collab",
-		Branch: "area/collab",
+		Prefix: "collab:",
 		Patterns: []string{
 			"desktop/frontend-next/src/ui/Feedback", "desktop/frontend-next/src/ui/feedback",
-			"desktop/frontend-next/src/ui/Peer", "desktop/frontend-next/src/ui/peer",
-			"desktop/frontend-next/src/ui/HeldPeerMessage",
-			"desktop/frontend-next/src/ui/DispatchThreadsBar", "desktop/frontend-next/src/ui/dispatch-threads-bar",
+			"desktop/frontend-next/src/ui/Subagent", "desktop/frontend-next/src/ui/subagent",
 			"desktop/frontend-next/src/ui/Remotes", "desktop/frontend-next/src/ui/RemoteHosts",
 			"desktop/frontend-next/src/ui/RemoteDirs", "desktop/frontend-next/src/ui/RemoteNotice",
 			"desktop/frontend-next/src/ui/RemoteAsk",
 			"desktop/frontend-next/src/ui/Memory", "desktop/frontend-next/src/ui/MemoryDetail",
 			"desktop/frontend-next/src/ui/MemoryProactiveRow", "desktop/frontend-next/src/ui/MemorySuggestRow",
-			"desktop/frontend-next/src/ui/memory-", "desktop/frontend-next/src/ui/usePeers",
-			"desktop/frontend-next/src/ui/peerthreads",
-			"desktop/frontend-next/src/styles/peerthreads.css",
-			"desktop/frontend-next/src/styles/peers.css",
+			"desktop/frontend-next/src/ui/memory-",
 			"desktop/frontend-next/src/styles/feedback.css",
 			"desktop/frontend-next/src/styles/community.css",
 			"desktop/frontend-next/src/styles/memory.css",
 		},
-		Note: "sessions talking to sessions, feedback, peers, remote and memory",
+		Note: "subagents, feedback, remote and memory",
 	},
 	{
 		Name:   "settings",
-		Branch: "area/settings",
+		Prefix: "settings:",
 		Patterns: []string{
 			"desktop/frontend-next/src/ui/Settings", "desktop/frontend-next/src/ui/settings-",
 			"desktop/frontend-next/src/ui/setting", "desktop/frontend-next/src/ui/prefsnav",
@@ -102,7 +97,7 @@ var areas = []Area{
 	},
 	{
 		Name:   "workbench",
-		Branch: "area/workbench",
+		Prefix: "workbench:",
 		Patterns: []string{
 			"desktop/frontend-next/src/ui/Workbench", "desktop/frontend-next/src/ui/workbench",
 			"desktop/frontend-next/src/ui/Browser", "desktop/frontend-next/src/ui/browser",
@@ -127,7 +122,7 @@ var areas = []Area{
 	},
 	{
 		Name:   "sidebar",
-		Branch: "area/sidebar",
+		Prefix: "sidebar:",
 		Patterns: []string{
 			"desktop/frontend-next/src/ui/Sidebar", "desktop/frontend-next/src/ui/Nav",
 			"desktop/frontend-next/src/ui/Workspaces", "desktop/frontend-next/src/ui/Workspace",
@@ -168,7 +163,7 @@ var areas = []Area{
 	},
 	{
 		Name:   "conversation",
-		Branch: "area/conversation",
+		Prefix: "conversation:",
 		Patterns: []string{
 			"desktop/frontend-next/src/ui/Pane", "desktop/frontend-next/src/ui/Transcript",
 			"desktop/frontend-next/src/ui/Composer", "desktop/frontend-next/src/ui/MeterRail",
@@ -226,7 +221,7 @@ var areas = []Area{
 	},
 	{
 		Name:   "chrome",
-		Branch: "area/chrome",
+		Prefix: "chrome:",
 		Patterns: []string{
 			"desktop/frontend-next/src/ui/App.tsx", "desktop/frontend-next/src/ui/Chrome",
 			"desktop/frontend-next/src/ui/PaneTabs", "desktop/frontend-next/src/ui/Gutter",
@@ -253,7 +248,7 @@ var areas = []Area{
 	},
 	{
 		Name:   "core",
-		Branch: "area/core",
+		Prefix: "core:",
 		Patterns: []string{
 			"desktop/frontend-next/src/port/", "desktop/frontend-next/src/i18n/",
 			"desktop/frontend-next/src/state/", "desktop/frontend-next/src/styles/",
@@ -288,7 +283,7 @@ var areas = []Area{
 	},
 	{
 		Name:   "kernel",
-		Branch: "area/kernel",
+		Prefix: "kernel:",
 		Patterns: []string{
 			"internal/", "cmd/", "sdk/", "benchmarks/", "workers/", "integrations/",
 			"go.mod", "go.sum", "desktop/go.mod", "desktop/go.sum", "desktop/*.go",
@@ -318,7 +313,7 @@ func areaByName(name string) Area {
 			return a
 		}
 	}
-	return Area{Name: "core", Branch: "area/core"}
+	return Area{Name: "core", Prefix: "core:"}
 }
 
 func normalize(rel string) string {

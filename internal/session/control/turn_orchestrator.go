@@ -313,7 +313,7 @@ func (o *turnOrchestrator) runOrchestratedTurn(ctx context.Context, turn orchest
 // it when the turn opens an authored one.
 func (c *Controller) announceAuthoredTurn(ctx context.Context, raw string, msgIndex int) context.Context {
 	via := turnVia(ctx)
-	boundary := agent.HostTurnBoundary{Via: via, Peer: turnPeer(ctx)}
+	boundary := agent.HostTurnBoundary{Via: via}
 	// The turn names the model it runs on. Under a host boundary this is the
 	// only start the turn gets, so a reply attributed from anywhere else — the
 	// composer's current setting — is attributed from something that moves.
@@ -360,7 +360,6 @@ func (c *Controller) continueAnnouncedTurn(ctx context.Context) context.Context 
 	return agent.WithHostTurnBoundary(ctx, agent.HostTurnBoundary{
 		HostAuthored: true,
 		Via:          turnVia(ctx),
-		Peer:         turnPeer(ctx),
 	})
 }
 

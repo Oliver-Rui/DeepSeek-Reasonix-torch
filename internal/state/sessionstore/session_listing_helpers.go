@@ -32,7 +32,6 @@ type SessionInfo struct {
 	RecoveryDigest string
 	ParentID       string
 	RecoveryRootID string
-	PeerContent    bool
 }
 
 // SessionOrderInfo is the lightweight sidecar/mtime ordering record shared by
@@ -63,7 +62,6 @@ type SessionOrderInfo struct {
 	// be trusted (even Turns == 0). ListSessions uses them to skip the whole-file decode.
 	Turns         int
 	Preview       string
-	PeerContent   bool
 	SchemaVersion int
 	// Revision and ContentDigest bind a listing backfill to the transcript
 	// generation it decoded. They are sidecar-only compare-and-apply guards and
@@ -96,7 +94,6 @@ func sessionInfoFromOrder(session SessionOrderInfo, preview string, turns int, c
 		RecoveryDigest: session.RecoveryDigest,
 		ParentID:       session.ParentID,
 		RecoveryRootID: session.RecoveryRootID,
-		PeerContent:    session.PeerContent,
 	}
 }
 

@@ -51,7 +51,6 @@ import { usePaint } from "./paint";
 import { useZoomKeys } from "./zoomkeys";
 import { rememberActivePane, savedActivePane } from "./activepane";
 import { Sidebar } from "./Sidebar";
-import { PeerThreadsProvider } from "./peerthreads";
 import { WallpaperStage } from "./WallpaperStage";import { useAddWorkspace } from "./addws";
 import { AddWorkspacePrompt } from "./AddWorkspacePrompt";
 import { PaneTabs } from "./PaneTabs";
@@ -361,13 +360,6 @@ export function App({ hub }: { hub: HubPort }) {
     [hub, reloadPanes],
   );
 
-  const openPeerSession = useCallback((path: string) => void openPane({ sessionPath: path }).catch(fail), [openPane, fail]);
-  // Pane memoizes on its props; the opener rides a ref so a tab switch does not
-  // hand every pane a new identity and re-render them all.
-  const openPeerSessionRef = useRef(openPeerSession);
-  openPeerSessionRef.current = openPeerSession;
-  const openPeerSessionStable = useCallback((path: string) => openPeerSessionRef.current(path), []);
-
   // Pane memoizes on projectTree, and the picker reads only these fields: a
   // reload that changed none of them must hand back the object it already had,
   // or every pane redraws for a tree the picker cannot see.
@@ -547,7 +539,6 @@ export function App({ hub }: { hub: HubPort }) {
 
   return (
     <CompositionNewContext.Provider value={(id) => {const rt=runtimes.find((v)=>v.id===active);void (rt?.host?openRemotePane(rt.host,rt.root,undefined,id):openPane({root:newSessionRoot,agentComposition:id})).catch(fail);}}>
-    <PeerThreadsProvider port={activePort} hub={hub} onOpen={openPeerSession}>
     <div
       className="app"
       data-run={report.run}
@@ -715,7 +706,6 @@ export function App({ hub }: { hub: HubPort }) {
                   onSettings={openSettings}
                   onFeedback={FEEDBACK_RETIRED ? undefined : openFeedback}
                   onOpenSession={openSessionFor(rt.id)}
-                  onOpenPeerSession={openPeerSessionStable}
                   theme={scheme}
                   dockW={shownDockW}
                   dockMax={dockLimit}
@@ -794,7 +784,6 @@ export function App({ hub }: { hub: HubPort }) {
       <RailToggle rail={rail} onRail={() => setRail((v) => !v)} />
       <StopHint armed={stopArmed} />
     </div>
-    </PeerThreadsProvider>
     </CompositionNewContext.Provider>
   );
 }

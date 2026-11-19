@@ -31,9 +31,6 @@ type HostTurnBoundary struct {
 	HostAuthored bool
 	// Via is the paired device the message was sent from, nil for the window.
 	Via *provider.Via
-	// Peer is the other session the message came from, nil when a person here
-	// wrote it. The host that delivered it declares this; a body cannot.
-	Peer *provider.PeerSource
 }
 
 type hostTurnBoundaryKey struct{}
@@ -76,7 +73,6 @@ func (a *Agent) LandAuthoredUserMessage(ctx context.Context, msg provider.Messag
 	}
 	msg.HostAuthored = boundary.HostAuthored
 	msg.Via = boundary.Via
-	msg.Peer = boundary.Peer
 	index := a.sess.conversation.AddIndexed(msg)
 	if boundary.Authored != nil {
 		a.verifyAuthoredLanding(*boundary.Authored, msg, index)
