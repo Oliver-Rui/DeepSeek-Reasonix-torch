@@ -97,6 +97,16 @@ Hovering a session row shows a small card (max 360px wide, min 224px):
 
 Ordering: queued links last, then by queue position.
 
+**Position.** The card opens beside the row it belongs to and stays there: its
+top edge level with the row's top, its left edge just past the sidebar. This is
+a rule, not a preference — a card that drifts away from its row is broken even
+when its contents are right. Two things make it drift, and both are load-bearing:
+
+| Cause | Rule |
+|---|---|
+| The window scales itself with `zoom` on the root element | Divide the anchor's offset by the live `zoom` before setting `top`/`left`, as every fixed surface in this tree does |
+| `.app` carries `overflow: clip`, which makes it the containing block for a fixed child | Mount the card on the document body, never inside the sidebar |
+
 ### 3. Timeline source label
 
 A message the model received from another session carries a label above the
@@ -143,11 +153,32 @@ new turns, restart to apply. Under it, the agent gateway block:
 
 ## What this tree has today
 
-- Peers, dispatch, a rename tool and a bottom-rail board — a different surface,
-  not this one.
-- No roster page, no sidebar chat-link chips, no timeline source label, no
-  agent gateway, no event ledger.
-- User-visible strings said 会话协作.
+- The hover card, its chat-link chips, and the timeline's 来自「X」 label.
+- A bottom-rail dispatch board, peers, dispatch, and a rename tool.
+- No roster page, no agent gateway, no event ledger.
+- User-visible strings say 会话互聊.
+
+## Acceptance checks
+
+Each of these was a real break found by driving a dispatch through the running
+app, and each is pinned by a test. They are the things to try again after any
+change to the delivery path, the board, or the card.
+
+| # | Check | What a break looks like |
+|---|---|---|
+| 1 | Dispatch two tasks from one session; both targets answer | The leader waits forever, or a target's turn never starts |
+| 2 | The reply lands on the leader as a new turn | It sits `queued` in the inbox while the leader's turn runs |
+| 3 | The reply's message carries `peer` in `/history` | `peer` is null and the timeline shows no label |
+| 4 | A reply reads 「X」的回信; a first handover reads 来自「X」 | Everything reads 来自「X」, or `reply` is always absent |
+| 5 | The card names the session, not its file name | The label reads `20261119-...-dispatch` |
+| 6 | The card sits level with the row it describes, before and after scrolling the sidebar | It drifts down the page, or away when the rail scrolls |
+| 7 | The board lists both ends with role, project and state | A row is missing, or a name is blank |
+| 8 | The board appears without a reload after the page was in the background | It stays empty until the window is reloaded |
+| 9 | Archiving or deleting an end removes its board row and its card link | A closed chapter keeps asking for attention |
+| 10 | A leader that waits with a sleep still receives the answer | It burns its turn waiting and reads the reply late |
+
+Checks 2, 6, 8 and 10 are the ones a unit test cannot fully stand in for: they
+depend on a real turn running and a real window being hidden or scrolled.
 
 ## Rebuild order
 

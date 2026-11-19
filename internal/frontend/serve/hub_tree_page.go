@@ -145,7 +145,16 @@ func (h *Hub) projectPage(roots []string, name string, open map[string]string, w
 // is driving whose transcript is not on disk yet: the tree pins them above
 // the listed ones, so a step on one changes nothing.
 func (h *Hub) treeSessionRows(root string) (listed, unlisted []sessionstore.SessionInfo) {
-	rows := h.listTreeSessions(SessionDirFor(root), listingStatusFor(false), false)
+	return h.treeSessionRowsIn(SessionDirFor(root), root)
+}
+
+// treeSessionRowsIn is treeSessionRows for a session folder found some other way
+// than from an open workspace — the dispatch catalog walks every project folder,
+// including ones this window has never opened. root is only used to find open
+// sessions that have no transcript yet; an empty root finds none, which is the
+// right answer for a folder nobody has opened.
+func (h *Hub) treeSessionRowsIn(dir, root string) (listed, unlisted []sessionstore.SessionInfo) {
+	rows := h.listTreeSessions(dir, listingStatusFor(false), false)
 	sortSessions(rows)
 	held := openLookup(h.openSessions())
 	byID := map[string]map[string]sessionstore.SessionInfo{}

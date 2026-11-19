@@ -455,7 +455,7 @@ func (c *Controller) resolvePeerMessage(id string, approve bool, released peerma
 		receipt, err := c.EnqueueInbox(InboxRequest{
 			Intent: sessioninbox.IntentFollowup, Origin: sessioninbox.OriginHost,
 			Source: peerSourcePrefix + m.From.SessionID, Idempotency: "peer-" + m.ID,
-			Display: display, Submit: submit, Peer: c.peerSourceOf(m, m.From.SessionID == c.dispatchOpenerKey()),
+			Display: display, Submit: submit, Peer: c.peerSourceOf(m, c.handedTaskTo(m.From.SessionID)),
 		})
 		if err != nil {
 			return err

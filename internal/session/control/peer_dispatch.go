@@ -182,6 +182,20 @@ func (c *Controller) DispatchRoles() map[string]string {
 	return out
 }
 
+// handedTaskTo reports whether this session opened key to hand it a task. It is
+// the dispatcher's side of the pairing: the message arriving from key is then
+// an answer to work this session asked for, not a first handover.
+func (c *Controller) handedTaskTo(key string) bool {
+	if key == "" {
+		return false
+	}
+	d := c.dispatch.sessionState()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	pair := d.pairs[key]
+	return pair != nil && !pair.opener
+}
+
 func (d *dispatchSession) rememberPairLocked(key string, secret []byte, opener bool) {
 	if key == "" || len(secret) == 0 {
 		return

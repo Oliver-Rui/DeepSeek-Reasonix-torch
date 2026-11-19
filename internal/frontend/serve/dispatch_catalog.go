@@ -2,11 +2,13 @@ package serve
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"reasonix/internal/contract/config"
 	"reasonix/internal/session/control"
 	"reasonix/internal/state/peermail"
 	"reasonix/internal/state/sessionstore"
@@ -77,9 +79,15 @@ func (h *Hub) dispatchCatalog(force bool) map[string]dispatchTargetJoin {
 
 func (h *Hub) buildDispatchCatalog() map[string]dispatchTargetJoin {
 	out := map[string]dispatchTargetJoin{}
-	for _, ref := range h.sessionRoots() {
-		rows, unlisted := h.treeSessionRows(ref.dir)
-		titles := h.titleCacheFor(SessionDirFor(ref.dir)).snapshot()
+	seenDir := map[string]bool{}
+	addDir := func(dir, projectRoot string) {
+		key := sessionstore.CanonicalSessionPath(dir)
+		if key == "" || seenDir[key] {
+			return
+		}
+		seenDir[key] = true
+		rows, unlisted := h.treeSessionRowsIn(dir, projectRoot)
+		titles := h.titleCacheFor(dir).snapshot()
 		add := func(row sessionstore.SessionInfo, live bool) {
 			key := control.PeerKeyForPath(row.Path)
 			if key == "" {
@@ -88,7 +96,7 @@ func (h *Hub) buildDispatchCatalog() map[string]dispatchTargetJoin {
 			name := strings.TrimSuffix(sessionstore.BranchID(row.Path), ".jsonl")
 			out[key] = dispatchTargetJoin{
 				title:       rowTitle(titles, row, name)(),
-				project:     projectOfRow(row, ref.dir),
+				project:     projectOfRow(row, projectRoot),
 				sessionPath: row.Path,
 				archived:    row.Archived,
 				live:        live,
@@ -99,6 +107,43 @@ func (h *Hub) buildDispatchCatalog() map[string]dispatchTargetJoin {
 		}
 		for _, row := range unlisted {
 			add(row, true)
+		}
+	}
+	for _, ref := range h.sessionRoots() {
+		addDir(SessionDirFor(ref.dir), ref.dir)
+	}
+	// A dispatch can reach a project this window has never opened, so the card
+	// could not say what became of that target. Every project's session folder
+	// is walked too; seenDir keeps it to one walk per folder.
+	for _, dir := range projectSessionDirs() {
+		addDir(dir, "")
+	}
+	return out
+}
+
+// projectSessionDirs lists every per-project session folder under the state
+// root, whether or not this window has the project open. A dispatch is a
+// durable record, so the session it names can be in a project the person has
+// not looked at since; without this walk such a target would never be found and
+// an archived or deleted one would keep its link forever.
+func projectSessionDirs() []string {
+	base := config.MemoryUserDir()
+	if base == "" {
+		return nil
+	}
+	projects := filepath.Join(base, "projects")
+	entries, err := os.ReadDir(projects)
+	if err != nil {
+		return nil
+	}
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		dir := filepath.Join(projects, e.Name(), "sessions")
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			out = append(out, dir)
 		}
 	}
 	return out

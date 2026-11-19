@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -99,6 +100,10 @@ func TestDispatchThreadsStatusFallsBackToBookWithoutAudit(t *testing.T) {
 	h := NewHub(HubOptions{})
 	senderPath := sessionstore.NewSessionPath(filepath.Join(home, "sessions"), "sender")
 	targetPath := sessionstore.NewSessionPath(filepath.Join(home, "sessions"), "target")
+	// The book names a session that exists: a dispatch whose target file never
+	// landed is the case the delete check hides, and this test is about the
+	// fallback that runs before any of that.
+	writeSessionFile(t, targetPath)
 	h.dispatch.noteThread(senderPath, "reviewer", targetPath, control.PeerKeyForPath(targetPath))
 	rows := h.dispatchThreadsStatus(senderPath)
 	if len(rows) != 1 || rows[0].Role != "reviewer" || rows[0].SessionPath != targetPath ||
@@ -140,4 +145,78 @@ func newDispatchHome(t *testing.T) string {
 		}
 	}
 	return home
+}
+
+// writeSessionFile puts a minimal transcript where a session would be, so the
+// catalog lists it and the archive check has a file to read.
+func writeSessionFile(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"role":"user","content":"hi"}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A target the person archived is a closed chapter: the audit trail still
+// records the message that opened it, so the card would otherwise keep a link
+// into a session the list no longer shows.
+func TestDispatchThreadsDropsAnArchivedTarget(t *testing.T) {
+	home := newDispatchHome(t)
+	dir := config.ProjectSessionDir(filepath.Join(home, "project"))
+	senderPath := sessionstore.NewSessionPath(dir, "sender")
+	targetPath := sessionstore.NewSessionPath(dir, "target")
+	writeSessionFile(t, senderPath)
+	writeSessionFile(t, targetPath)
+	if err := sessionstore.SaveBranchMeta(targetPath, sessionstore.BranchMeta{CustomTitle: "审查员A", Archived: true}); err != nil {
+		t.Fatal(err)
+	}
+	h := NewHub(HubOptions{})
+	seedThreadAudit(t, filepath.Join(home, "peers"), senderPath, targetPath, func(s, tr string) []peermail.AuditRecord {
+		return []peermail.AuditRecord{{Receiver: tr, Sender: s, ID: "m1", Decision: peermail.DecisionSent}}
+	})
+	if rows := h.dispatchThreadsStatus(senderPath); len(rows) != 0 {
+		t.Fatalf("rows = %+v, want none for an archived target", rows)
+	}
+}
+
+// The same for a target that is gone: a deleted session must not keep a link.
+func TestDispatchThreadsDropsADeletedTarget(t *testing.T) {
+	home := newDispatchHome(t)
+	dir := config.ProjectSessionDir(filepath.Join(home, "project"))
+	senderPath := sessionstore.NewSessionPath(dir, "sender")
+	targetPath := sessionstore.NewSessionPath(dir, "target")
+	writeSessionFile(t, senderPath)
+	writeSessionFile(t, targetPath)
+	h := NewHub(HubOptions{})
+	seedThreadAudit(t, filepath.Join(home, "peers"), senderPath, targetPath, func(s, tr string) []peermail.AuditRecord {
+		return []peermail.AuditRecord{{Receiver: tr, Sender: s, ID: "m1", Decision: peermail.DecisionSent}}
+	})
+	// The catalog is built before the removal, so the join still knows the row.
+	h.dispatchCatalog(true)
+	if err := os.Remove(targetPath); err != nil {
+		t.Fatal(err)
+	}
+	if rows := h.dispatchThreadsStatus(senderPath); len(rows) != 0 {
+		t.Fatalf("rows = %+v, want none for a deleted target", rows)
+	}
+}
+
+// A target that is still there keeps its link, so the filter cannot pass by
+// dropping every row.
+func TestDispatchThreadsKeepsALiveTarget(t *testing.T) {
+	home := newDispatchHome(t)
+	dir := config.ProjectSessionDir(filepath.Join(home, "project"))
+	senderPath := sessionstore.NewSessionPath(dir, "sender")
+	targetPath := sessionstore.NewSessionPath(dir, "target")
+	writeSessionFile(t, senderPath)
+	writeSessionFile(t, targetPath)
+	h := NewHub(HubOptions{})
+	seedThreadAudit(t, filepath.Join(home, "peers"), senderPath, targetPath, func(s, tr string) []peermail.AuditRecord {
+		return []peermail.AuditRecord{{Receiver: tr, Sender: s, ID: "m1", Decision: peermail.DecisionSent}}
+	})
+	if rows := h.dispatchThreadsStatus(senderPath); len(rows) != 1 {
+		t.Fatalf("rows = %+v, want the live target's link", rows)
+	}
 }

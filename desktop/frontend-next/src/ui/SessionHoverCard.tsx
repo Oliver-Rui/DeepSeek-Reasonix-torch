@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import type { DispatchThread, HubPort } from "../port/hub";
 import { ageWord } from "./age";
@@ -41,8 +42,15 @@ export function SessionHoverCard({ hub, facts, anchor, onOpen, onEnter, onLeave 
   useEffect(() => {
     const width = 288;
     const height = card.current?.offsetHeight ?? 160;
-    const left = Math.min(anchor.right + 10, window.innerWidth - width - 12);
-    const top = Math.max(12, Math.min(anchor.top, window.innerHeight - height - 12));
+    // The window applies its own scale as zoom on the root element, and a fixed
+    // box's top/left are multiplied by it. The anchor is already measured in
+    // scaled viewport pixels, so the offset has to be divided back out or the
+    // card lands a fifth of the page below the row it describes. Every fixed
+    // surface in this tree divides by --zoom for the same reason; this reads the
+    // live value so a change of scale is followed without a reload.
+    const zoom = Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const left = Math.min(anchor.right + 10, window.innerWidth - width - 12) / zoom;
+    const top = Math.max(12, Math.min(anchor.top, window.innerHeight - height - 12)) / zoom;
     setAt({ left, top });
   }, [anchor]);
 
@@ -57,7 +65,15 @@ export function SessionHoverCard({ hub, facts, anchor, onOpen, onEnter, onLeave 
 
   const stamp = facts.updatedAt ? ageWord(facts.updatedAt, Date.now()) : "";
 
-  return (
+  // The card is positioned against the viewport, so it has to be a child of the
+  // document body. Rendered where the row lives it would sit inside `.app`,
+  // whose overflow:clip makes it the containing block for a fixed child — the
+  // card then lands at the row's offset inside that box rather than at the row,
+  // and a scrolled sidebar pushes it further off. A portal keeps the card on the
+  // row it describes whatever the sidebar is doing.
+  const body = typeof document === "undefined" ? null : document.body;
+  if (!body) return null;
+  return createPortal(
     <div className="hovercard" role="dialog" aria-label={facts.title || t("chat.dispatch_thread_unnamed")}
       ref={card} style={{ left: at.left, top: at.top }}
       onMouseEnter={onEnter} onMouseLeave={onLeave}>
@@ -88,7 +104,8 @@ export function SessionHoverCard({ hub, facts, anchor, onOpen, onEnter, onLeave 
           })}
         </div>
       )}
-    </div>
+    </div>,
+    body,
   );
 }
 

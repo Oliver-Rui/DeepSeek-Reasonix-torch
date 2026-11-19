@@ -2,6 +2,7 @@ package serve
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -56,6 +57,17 @@ func (h *Hub) dispatchThreadsFor(senderPath string, trail dispatchTrail) []Dispa
 			State: th.State, Since: th.Since,
 			SessionPath: th.SessionPath, TargetTitle: th.Title, TargetProject: th.Project,
 		}
+		b, inBook := bookByKey(book, th.Key)
+		if row.SessionPath == "" && inBook {
+			row.SessionPath = b.SessionPath
+		}
+		// A target the person archived or deleted is a closed chapter: the trail
+		// still records the message, so the card would keep a link that opens
+		// nothing and names no session at all.
+		if targetGone(join, th.Key, row.SessionPath) {
+			seen[th.Key] = true
+			continue
+		}
 		if j, ok := join[th.Key]; ok {
 			if row.SessionPath == "" {
 				row.SessionPath = j.sessionPath
@@ -70,7 +82,7 @@ func (h *Hub) dispatchThreadsFor(senderPath string, trail dispatchTrail) []Dispa
 				row.Role = sessionstore.LoadBranchRoleText(j.sessionPath)
 			}
 		}
-		if b, ok := bookByKey(book, th.Key); ok {
+		if inBook {
 			if row.Role == "" {
 				row.Role = b.Role
 			}
@@ -97,6 +109,9 @@ func (h *Hub) dispatchThreadsFor(senderPath string, trail dispatchTrail) []Dispa
 			Role: b.Role, SessionPath: b.SessionPath,
 			State: control.PeerWaiting, Since: since,
 		}
+		if targetGone(join, key, row.SessionPath) {
+			continue
+		}
 		if j, ok := join[key]; ok {
 			row.TargetTitle, row.TargetProject = j.title, j.project
 			if row.SessionPath == "" {
@@ -107,6 +122,23 @@ func (h *Hub) dispatchThreadsFor(senderPath string, trail dispatchTrail) []Dispa
 		seen[key] = true
 	}
 	return out
+}
+
+// targetGone reports whether a dispatch target is no longer a session the card
+// should offer a link to. The catalog answers when it knows the key; a path the
+// book handed out answers when it does not, because a deleted file leaves the
+// key in the trail and out of every listing. A key with no path anywhere stays:
+// hiding it would take a live dispatch off the card.
+func targetGone(join map[string]dispatchTargetJoin, key, knownPath string) bool {
+	if j, ok := join[key]; ok {
+		present, archived := j.presentAndArchived()
+		return !present || archived
+	}
+	if knownPath == "" {
+		return false
+	}
+	_, err := os.Stat(knownPath)
+	return err != nil
 }
 
 // bookByKey finds a book entry by peer key, or by path when the key is empty.

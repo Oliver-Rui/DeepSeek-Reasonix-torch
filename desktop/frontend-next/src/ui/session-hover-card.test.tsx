@@ -82,8 +82,53 @@ describe("the session hover card", () => {
     render(<Probe />);
     await act(async () => { fire?.(); });
     expect(seen).toEqual([]);
-    await act(async () => { vi.advanceTimersByTime(OPEN_DELAY_MS + 20); });
+    await act(async () => { vi.advanceTimersByTimeAsync(OPEN_DELAY_MS + 20); });
     expect(seen).toEqual(["row-1"]);
+  });
+
+  // The card is fixed-positioned, so where it is in the tree decides what it is
+  // positioned against. Rendered inside the sidebar it lands in .app, whose
+  // overflow:clip makes that box the containing block: the card then draws at
+  // the row's offset inside the box instead of at the row, and a scrolled
+  // sidebar pushes it further off. It has to hang off the body.
+  it("mounts on the document body, not inside the row", async () => {
+    const { container } = render(
+      <div className="app" style={{ overflow: "clip" }}>
+        <SessionHoverCard hub={hubWith([])} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />
+      </div>,
+    );
+    const card = document.querySelector(".hovercard");
+    expect(card).toBeTruthy();
+    expect(container.contains(card)).toBe(false);
+    expect(card!.parentElement).toBe(document.body);
+    await act(async () => { await Promise.resolve(); });
+  });
+
+  it("sits at the row's own viewport coordinates", async () => {
+    render(<SessionHoverCard hub={hubWith([])} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+    await act(async () => { await Promise.resolve(); });
+    const card = document.querySelector(".hovercard") as HTMLElement;
+    // anchor.top is 100 and the card is short in jsdom, so it is not clamped.
+    expect(card.style.top).toBe("100px");
+    expect(card.style.left).toBe("270px");
+  });
+
+  // The window scales itself with zoom on the root element, and a fixed box's
+  // top/left are multiplied by it. The anchor is measured in scaled viewport
+  // pixels, so an undivided offset puts the card a fifth of the page below its
+  // row at the default 1.2 scale — the exact drift this card shipped with.
+  it("divides out the window's own scale", async () => {
+    const before = document.documentElement.style.zoom;
+    document.documentElement.style.zoom = "2";
+    try {
+      render(<SessionHoverCard hub={hubWith([])} facts={base} anchor={anchor} onOpen={vi.fn()} onEnter={vi.fn()} onLeave={vi.fn()} />);
+      await act(async () => { await Promise.resolve(); });
+      const card = document.querySelector(".hovercard") as HTMLElement;
+      expect(card.style.top).toBe("50px");
+      expect(card.style.left).toBe("135px");
+    } finally {
+      document.documentElement.style.zoom = before;
+    }
   });
 });
 
