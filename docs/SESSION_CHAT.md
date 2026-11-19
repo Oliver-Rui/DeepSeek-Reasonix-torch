@@ -30,7 +30,21 @@ tree, 会话协作, is retired from user-visible strings.
 
 ## Surfaces
 
-### 1. Roster page (会话)
+### 0. What a user actually sees
+
+The roster below is **not** part of session chat. It is a separate internal
+feature gated twice: its own lab switch, and a server answer that is true only
+on the company intranet (`sessionManagerAvailable`, with `available: false` as
+the initial state). A public install shows none of it. What a person does see:
+
+1. The sidebar row's hover card and its chat-link chips.
+2. The timeline's 来自「X」 label on a relayed message.
+3. The lab switch and the agent-gateway block in settings.
+
+This tree builds those three. The roster stays documented below as the shape
+the shipped product uses when its gate is open, and is not built here.
+
+### 1. Roster page (会话) — gated, not built
 
 A full page, not a popover. Its own heading and subtitle:
 
@@ -137,12 +151,15 @@ new turns, restart to apply. Under it, the agent gateway block:
 
 ## Rebuild order
 
-1. Rename user-visible strings to 会话互聊 (this document's first commit).
-2. Roster page + detail panel, reading the existing peer threads.
-3. Sidebar chat-link chips and the timeline source label.
+1. Rename user-visible strings to 会话互聊 — done.
+2. Sidebar hover card and chat-link chips — done.
+3. The timeline's 来自「X」 label, carried as `provider.PeerSource` — done.
 4. Settings: the lab switch, then the gateway block.
 5. Tools: the eight names and their schemas.
 6. Event ledger and the 大管家 routing.
+
+The roster is out of scope: its gate is the company intranet, so building it
+would add a surface the shipped product does not show a public install.
 
 Each step lands on `area/collab` (or `torch` when it also touches the kernel),
 per `docs/BRANCHES.md`.
