@@ -1,7 +1,7 @@
 // What a session is made of, apart from the reducer that maintains it: the
 // rows the transcript draws and the state one turn hands the next.
 import type { StateTool } from "./outputcap";
-import type { Ask, Approval, Compaction, CostCoverage, ExtensionSurface, Guardian, StoredAttachment, Via, WorkspaceLease } from "../port/wire";
+import type { Ask, Approval, Compaction, CostCoverage, ExtensionSurface, Guardian, PeerSource, StoredAttachment, Via, WorkspaceLease } from "../port/wire";
 import type { Sample } from "../port/tokens";
 import type { Executions } from "./executions";
 
@@ -28,6 +28,9 @@ export type Item =
       msgIndex?: number;
       // The paired device it was sent from; absent is the window.
       via?: Via;
+      // The other session it came from, when one relayed it. The host declares
+      // this at delivery; the card only renders it.
+      peer?: PeerSource;
       attachments?: StoredAttachment[];
       // When the message landed in the conversation (unix ms): the moment it was
       // sent, or for a follow-up that waited, when its turn began. Guidance said

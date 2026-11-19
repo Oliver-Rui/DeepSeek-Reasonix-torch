@@ -103,6 +103,10 @@ type Message struct {
 	// Via names the paired device a user message was sent from. Nil is the
 	// window itself. Local UI metadata, stripped before every provider request.
 	Via *Via `json:"via,omitempty"`
+	// Peer names the other session a user-role message came from. Local UI
+	// metadata, stripped before every provider request: the label a reader sees
+	// is the host's account, never something the body can spell for itself.
+	Peer *PeerSource `json:"peer,omitempty"`
 	// Derived marks a message the host projects onto one request — a tail it
 	// re-derives every time rather than conversation the next request carries.
 	// Never stored and never serialized: it is a fact about this request.

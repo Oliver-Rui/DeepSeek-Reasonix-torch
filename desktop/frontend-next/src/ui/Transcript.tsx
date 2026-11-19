@@ -90,6 +90,7 @@ interface Props {
   onPrepareFileRevert: (path: string) => Promise<RewindPlan>;
   onCommitFileRevert: (planId: string, resolution?: string) => Promise<RewindResult>;
   onCommitRewind: (planId: string, text?: string) => Promise<RewindResult>;
+  onOpenPeer?: (path: string) => void; // the session a relayed message came from
   /** Cards that have not had their one entrance yet. Owed by the projection,
    *  spent by the first render that draws them — never by the animation, which
    *  may not run at all. */
@@ -100,7 +101,7 @@ interface Props {
   brought?: { ids: string[]; bring: (id: string) => void; dismiss: (id: string) => void };
 }
 
-export function Transcript({ items: every, port, historyPaging, entering, onEntered, brought, revision, waiting, scroll, hidden, focus, find, query, onApprove, onFullAccess, onPlan, onAnswer, onForget, onSettings, onExtInvoke, onExtSubmit, reply, onResend, onWithdraw, takeovers = {}, checkpoints, onPrepareRewind, onCommitRewind, onPrepareFileRevert, onCommitFileRevert, onSuggest, foldWork = false, turnRunning = false, scope = "" }: Props) {
+export function Transcript({ items: every, port, historyPaging, entering, onEntered, brought, revision, waiting, scroll, hidden, focus, find, query, onApprove, onFullAccess, onPlan, onAnswer, onForget, onSettings, onExtInvoke, onExtSubmit, reply, onResend, onWithdraw, takeovers = {}, checkpoints, onPrepareRewind, onCommitRewind, onOpenPeer, onPrepareFileRevert, onCommitFileRevert, onSuggest, foldWork = false, turnRunning = false, scope = "" }: Props) {
   // A block the selection touches must not leave the DOM. Unmounting the node a
   // selection is anchored to makes the browser remap that selection onto
   // whatever is still mounted — which reads as "I selected up there and the
@@ -468,7 +469,7 @@ export function Transcript({ items: every, port, historyPaging, entering, onEnte
 
   const bring = brought?.bring;
   const onBring = useMemo(() => (bring ? (id: string) => { bring(id); resume(); } : undefined), [bring, resume]);
-  const rowProps = { onBring, owed, echoes, port, onApprove, onFullAccess, onPlan, onAnswer, onForget, onSettings, onExtInvoke, takeovers, onExtSubmit, onPrepareRewind, onCommitRewind, onPrepareFileRevert, onCommitFileRevert, reply, onResend, onWithdraw };
+  const rowProps = { onBring, owed, echoes, port, onApprove, onFullAccess, onPlan, onAnswer, onForget, onSettings, onExtInvoke, takeovers, onExtSubmit, onPrepareRewind, onCommitRewind, onOpenPeer, onPrepareFileRevert, onCommitFileRevert, reply, onResend, onWithdraw };
 
   const marks = railMarks(blocks, (id) => checkpoints.get(id)?.files ?? 0);
 
@@ -620,6 +621,7 @@ interface RowHandlers {
   onExtSubmit: Props["onExtSubmit"];
   onPrepareRewind: Props["onPrepareRewind"];
   onCommitRewind: Props["onCommitRewind"];
+  onOpenPeer: Props["onOpenPeer"];
   onPrepareFileRevert: Props["onPrepareFileRevert"];
   reply: Props["reply"];
   onResend: Props["onResend"];
@@ -705,6 +707,7 @@ const Row = memo(function Row({
   cp,
   onPrepareRewind,
   onCommitRewind,
+  onOpenPeer,
   onPrepareFileRevert,
   onCommitFileRevert,
   afterAnswer,
@@ -732,6 +735,7 @@ const Row = memo(function Row({
           onWithdraw={onWithdraw}
           onPrepareRewind={onPrepareRewind}
           onCommitRewind={onCommitRewind}
+          onOpenPeer={onOpenPeer}
         />
       );
     case "say":

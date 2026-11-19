@@ -103,6 +103,23 @@ func (d *Dir) RemoveLiveIf(sessionID, instance string) error {
 	return err
 }
 
+// Live reads one session's published record. ok is false when the session has
+// none, or when the file is one this package would reject from a listing: a
+// caller that needs a single record asks the same questions a listing does.
+func (d *Dir) Live(sessionID string) (Live, bool) {
+	if !validID(sessionID) {
+		return Live{}, false
+	}
+	var l Live
+	if reason := d.readJSON(filepath.Join(d.root, "live", sessionID+".json"), maxLiveBytes, &l); reason != "" {
+		return Live{}, false
+	}
+	if l.SessionID != sessionID || !l.validate() {
+		return Live{}, false
+	}
+	return l, true
+}
+
 // ListLive returns the records whose runtime the caller's check says is alive.
 // A record whose file name is not its own session id is skipped as forged: the
 // name is what a sender addressed, so the two must agree.

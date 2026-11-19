@@ -36,6 +36,14 @@ export function PeerThreadsProvider({ port, hub, onOpen, children }: {
  *  show the role the sender opened the session under instead of its title, and
  *  `project` stands in where the wire named none — a peer that has gone quiet
  *  keeps neither on the trail. */
+/** The chat links of every session, keyed by transcript path. A row that wants
+ *  to list them outside a lamp reads this once; the map is stable between
+ *  readings, so a sidebar of a hundred rows does not rebuild per row. */
+export function usePeerThreadMap(): ReadonlyMap<string, PeerThread> {
+  const { by } = useContext(PeerThreadsContext);
+  return by;
+}
+
 export function wording(th: PeerThread, name = th.title, project?: string): string {
   const p = { title: name, project: project ?? th.project ?? t("chat.dispatch_thread_unknown_project") };
   switch (th.state) {

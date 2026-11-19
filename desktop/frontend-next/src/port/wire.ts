@@ -276,6 +276,16 @@ export interface Via {
   ordinal: number;
 }
 
+// The other session a user message came from, when one relayed it. Mirrors
+// serve.peerSourceWire: the host writes it at delivery, so a label is never
+// guessed from the body's wording.
+export interface PeerSource {
+  sessionId: string;
+  title?: string;
+  path?: string;
+  reply?: boolean;
+}
+
 export interface AskOption {
   label: string;
   description?: string;
@@ -719,6 +729,9 @@ export interface WireEvent {
   // the window. The message itself rides text, for every client that did not
   // send it.
   via?: Via;
+  // turn_started / steer: the other session the message came from, when one
+  // relayed it. The host declares it, so the label never reads the body.
+  peer?: PeerSource;
   // turn_started / steer: the stored attachments the message references.
   attachments?: StoredAttachment[];
   // steer: the host wrote this guidance, so it is never drawn as the person's.

@@ -535,7 +535,7 @@ function apply(s: SessionState, ev: SessionEvent): SessionState {
         (i) => i.t === "user" && i.pending && (ev.itemId ? i.itemId === ev.itemId : i.text === ev.text),
       );
       if (at < 0) return { ...s, steerQueue: q, items: othersSteer(s.items, ev) };
-      const row = { ...(s.items[at] as Extract<Item, { t: "user" }>), pending: false, steer: true, via: ev.via, attachments: ev.attachments };
+      const row = { ...(s.items[at] as Extract<Item, { t: "user" }>), pending: false, steer: true, via: ev.via, peer: ev.peer, attachments: ev.attachments };
       return { ...s, steerQueue: q, items: [...s.items.slice(0, at), ...s.items.slice(at + 1), row] };
     }
 
@@ -721,7 +721,7 @@ export function fromHistory(msgs: HistoryMessage[], options: { snapshot?: string
       // after an upgrade as well as for newly written history.
       const legacyHostRepair = m.content.startsWith("The following tools are unavailable in the current workflow phase:");
       const text = m.hostAuthored || legacyHostRepair ? "" : stripControl(m.content);
-      if (text) out.push({ t: "user", id: allocate(), text, msgIndex: m.msgIndex, steer: m.steer, via: m.via, attachments: m.attachments, at: m.createdAt });
+      if (text) out.push({ t: "user", id: allocate(), text, msgIndex: m.msgIndex, steer: m.steer, via: m.via, peer: m.peer, attachments: m.attachments, at: m.createdAt });
       continue;
     }
     if (m.role === "assistant") {

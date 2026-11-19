@@ -18,6 +18,7 @@ import (
 
 	"reasonix/internal/contract/config"
 	"reasonix/internal/contract/event"
+	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/tool"
 	"reasonix/internal/state/peermail"
 	"reasonix/internal/state/sessioninbox"
@@ -442,7 +443,7 @@ func (c *Controller) resolvePeerMessage(id string, approve bool, released peerma
 		receipt, err := c.EnqueueInbox(InboxRequest{
 			Intent: sessioninbox.IntentFollowup, Origin: sessioninbox.OriginHost,
 			Source: peerSourcePrefix + m.From.SessionID, Idempotency: "peer-" + m.ID,
-			Display: display, Submit: submit,
+			Display: display, Submit: submit, Peer: c.peerSourceOf(m, false),
 		})
 		if err != nil {
 			return err
@@ -498,6 +499,24 @@ func (c *Controller) startPeerItem(id string, standing bool) {
 	if _, err := c.submitInboxItem(id, true); err != nil {
 		slog.Warn("controller: start a message from another session", "err", err, "id", id)
 	}
+}
+
+// peerSourceOf is the label a reader of the delivered message sees. The host
+// writes it from the sender's published record, so a body cannot claim a
+// different origin, and a sender that has gone quiet still names itself. The
+// path comes from the live record because the spooled message carries none: it
+// is what lets the label open the conversation it came from.
+func (c *Controller) peerSourceOf(m peermail.Message, reply bool) *provider.PeerSource {
+	src := &provider.PeerSource{SessionID: m.From.SessionID, Title: peerAttribute(m.From.Title), Reply: reply}
+	if dir := c.peers.dirOrNil(); dir != nil {
+		if live, ok := dir.Live(m.From.SessionID); ok {
+			src.Path = live.SessionPath
+			if src.Title == "" {
+				src.Title = peerAttribute(live.Title)
+			}
+		}
+	}
+	return src
 }
 
 // peerMessageTexts is the host's own account of a message: the queue row says

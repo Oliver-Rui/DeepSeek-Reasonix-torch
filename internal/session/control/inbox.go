@@ -48,6 +48,9 @@ type InboxRequest struct {
 	FreezeRefs []string
 	// Via is the paired device the item came from; nil is the window.
 	Via *provider.Via
+	// Peer is the other session the item came from; nil when a person here
+	// wrote it. Declared by whoever delivered it, never read off the text.
+	Peer *provider.PeerSource
 }
 
 // Inbox port on SessionAPI.
@@ -347,6 +350,7 @@ func (c *Controller) EnqueueInbox(req InboxRequest) (sessioninbox.InboxReceipt, 
 		Invocations:  sessionInboxInvocations(req.Invocations),
 		Extra:        maps.Clone(req.Extra),
 		Via:          req.Via,
+		Peer:         req.Peer,
 	}
 	// Text the host wrote for another party is data: an @token in it names nothing here.
 	if req.SurfaceAction == nil && !req.Origin.IsHost() {
@@ -444,6 +448,7 @@ func (c *Controller) UpdateInboxItem(id, display, raw, submit string) (sessionin
 		Attachments:  append([]string(nil), previous.Attachments...),
 		Extra:        maps.Clone(previous.Extra),
 		Via:          previous.Via,
+		Peer:         previous.Peer,
 	}
 	env.FrozenRefBlock, env.FrozenImages, env.ReferenceErrors = c.freezeInboxReferences(context.Background(), submit, env.ExplicitRefs)
 	updated, err := st.UpdateItem(id, env)
@@ -501,6 +506,7 @@ func (c *Controller) AppendInboxItem(id, text, idempotency string, extra map[str
 		Source:      previous.Source,
 		Extra:       maps.Clone(extra),
 		Via:         previous.Via,
+		Peer:        previous.Peer,
 	}
 	updated, err := st.UpdateItemWithIdempotency(id, env, idempotency, aliasEnv)
 	if err != nil {

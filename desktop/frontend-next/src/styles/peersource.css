@@ -1,0 +1,12 @@
+/* The label on a message another session relayed. It sits on the same hover
+   row as the paired-device mark, so a reader learns where a line came from in
+   one place; the icon and the wording are the shipped product's. */
+.peersrc {
+  display: inline-flex; flex: none; align-items: center; gap: 5px;
+  padding: 0; border: 0; background: none;
+  color: var(--faint); font: var(--w-reg) var(--fs-micro)/1.5 var(--ui);
+}
+.peersrc .studio-icon { width: 13px; height: 13px; flex: none; }
+button.peersrc { cursor: pointer; }
+button.peersrc:hover, button.peersrc:focus-visible { color: var(--net); }
+.peersrc > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

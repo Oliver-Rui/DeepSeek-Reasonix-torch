@@ -1,5 +1,5 @@
 import { t } from "../i18n";
-import type { Via } from "../port/wire";
+import type { PeerSource, Via } from "../port/wire";
 import type { DeviceSelf } from "../port/share";
 
 /** Where a message came from, said only when it was not this screen: another
@@ -8,6 +8,15 @@ import type { DeviceSelf } from "../port/share";
 export function messageSource(via: Via | undefined, viewer: DeviceSelf | null): string {
   if (via) return viewer?.id === via.device ? "" : t("chat.from_device_n", { n: via.ordinal });
   return viewer ? t("chat.from_the_computer") : "";
+}
+
+/** The other session a message came from, worded the way the shipped product
+ *  words it: 来自「X」 for a task handed over, 「X」的回信 for a member's answer.
+ *  The host wrote this label at delivery, so nothing here reads the body. */
+export function peerSourceLabel(peer: PeerSource | undefined): string {
+  if (!peer?.sessionId) return "";
+  const title = peer.title?.trim() || t("chat.dispatch_thread_unnamed");
+  return peer.reply ? t("chat.peer_source_reply", { title }) : t("chat.peer_source_from", { title });
 }
 
 /** Who answered a question this screen did not, with what they chose. */

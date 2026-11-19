@@ -1,6 +1,6 @@
 import type { ModelMode } from "./model";
 import type { CompositionSummary } from "./composition";
-import type { ArgumentNormalization, StoredAttachment, Via } from "./wire";
+import type { ArgumentNormalization, PeerSource, StoredAttachment, Via } from "./wire";
 // A conversation and the states it passes through: what is running, what it
 // cost, and the points it can be wound back to.
 // GET /history: the event stream is live-only, so a reload rebuilds from these.
@@ -19,6 +19,9 @@ export interface HistoryMessage {
   steer?: boolean;
   // The paired device a user message was sent from; absent is the window.
   via?: Via;
+  // The other session a user message came from, when one relayed it. The host
+  // writes this at delivery; nothing here reads it off the body.
+  peer?: PeerSource;
   // Which model wrote this assistant turn. A rebuild has no turn_started to
   // read it off, and the composer's current setting is a different fact.
   modelRef?: string;

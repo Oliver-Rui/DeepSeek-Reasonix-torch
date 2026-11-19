@@ -579,6 +579,7 @@ function PaneView({ port, hub, rt, title, active, visible, sideHost, side, onFoc
         checkpoints={paired}
         onPrepareRewind={onPrepareRewind}
         onCommitRewind={onCommitRewind}
+        onOpenPeer={onOpenPeerSession}
         onPrepareFileRevert={onPrepareFileRevert}
         onCommitFileRevert={onCommitFileRevert}
         onSuggest={(text) => setInserted((was) => ({ n: was.n + 1, text }))}

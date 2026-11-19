@@ -16,6 +16,8 @@
 @import "./waitnote.css" layer(legacy);
 @import "./bring.css" layer(legacy);
 @import "./peerthreads.css" layer(legacy);
+@import "./peersource.css" layer(legacy);
+@import "./hovercard.css" layer(legacy);
 @import "./line.css" layer(legacy);
 @import "./notice.css" layer(legacy);
 @import "./peers.css" layer(legacy);
