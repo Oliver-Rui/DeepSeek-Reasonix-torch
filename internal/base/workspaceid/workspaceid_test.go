@@ -1,4 +1,4 @@
-package workspaceid
+package workspaceid_test
 
 import (
 	"os"
@@ -7,21 +7,34 @@ import (
 	"testing"
 
 	"reasonix/internal/base/testenv"
+	"reasonix/internal/base/workspaceid"
 )
 
+// canonical mirrors the path normalization Describe applies, so a test can
+// name what a CheckoutRoot should read as.
+func canonical(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	if real, err := filepath.EvalSymlinks(path); err == nil {
+		path = real
+	}
+	return filepath.Clean(path)
+}
+
 func sharesRepo(a, b string) bool {
-	repo := RepoDir(a)
-	return repo != "" && repo == RepoDir(b)
+	repo := workspaceid.RepoDir(a)
+	return repo != "" && repo == workspaceid.RepoDir(b)
 }
 
 func TestKeyPathWhenNotARepository(t *testing.T) {
 	dir := testenv.TempDir(t)
-	key := Key(dir)
-	if !strings.HasPrefix(key, PathPrefix) {
-		t.Fatalf("Key(%q) = %q, want a %s key", dir, key, PathPrefix)
+	key := workspaceid.Key(dir)
+	if !strings.HasPrefix(key, workspaceid.PathPrefix) {
+		t.Fatalf("Key(%q) = %q, want a %s key", dir, key, workspaceid.PathPrefix)
 	}
-	if RepoDir(dir) != "" {
-		t.Fatalf("RepoDir(%q) = %q, want empty", dir, RepoDir(dir))
+	if workspaceid.RepoDir(dir) != "" {
+		t.Fatalf("RepoDir(%q) = %q, want empty", dir, workspaceid.RepoDir(dir))
 	}
 }
 
@@ -31,14 +44,14 @@ func TestKeyRepoForRootAndSubdirectory(t *testing.T) {
 	sub := filepath.Join(repo, "internal", "agent")
 	mkdir(t, sub)
 
-	rootKey := Key(repo)
-	if !strings.HasPrefix(rootKey, RepoPrefix) {
-		t.Fatalf("Key(repo) = %q, want a %s key", rootKey, RepoPrefix)
+	rootKey := workspaceid.Key(repo)
+	if !strings.HasPrefix(rootKey, workspaceid.RepoPrefix) {
+		t.Fatalf("Key(repo) = %q, want a %s key", rootKey, workspaceid.RepoPrefix)
 	}
-	if got := Key(sub); got != rootKey {
+	if got := workspaceid.Key(sub); got != rootKey {
 		t.Fatalf("Key(subdir) = %q, want the repository key %q", got, rootKey)
 	}
-	info := Describe(sub)
+	info := workspaceid.Describe(sub)
 	if info.CheckoutRoot != canonical(repo) || info.Prefix != filepath.Join("internal", "agent") {
 		t.Fatalf("checkout ownership lost selected subdirectory: %+v", info)
 	}
@@ -58,7 +71,7 @@ func TestKeyLinkedWorktreeSharesTheRepositoryKey(t *testing.T) {
 	writeFile(t, filepath.Join(tree, ".git"),
 		"gitdir: "+filepath.Join(gitDir, "worktrees", "studio")+"\n")
 
-	if got, want := Key(tree), Key(repo); got != want {
+	if got, want := workspaceid.Key(tree), workspaceid.Key(repo); got != want {
 		t.Fatalf("worktree key = %q, main tree key = %q, want equal", got, want)
 	}
 	if !sharesRepo(tree, repo) {
@@ -74,7 +87,7 @@ func TestKeyRelativeGitdirPointer(t *testing.T) {
 	mkdir(t, tree)
 	writeFile(t, filepath.Join(tree, ".git"), "gitdir: ../repo/.git/worktrees/wt\n")
 
-	if got, want := Key(tree), Key(repo); got != want {
+	if got, want := workspaceid.Key(tree), workspaceid.Key(repo); got != want {
 		t.Fatalf("relative-pointer worktree key = %q, want %q", got, want)
 	}
 }
@@ -89,28 +102,30 @@ func TestKeySubmoduleStaysItsOwnRepository(t *testing.T) {
 	mkdir(t, sub)
 	writeFile(t, filepath.Join(sub, ".git"), "gitdir: ../.git/modules/vendor\n")
 
-	if Key(sub) == Key(super) {
-		t.Fatalf("submodule shares the superproject key %q", Key(sub))
+	if workspaceid.Key(sub) == workspaceid.Key(super) {
+		t.Fatalf("submodule shares the superproject key %q", workspaceid.Key(sub))
 	}
-	if !strings.HasPrefix(Key(sub), RepoPrefix) {
-		t.Fatalf("Key(submodule) = %q, want a %s key", Key(sub), RepoPrefix)
+	if !strings.HasPrefix(workspaceid.Key(sub), workspaceid.RepoPrefix) {
+		t.Fatalf("Key(submodule) = %q, want a %s key", workspaceid.Key(sub), workspaceid.RepoPrefix)
 	}
 }
 
 // Two plain folders are two projects. Walking up for a repository must not
-// collapse them onto the drive the walk ended on.
+// collapse them onto the drive the walk ended on. The temp harness keeps its
+// folders outside any repository for exactly this reason: a home that doubles
+// as a dotfiles repo would otherwise key every test folder the same.
 func TestKeyDistinctPerFolderOutsideRepositories(t *testing.T) {
 	a, b := testenv.TempDir(t), testenv.TempDir(t)
-	if Key(a) == Key(b) {
-		t.Fatalf("two plain folders share key %q", Key(a))
+	if workspaceid.Key(a) == workspaceid.Key(b) {
+		t.Fatalf("two plain folders share key %q", workspaceid.Key(a))
 	}
-	if Key(a) != Key(a+string(filepath.Separator)) {
+	if workspaceid.Key(a) != workspaceid.Key(a+string(filepath.Separator)) {
 		t.Fatal("Key is not stable across spellings of one folder")
 	}
 }
 
 func TestKeyEmptyRoot(t *testing.T) {
-	if got := Key("  "); got != "" {
+	if got := workspaceid.Key("  "); got != "" {
 		t.Fatalf("Key(blank) = %q, want empty", got)
 	}
 }

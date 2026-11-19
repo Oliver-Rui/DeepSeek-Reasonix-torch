@@ -5,7 +5,9 @@ export type SessionScope = "all" | "live" | "waiting" | "unread" | "pinned" | "a
 // An archived conversation leaves every list but Archived — except that a
 // search is a request to find it, so it answers from the whole list and the row
 // says it is archived. A session 1.x wrote can be kept out of the lists the same
-// way, unless it is running or being searched for.
+// way, unless it is running or being searched for. A removed project's ghost
+// row arrives only in the Archived scope and in search results — the kernel
+// decides when the archive is the view — so nothing extra is needed here.
 export function inScope(session: TreeSession, scope: SessionScope, searching: boolean, live: boolean, pinned: boolean, hideLegacy = false, waiting = false): boolean {
   if (scope === "archived") return !!session.archived;
   if (session.archived) return searching && scope === "all";

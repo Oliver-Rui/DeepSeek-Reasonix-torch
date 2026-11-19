@@ -8,11 +8,10 @@ import (
 )
 
 // archiveWorkspaceSessions archives every conversation a folder holds, so a
-// removed project leaves nothing behind in the everyday list. Nothing on disk is
-// deleted: the rows are still in 归档, and adding the folder back restores them.
-//
-// A session that could not be archived is reported rather than skipped — half a
-// removal is a state the person did not ask for.
+// removed project leaves nothing behind in the everyday list. Nothing on disk
+// is deleted: the rows are still in 归档, and the project row stays as a ghost
+// of itself until its conversations are gone or the folder is asked for again.
+// A session that could not be archived is reported rather than skipped.
 func (h *Hub) archiveWorkspaceSessions(dir string) error {
 	sessionDir := SessionDirFor(dir)
 	if sessionDir == "" {
@@ -36,4 +35,25 @@ func (h *Hub) archiveWorkspaceSessions(dir string) error {
 		}
 	}
 	return nil
+}
+
+// workspaceHasListableSessions says whether the folder still holds a
+// conversation the sidebar would list: subagent transcripts are bookkeeping,
+// not rows. This is what keeps a ghost row standing — and what retires it once
+// the archive has been emptied.
+func workspaceHasListableSessions(dir string) bool {
+	sessionDir := SessionDirFor(dir)
+	if sessionDir == "" {
+		return false
+	}
+	infos, err := sessionstore.ListSessions(sessionDir)
+	if err != nil {
+		return false
+	}
+	for _, info := range infos {
+		if !store.IsSubagentTranscriptName(filepath.Base(info.Path)) {
+			return true
+		}
+	}
+	return false
 }

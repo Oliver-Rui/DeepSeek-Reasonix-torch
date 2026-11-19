@@ -19,15 +19,30 @@ export interface ProjectMenuProps {
   onArchiveSessions: () => void;
   onBatchSelect: () => void;
   onRemove: () => void;
+  // A ghost row's way back: the same add the sidebar offers, which lifts the
+  // removal and lists the folder whole again.
+  onRestore: () => void;
   hub: HubPort;
   dismiss: () => void;
   onError: (e: unknown) => void;
 }
 
+/** The tag a ghost row wears: it says the project was removed, so the archived
+ *  rows under it never read as lost. Lives here with the ghost's menu. */
+export function GhostRowTag() {
+  return (
+    <span className="wsmeta">
+      <em className="wstag">{t("common.removed_project_archive_left")}</em>
+    </span>
+  );
+}
+
 /** A project's actions, drawn at the document root so the sidebar's clipping
- *  cannot cut them. The move rows lead; every action closes the menu itself. */
+ *  cannot cut them. The move rows lead; every action closes the menu itself.
+ *  A ghost row — a removed project whose archive is still shown — swaps the
+ *  listing actions for the one that puts it back. */
 export const ProjectMenu = forwardRef<HTMLDivElement, ProjectMenuProps>(function ProjectMenu(
-  { ws, visible, searching, canMoveUp, canMoveDown, onMoveUp, onMoveDown, onRename, onPin, onArchiveSessions, onBatchSelect, onRemove, hub, dismiss, onError },
+  { ws, visible, searching, canMoveUp, canMoveDown, onMoveUp, onMoveDown, onRename, onPin, onArchiveSessions, onBatchSelect, onRemove, onRestore, hub, dismiss, onError },
   ref,
 ) {
   return createPortal(
@@ -36,25 +51,29 @@ export const ProjectMenu = forwardRef<HTMLDivElement, ProjectMenuProps>(function
         <b>{ws.name}</b>
         <small className="session-pop-path" title={ws.root}>{ws.root}</small>
       </div>
-      <div className="session-pop-group">
-        <button role="menuitem" data-action="workspace.move" data-value="up" disabled={searching || !canMoveUp} onClick={onMoveUp}>
-          <StudioIcon name="up" /><span>{t("common.move_up")}</span>
-        </button>
-        <button role="menuitem" data-action="workspace.move" data-value="down" disabled={searching || !canMoveDown} onClick={onMoveDown}>
-          <StudioIcon name="down" /><span>{t("common.move_down")}</span>
-        </button>
-      </div>
-      <div className="session-pop-group">
-        <button role="menuitem" data-action="workspace.rename-start" disabled={ws.missing} onClick={onRename}>
-          <StudioIcon name="edit" /><span>{t("session.rename_project")}</span>
-        </button>
-        <button role="menuitem" data-action="workspace.pin" data-value={ws.pinned ? "off" : "on"} onClick={onPin}>
-          <StudioIcon name="pin" /><span>{t(ws.pinned ? "session.unpin_project" : "session.pin_project")}</span>
-        </button>
-        <button role="menuitem" data-action="workspace.archive-sessions" disabled={visible.length === 0} onClick={onArchiveSessions}>
-          <StudioIcon name="archive" /><span>{t("session.archive_project_sessions")}</span>
-        </button>
-      </div>
+      {!ws.removed && (
+        <div className="session-pop-group">
+          <button role="menuitem" data-action="workspace.move" data-value="up" disabled={searching || !canMoveUp} onClick={onMoveUp}>
+            <StudioIcon name="up" /><span>{t("common.move_up")}</span>
+          </button>
+          <button role="menuitem" data-action="workspace.move" data-value="down" disabled={searching || !canMoveDown} onClick={onMoveDown}>
+            <StudioIcon name="down" /><span>{t("common.move_down")}</span>
+          </button>
+        </div>
+      )}
+      {!ws.removed && (
+        <div className="session-pop-group">
+          <button role="menuitem" data-action="workspace.rename-start" disabled={ws.missing} onClick={onRename}>
+            <StudioIcon name="edit" /><span>{t("session.rename_project")}</span>
+          </button>
+          <button role="menuitem" data-action="workspace.pin" data-value={ws.pinned ? "off" : "on"} onClick={onPin}>
+            <StudioIcon name="pin" /><span>{t(ws.pinned ? "session.unpin_project" : "session.pin_project")}</span>
+          </button>
+          <button role="menuitem" data-action="workspace.archive-sessions" disabled={visible.length === 0} onClick={onArchiveSessions}>
+            <StudioIcon name="archive" /><span>{t("session.archive_project_sessions")}</span>
+          </button>
+        </div>
+      )}
       <div className="session-pop-group">
         <button role="menuitem" data-action="session.selection" data-value="start" disabled={visible.length === 0} onClick={onBatchSelect}>
           <StudioIcon name="check" /><span>{t("session.batch_select_sessions")}</span>
@@ -68,9 +87,15 @@ export const ProjectMenu = forwardRef<HTMLDivElement, ProjectMenuProps>(function
         </button>
       </div>
       <div className="session-pop-group">
-        <button className="danger" role="menuitem" data-action="workspace.remove" onClick={onRemove}>
-          <StudioIcon name="close" /><span>{t("common.remove_from_the_list")}</span><small>{t("common.keeps_files")}</small>
-        </button>
+        {ws.removed ? (
+          <button role="menuitem" data-action="workspace.restore" onClick={onRestore}>
+            <StudioIcon name="reveal" /><span>{t("common.put_back_on_the_list")}</span><small>{t("common.keeps_files")}</small>
+          </button>
+        ) : (
+          <button className="danger" role="menuitem" data-action="workspace.remove" onClick={onRemove}>
+            <StudioIcon name="close" /><span>{t("common.remove_from_the_list")}</span><small>{t("common.keeps_files")}</small>
+          </button>
+        )}
       </div>
     </div>,
     document.body,

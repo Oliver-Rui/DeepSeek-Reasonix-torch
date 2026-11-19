@@ -116,7 +116,7 @@ describe("the unread badge", () => {
       const real = window[name].bind(window) as (fn: TimerHandler, ms?: number, ...a: unknown[]) => number;
       return vi.spyOn(window, name).mockImplementation(((fn: TimerHandler, ms?: number, ...a: unknown[]) => {
         const stack = new Error().stack ?? "";
-        if ((ms ?? 0) >= 10_000 && ms !== 10_000 && !stack.includes("@testing-library") && !stack.includes("updatewatch") && !stack.includes("useStatusPoll") && !stack.includes("usePeers")) long.push(ms!);
+        if ((ms ?? 0) >= 10_000 && ms !== 10_000 && !stack.includes("@testing-library") && !stack.includes("updatewatch") && !stack.includes("useStatusPoll")) long.push(ms!);
         return real(fn, ms, ...a);
       }) as typeof window.setTimeout);
     };

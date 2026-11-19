@@ -27,6 +27,12 @@ func eachSessionDir(dir string, visit func(sub string, entries []os.DirEntry)) e
 		if walkErr != nil || !d.IsDir() || path == dir {
 			return nil
 		}
+		// A subagent transcript belongs to the session that spawned it, never
+		// to the user's own list; the tree they file under stays out here the
+		// way the flat legacy names do (store.IsSubagentTranscriptName).
+		if store.IsSubagentTranscriptTree(d.Name()) {
+			return fs.SkipDir
+		}
 		sub, readErr := os.ReadDir(path)
 		if readErr != nil {
 			return nil

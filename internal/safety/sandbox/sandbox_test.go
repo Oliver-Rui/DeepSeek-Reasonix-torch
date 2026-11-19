@@ -227,6 +227,11 @@ func TestIsWindowsWSLBash(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("windows-only path detection")
 	}
+	// Detection compares file identity with the launcher Windows ships, so a
+	// machine without WSL has nothing the test can compare against.
+	if _, err := os.Stat(`C:\Windows\System32\bash.exe`); err != nil {
+		t.Skip("this Windows install has no WSL bash launcher")
+	}
 	t.Setenv("SystemRoot", `C:\Windows`)
 	if !isWindowsWSLBash(`C:\Windows\System32\bash.exe`) {
 		t.Error("System32 bash launcher should be detected as WSL")

@@ -64,6 +64,12 @@ func TestAutoNameUsesUserMessagesSuffixAndWaitsForSave(t *testing.T) {
 	h, rt, path, latest := titleSession(t)
 	source := []rune("first topic\n" + latest)
 	expected := string(source[len(source)-300:])
+	// The draft is the echo of what the model saw, carried as a label: a title
+	// is not a paragraph, so the pipeline caps it at 48 runes.
+	named := expected
+	if r := []rune(named); len(r) > 48 {
+		named = strings.TrimSpace(string(r[:48])) + "…"
+	}
 	before, _, err := sessionstore.LoadBranchMeta(path)
 	if err != nil {
 		t.Fatal(err)
@@ -87,7 +93,7 @@ func TestAutoNameUsesUserMessagesSuffixAndWaitsForSave(t *testing.T) {
 	var generated struct {
 		Title string `json:"title"`
 	}
-	if err := json.Unmarshal(res.Body.Bytes(), &generated); err != nil || generated.Title != expected {
+	if err := json.Unmarshal(res.Body.Bytes(), &generated); err != nil || generated.Title != named {
 		t.Fatalf("generated draft = %+v, err=%v", generated, err)
 	}
 	afterDraft, _, err := sessionstore.LoadBranchMeta(path)
@@ -103,17 +109,17 @@ func TestAutoNameUsesUserMessagesSuffixAndWaitsForSave(t *testing.T) {
 		t.Fatalf("save generated title: %d %s", res.Code, res.Body.String())
 	}
 	wantMeta := before
-	wantMeta.CustomTitle = expected
+	wantMeta.CustomTitle = named
 	after, _, err := sessionstore.LoadBranchMeta(path)
 	if err != nil || !reflect.DeepEqual(after, wantMeta) {
 		t.Fatalf("automatic naming changed metadata beyond the title: got=%+v want=%+v err=%v", after, wantMeta, err)
 	}
 	rt.Server.titles.put(filepath.Base(path), "late background result", "first topic", 2)
 	rows := h.workspacePage(rt.Root, "", nil, treeWindow{}, 0).Sessions
-	if len(rows) != 1 || rows[0].Title != expected {
+	if len(rows) != 1 || rows[0].Title != named {
 		t.Fatalf("tree title: %+v", rows)
 	}
-	if got := rt.Server.sessionTitle(filepath.Base(path), "changed first message", 3, after.CustomTitle); got != expected {
+	if got := rt.Server.sessionTitle(filepath.Base(path), "changed first message", 3, after.CustomTitle); got != named {
 		t.Fatalf("pane title = %q", got)
 	}
 	entries := map[string]titleEntry{}
@@ -124,11 +130,11 @@ func TestAutoNameUsesUserMessagesSuffixAndWaitsForSave(t *testing.T) {
 	if err := json.Unmarshal(data, &entries); err != nil {
 		t.Fatal(err)
 	}
-	if !entries[filepath.Base(path)].Explicit || entries[filepath.Base(path)].Title != expected {
+	if !entries[filepath.Base(path)].Explicit || entries[filepath.Base(path)].Title != named {
 		t.Fatalf("persisted entry = %+v", entries)
 	}
 	fresh := NewHub(HubOptions{})
-	if rows = fresh.workspacePage(rt.Root, "", nil, treeWindow{}, 0).Sessions; len(rows) != 1 || rows[0].Title != expected {
+	if rows = fresh.workspacePage(rt.Root, "", nil, treeWindow{}, 0).Sessions; len(rows) != 1 || rows[0].Title != named {
 		t.Fatalf("reloaded title = %+v", rows)
 	}
 	res = titlePost(t, h, "rename", path, "manual replacement")

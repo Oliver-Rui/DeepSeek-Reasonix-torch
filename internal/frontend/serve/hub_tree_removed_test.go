@@ -33,6 +33,13 @@ func treeRoots(t *testing.T, srv *httptest.Server) []treeWorkspace {
 	return hubGet[[]treeWorkspace](t, srv, "/tree")
 }
 
+// treeRootsArchived reads the tree the way the sidebar's 已归档 scope does:
+// that is where a removed project's ghost row stands.
+func treeRootsArchived(t *testing.T, srv *httptest.Server) []treeWorkspace {
+	t.Helper()
+	return hubGet[[]treeWorkspace](t, srv, "/tree?scope=archived")
+}
+
 func treeRowFor(rows []treeWorkspace, dir string) *treeWorkspace {
 	for i := range rows {
 		if sameFolder(rows[i].Root, dir) {
@@ -43,10 +50,10 @@ func treeRowFor(rows []treeWorkspace, dir string) *treeWorkspace {
 }
 
 // The pane a launch opens in a folder nobody picked lists that folder once
-// something was said there. The user removing the row is the last word: the
-// removal is recorded, no later launch puts the row back, nothing on disk is
-// touched, and the standing rows — the remembered projects and the 任务
-// group — are unaffected.
+// something was said there. The user removing the row is the last word about
+// listing it: the removal is recorded, no later launch lists the folder whole
+// again, nothing on disk is touched. What removal leaves is the ghost row, and
+// the ghost row stands where the archive is the view — the 已归档 scope.
 func TestARemovedFolderStaysRemovedAcrossALaunch(t *testing.T) {
 	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
 	implicit := testenv.TempDir(t)
@@ -69,8 +76,14 @@ func TestARemovedFolderStaysRemovedAcrossALaunch(t *testing.T) {
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("remove = %d, want 204", resp.StatusCode)
 	}
-	if rows := treeRoots(t, srv); treeRowFor(rows, implicit) != nil {
-		t.Fatalf("the row survived its removal: %+v", rows)
+	// The pane was released by the removal, so the folder is archive-only: the
+	// everyday list is clean, the 已归档 scope carries the ghost.
+	if treeRowFor(treeRoots(t, srv), implicit) != nil {
+		t.Fatalf("an archive-only ghost row leaked into the everyday list: %+v", treeRoots(t, srv))
+	}
+	ghost := treeRowFor(treeRootsArchived(t, srv), implicit)
+	if ghost == nil || !ghost.Removed || !ghost.Remembered {
+		t.Fatalf("the 已归档 scope shows no ghost row for the archive: %+v", treeRootsArchived(t, srv))
 	}
 
 	// The removal outlives the session that recorded it.
@@ -88,15 +101,20 @@ func TestARemovedFolderStaysRemovedAcrossALaunch(t *testing.T) {
 		t.Errorf("the removal touched the conversation on disk: %v", err)
 	}
 
-	// The next launch opens a pane there again; the row must not come back.
+	// The next launch opens a pane there again; live work keeps the row in the
+	// everyday list, but the folder is still not listed whole — the row is the
+	// ghost's, showing the archive and the pane's own conversation.
 	hub2 := NewHub(HubOptions{})
 	defer hub2.Shutdown()
 	hubRuntime(t, hub2, implicit)
 	srv2 := httptest.NewServer(operatorHandler(hub2))
 	defer srv2.Close()
 	rows := treeRoots(t, srv2)
-	if treeRowFor(rows, implicit) != nil {
-		t.Fatalf("a removed folder came back with the next launch: %+v", rows)
+	if ghost := treeRowFor(rows, implicit); ghost == nil || !ghost.Removed {
+		t.Fatalf("a ghost row with live work left the everyday list: %+v", rows)
+	}
+	if !slices.Contains(readListRemoved(t), projectIdentity(implicit)) {
+		t.Error("a launch lifted the removal on record")
 	}
 	// The 任务 group stands, as does a project the user picked.
 	if row := treeRowFor(rows, config.AutoWorkspaceDir()); row == nil {
@@ -109,6 +127,15 @@ func TestARemovedFolderStaysRemovedAcrossALaunch(t *testing.T) {
 	if row := treeRowFor(treeRoots(t, srv2), remembered); row == nil || !row.Remembered {
 		t.Fatalf("a remembered project did not list as one: %+v", treeRoots(t, srv2))
 	}
+}
+
+func readListRemoved(t *testing.T) []string {
+	t.Helper()
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return list.Removed
 }
 
 // Asking for the folder again — the add the sidebar offers — is what lifts a
@@ -275,5 +302,167 @@ func TestReorderingProjectsWritesNoRemoval(t *testing.T) {
 		if treeRowFor(rows, dir) == nil {
 			t.Fatalf("project %s left the tree: %+v", filepath.Base(dir), rows)
 		}
+	}
+}
+
+// A removed project's archive stays reachable for as long as it exists: the
+// ghost row lists the archived conversations, unarchiving one works there the
+// same as anywhere, and deleting the last conversation retires the record —
+// the ghost row and the tombstone go together, so nothing invisible is kept.
+func TestARemovedProjectKeepsItsArchiveUntilItEmpties(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	dir := testenv.TempDir(t)
+	sessionPath := filepath.Join(SessionDirFor(dir), "kept.jsonl")
+	writeSessionAt(t, sessionPath)
+	if err := addRememberedWorkspace(t.Context(), dir); err != nil {
+		t.Fatal(err)
+	}
+
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+
+	resp := postRemoveWorkspace(t, srv, dir)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d, want 204", resp.StatusCode)
+	}
+	ghost := treeRowFor(treeRootsArchived(t, srv), dir)
+	if ghost == nil || !ghost.Removed {
+		t.Fatalf("the removed project left no ghost row in the 已归档 scope: %+v", treeRootsArchived(t, srv))
+	}
+	if treeRowFor(treeRoots(t, srv), dir) != nil {
+		t.Fatalf("an archive-only ghost row leaked into the everyday list: %+v", treeRoots(t, srv))
+	}
+	if ghost.Archived != 1 || len(ghost.Sessions) != 1 || !ghost.Sessions[0].Archived {
+		t.Fatalf("the ghost row does not show the archived conversation: %+v", ghost)
+	}
+
+	// Unarchive is a tree mutation like any other; a removed project's session
+	// dir is still owned, so the row answers the same actions it always did.
+	post := func(route string, body any) int {
+		t.Helper()
+		raw, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		answer, err := http.Post(srv.URL+route, "application/json", bytes.NewReader(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer answer.Body.Close()
+		return answer.StatusCode
+	}
+	if code := post("/tree/sessions/archive", map[string]any{"path": sessionPath, "archived": false}); code != http.StatusNoContent {
+		t.Fatalf("unarchive on a ghost row = %d, want 204", code)
+	}
+	// An unarchived conversation is live work again: the row returns to the
+	// everyday list with it.
+	ghost = treeRowFor(treeRoots(t, srv), dir)
+	if ghost == nil || ghost.Archived != 0 || len(ghost.Sessions) != 1 || ghost.Sessions[0].Archived {
+		t.Fatalf("the unarchived conversation is not a live row of the ghost: %+v", ghost)
+	}
+
+	// The last conversation goes; the record retires with it.
+	if code := post("/tree/sessions/remove", map[string]any{"path": sessionPath}); code != http.StatusNoContent {
+		t.Fatalf("remove = %d, want 204", code)
+	}
+	if rows := treeRoots(t, srv); treeRowFor(rows, dir) != nil {
+		t.Fatalf("an emptied ghost row outlived its archive: %+v", rows)
+	}
+	if removed := readListRemoved(t); slices.Contains(removed, projectIdentity(dir)) {
+		t.Errorf("an emptied removal stayed on record: %+v", removed)
+	}
+}
+
+// Subagent transcripts are bookkeeping, not conversations: a removed folder
+// whose session dir holds only them has an empty archive, so it leaves no
+// ghost row and its record retires at once.
+func TestAnArchiveOfOnlySubagentTranscriptsIsNotAGhost(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	dir := testenv.TempDir(t)
+	writeSessionAt(t, filepath.Join(SessionDirFor(dir), "subagent-run.jsonl"))
+	if err := addRememberedWorkspace(t.Context(), dir); err != nil {
+		t.Fatal(err)
+	}
+
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+
+	resp := postRemoveWorkspace(t, srv, dir)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d, want 204", resp.StatusCode)
+	}
+	for name, rows := range map[string][]treeWorkspace{"everyday": treeRoots(t, srv), "archived": treeRootsArchived(t, srv)} {
+		if treeRowFor(rows, dir) != nil {
+			t.Fatalf("bookkeeping alone kept a row for the removed folder in %s: %+v", name, rows)
+		}
+	}
+	if removed := readListRemoved(t); slices.Contains(removed, projectIdentity(dir)) {
+		t.Errorf("a removal with nothing left to show stayed on record: %+v", removed)
+	}
+}
+
+// A tombstone written before removals carried the folder path — every record
+// this build's predecessor left behind — still names a ghost row: the
+// identity is the folder's canonical path, and it answers on disk as one.
+func TestALegacyTombstoneWithoutAPathStillShowsItsArchive(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	dir := testenv.TempDir(t)
+	writeSessionAt(t, filepath.Join(SessionDirFor(dir), "held.jsonl"))
+	list, err := readWorkspaceList(workspacesPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Write the removal the old build made: the identity, and nothing else.
+	list.Removed = []string{projectIdentity(dir)}
+	list.RemovedPaths = nil
+	if err := updateWorkspaceList(t.Context(), false, func(l *workspaceList) error {
+		*l = list
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+
+	ghost := treeRowFor(treeRootsArchived(t, srv), dir)
+	if ghost == nil || !ghost.Removed {
+		t.Fatalf("a legacy tombstone left no ghost row in the 已归档 scope: %+v", treeRootsArchived(t, srv))
+	}
+}
+
+// Search reaches what the everyday list hides: an archived conversation of a
+// removed project answers a matching query, under its ghost row, from the
+// scope the sidebar searches with.
+func TestSearchSurfacesARemovedProjectsArchive(t *testing.T) {
+	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
+	dir := testenv.TempDir(t)
+	path := filepath.Join(SessionDirFor(dir), "kept.jsonl")
+	writeSessionAt(t, path)
+	if err := addRememberedWorkspace(t.Context(), dir); err != nil {
+		t.Fatal(err)
+	}
+	hub := NewHub(HubOptions{})
+	defer hub.Shutdown()
+	srv := httptest.NewServer(operatorHandler(hub))
+	defer srv.Close()
+	resp := postRemoveWorkspace(t, srv, dir)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d, want 204", resp.StatusCode)
+	}
+
+	rows := hubGet[[]treeWorkspace](t, srv, "/tree?q=hello")
+	ghost := treeRowFor(rows, dir)
+	if ghost == nil || !ghost.Removed || len(ghost.Sessions) != 1 {
+		t.Fatalf("a search over a removed project's archive found nothing: %+v", rows)
 	}
 }

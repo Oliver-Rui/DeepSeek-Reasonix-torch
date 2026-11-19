@@ -24,7 +24,7 @@ import { useTreeKeys } from "./tree";
 import { useDismiss } from "./dismiss";
 import { asksDelete } from "./keys";
 import { clearDraftForSession } from "./drafts";
-import { ProjectMenu } from "./ProjectMenu";
+import { GhostRowTag, ProjectMenu } from "./ProjectMenu";
 import { SessionMenu } from "./SessionMenu";
 import { useSessionMoveTo } from "./useSessionMoveTo";
 import { useSlotReorder } from "./useSlotReorder";
@@ -601,9 +601,9 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
               : undefined;
             return (
                 <div className="wsnode" key={ws.root} data-root={ws.root} data-current={panesOf(ws.root).includes(active) ? "" : undefined} data-missing={ws.missing ? "" : undefined}
-                  data-reorder-item={ws.auto ? undefined : "project"}
-                  data-reorder-key={ws.auto ? undefined : ws.root}
-                  data-drop={!ws.auto && reorder.over?.key === ws.root ? reorder.over.edge : undefined}>
+                  data-removed={ws.removed ? "" : undefined} data-reorder-item={ws.auto || ws.removed ? undefined : "project"}
+                  data-reorder-key={ws.auto || ws.removed ? undefined : ws.root}
+                  data-drop={!ws.auto && !ws.removed && reorder.over?.key === ws.root ? reorder.over.edge : undefined}>
                 {section && sectionHead(section)}
                 {/* The 任务 area has no folder row of its own: the head is the label,
                     and its conversations hang directly beneath it. */}
@@ -626,7 +626,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                     data-action-dragend="workspace.reorder"
                     data-target={ws.root}
                     data-dragging={reorder.dragging === ws.root ? "" : undefined}
-                    draggable={!needle}
+                    draggable={!needle && !ws.removed}
                     onDragStart={(ev) => { if (!needle) reorder.start(ev, PROJECT_LIST, ws.root, ws.name); }}
                     onDragEnd={reorder.end}
                     className="wsrow ds-proj"
@@ -668,6 +668,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         <em className="wstag">{ws.isolated ? t("common.isolated") : parentOf(ws.root)}</em>
                       </span>
                     )}
+                    {ws.removed && <GhostRowTag />}
                     <span className="wsacts">
                       {shut && <UnreadCount n={ws.sessions.filter((x) => x.unread).length} />}
                       <span className="rowswap">
@@ -676,7 +677,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         data-action="session.new"
                         className="wsadd"
                         data-busy={busy === "new:" + ws.root ? "" : undefined}
-                        disabled={ws.missing}
+                        disabled={ws.missing || ws.removed}
                         title={t("common.start_a_new_session_in", { name: ws.name })}
                         aria-label={t("common.start_a_new_session_in", { name: ws.name })}
                         onClick={(ev) => {
@@ -711,8 +712,8 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         ws={ws}
                         visible={visibleSessions(ws)}
                         searching={!!needle}
-                        canMoveUp={reorder.canMove(PROJECT_LIST, ws.root, -1)}
-                        canMoveDown={reorder.canMove(PROJECT_LIST, ws.root, 1)}
+                        canMoveUp={!ws.removed && reorder.canMove(PROJECT_LIST, ws.root, -1)}
+                        canMoveDown={!ws.removed && reorder.canMove(PROJECT_LIST, ws.root, 1)}
                         onMoveUp={() => { reorder.moveBy(PROJECT_LIST, ws.root, -1); dismissMenu(); }}
                         onMoveDown={() => { reorder.moveBy(PROJECT_LIST, ws.root, 1); dismissMenu(); }}
                         onRename={() => { setRenameFor(ws); dismissMenu(); }}
@@ -723,6 +724,7 @@ function WorkspacesView({ hub, tree, treeRead, answered = null, runtimes, active
                         }}
                         onBatchSelect={() => { setSelection(new Set(visibleSessions(ws).map((s) => s.path))); dismissMenu(); }}
                         onRemove={() => { setConfirm(ws.root); dismissMenu(); }}
+                        onRestore={() => { void hub.addWorkspace(ws.root).then(reload).catch(onError); dismissMenu(); }}
                         hub={hub}
                         dismiss={dismissMenu}
                         onError={onError}

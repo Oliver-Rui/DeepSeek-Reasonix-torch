@@ -62,6 +62,13 @@ func IsSubagentTranscriptName(name string) bool {
 	return strings.HasPrefix(strings.TrimSpace(filepath.Base(name)), "subagent-")
 }
 
+// IsSubagentTranscriptTree reports the directory the current layout files
+// subagent transcripts under. A listing that walks a session tree descends
+// into it for on-disk work but never rows it (see IsSubagentTranscriptName).
+func IsSubagentTranscriptTree(name string) bool {
+	return strings.EqualFold(strings.TrimSpace(name), "subagents")
+}
+
 // SessionRecoveryState is the persisted Auto-mode recovery checkpoint state
 // (<id>.recovery.json). It is a regular session-owned sidecar, not a transcript.
 func SessionRecoveryState(sessionPath string) string {

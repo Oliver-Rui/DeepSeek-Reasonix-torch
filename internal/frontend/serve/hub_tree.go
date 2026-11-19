@@ -11,7 +11,6 @@ import (
 	"reasonix/internal/base/workspaceid"
 	"reasonix/internal/state/sessionstore"
 	"reasonix/internal/state/workspacelist"
-	"slices"
 	"strings"
 
 	"reasonix/internal/base/backgroundwork"
@@ -74,10 +73,14 @@ func (h *Hub) tree(w http.ResponseWriter, r *http.Request) {
 		auto := isAutoWorkspace(ref.root)
 		node := treeWorkspace{
 			Root: ref.root, Name: fileutil.RootName(ref.root),
-			DisplayName: names[ref.root], Pinned: pinned[projectIdentity(ref.root)],
+			DisplayName: names[ref.root],
+			// A ghost is not pinned: a pin leads the list, and a removed project
+			// has left the list — its stale pin must not drag the archive up.
+			Pinned:         !ref.removed && pinned[projectIdentity(ref.root)],
 			WorkspaceRoots: ref.roots,
 			Isolated:       worktree.IsManagedPath(ref.root, config.DeliveryWorktreeDir()),
 			Remembered:     ref.remembered,
+			Removed:        ref.removed,
 			Auto:           auto,
 			Sessions:       []treeSession{},
 		}
@@ -91,6 +94,12 @@ func (h *Hub) tree(w http.ResponseWriter, r *http.Request) {
 		// The 任务 group is a standing section, so the app's own folder is listed
 		// even before anything was said in it — an unremembered project is not.
 		if !ref.remembered && !auto && !page.Said && (page.Status == nil || page.Status.CountsComplete) {
+			continue
+		}
+		// A ghost row stands where the archive is the view — the 已归档 scope,
+		// and search. The everyday list stays clean unless live work still
+		// happens in the removed folder: a pane's own row is not archive.
+		if ref.removed && window.scope != scopeArchived && window.query == "" && !ghostIsLive(node, page.Sessions) {
 			continue
 		}
 		node.Sessions, node.Total, node.Archived, node.Remaining = page.Sessions, page.Total, page.Archived, page.Remaining
@@ -532,126 +541,11 @@ func (h *Hub) removeWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	forgetWorkspace(dir)
+	// A folder whose archive the removal just emptied keeps no ghost row, so
+	// the record it would stand for retires with the removal itself.
+	pruneRemovedWorkspaceRecord(dir)
 	h.treeChanged()
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// removeSession deletes a conversation the sidebar lists. A pane showing it is
-// closed first, which lets the pane tear down its own jobs; one mid-turn is
-// refused rather than pulled out from under the work.
-func (h *Hub) removeSession(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Path string `json:"path"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		badBody(w)
-		return
-	}
-	path, err := filepath.Abs(strings.TrimSpace(body.Path))
-	if err != nil || !store.IsSessionTranscriptName(filepath.Base(path)) {
-		refuse(w, http.StatusBadRequest, codeSessionBadPath, "the session path could not be resolved", nil)
-		return
-	}
-	if id := h.openSessions()[sessionstore.CanonicalSessionPath(path)]; id != "" &&
-		!h.releaseOrRefuse(w, r, "session.running", "this conversation is running; stop it first",
-			h.panesWhere(func(rt *Runtime) bool { return rt.ID == id })) {
-		return
-	}
-	dir := filepath.Dir(path)
-	if !h.ownsSessionDir(dir) {
-		refuse(w, http.StatusForbidden, "session.outside_workspace", "path outside a known workspace", nil)
-		return
-	}
-	// Removing only the lead lets a covered recovery copy take its place and the
-	// delete reads as having done nothing. Copies holding content their parent
-	// lacks, and any a pane has open, are left alone.
-	open := h.openSessions()
-	excluded := make([]string, 0, len(open))
-	for openPath := range open {
-		excluded = append(excluded, openPath)
-	}
-	paths := []string{path}
-	sibs, err := sessionstore.RecoveryLineagePaths(path, excluded...)
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
-		return
-	}
-	for _, p := range sibs {
-		if p != path && sessionstore.RecoveryBranchCoveredByParent(p, dir) {
-			paths = append(paths, p)
-		}
-	}
-	// Every guard is taken before anything is erased, so a held copy refuses the
-	// request with the lead and the rest intact. The lead goes last.
-	guards := make([]*sessionstore.SessionRemovalGuard, 0, len(paths))
-	for _, p := range paths {
-		guard, ok := acquireRemovalGuard(w, p)
-		if !ok {
-			for _, g := range guards {
-				g.Release()
-			}
-			return
-		}
-		guards = append(guards, guard)
-	}
-	for i := range slices.Backward(paths) {
-		if !eraseGuardedSession(w, dir, paths[i], guards[i]) {
-			for _, g := range guards[:i] {
-				g.Release()
-			}
-			return
-		}
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// acquireRemovalGuard answers the request itself when the session is held,
-// returning false.
-func acquireRemovalGuard(w http.ResponseWriter, path string) (*sessionstore.SessionRemovalGuard, bool) {
-	// A pane's current path is narrower than "anyone writing this file": a
-	// recovery branch or a mid-rotation session is held without being one.
-	// Taking the guard beats probing it, which leaves a window for a writer.
-	guard, err := sessionstore.TryAcquireSessionRemovalGuard(path)
-	if err != nil {
-		var held *sessionstore.SessionLeaseError
-		if errors.As(err, &held) {
-			if who := sessionHolder(held); who != nil {
-				busy(w, "session.in_use_by", "another process holds this conversation open", who)
-				return nil, false
-			}
-			busy(w, "session.in_use", "this conversation is still being written to", nil)
-			return nil, false
-		}
-		writeErr(w, http.StatusInternalServerError, err)
-		return nil, false
-	}
-	return guard, true
-}
-
-// eraseGuardedSession erases one transcript under its guard and answers the
-// request itself when it cannot, returning false with the guard released.
-func eraseGuardedSession(w http.ResponseWriter, dir, path string, guard *sessionstore.SessionRemovalGuard) bool {
-	if err := removeSessionFiles(dir, path); err != nil {
-		guard.Release()
-		writeErr(w, http.StatusInternalServerError, err)
-		return false
-	}
-	if err := guard.RemoveSidecarsAndRelease(); err != nil {
-		// The conversation is already gone; a surviving lock file is stale
-		// bookkeeping, not a failed delete.
-		slog.Warn("serve: session removed, lock files survived", "path", path, "err", err)
-	}
-	return true
-}
-
-// sessionHolder names the process holding a conversation, and only when it is
-// not this one. A lease this process holds means a write is in flight here,
-// which is a different cause and carries a different code.
-func sessionHolder(held *sessionstore.SessionLeaseError) map[string]any {
-	if held == nil || held.Info == nil || held.Info.PID == 0 || held.Info.PID == os.Getpid() {
-		return nil
-	}
-	return map[string]any{"pid": held.Info.PID, "host": held.Info.Hostname}
 }
 
 // exportSession returns the transcript only after applying the same workspace
@@ -747,15 +641,19 @@ func (h *Hub) sessionTreeRoot(path string) string {
 	return ""
 }
 
-// rootRef is one sidebar folder and whether the user ever chose it.
+// rootRef is one sidebar folder, whether the user ever chose it, and whether
+// it is a ghost: a folder the user removed that still holds conversations.
 type rootRef struct {
 	dir        string
 	remembered bool
+	removed    bool
 }
 
 // roots returns the sidebar's folders: everything remembered, plus whatever a
-// pane is driving, so an open workspace can never be missing from the tree.
-// A folder the user removed stays out of both until they ask for it again.
+// pane is driving, so an open workspace can never be missing from the tree. A
+// folder the user removed stays out of both until they ask for it again — but
+// it keeps a ghost row for as long as its conversations exist, because a
+// removal took the row off the sidebar, not the archive under it.
 func (h *Hub) roots() []rootRef {
 	paths := Workspaces()
 	saved := map[string]bool{}
@@ -791,6 +689,7 @@ func (h *Hub) roots() []rootRef {
 			add(auto)
 		}
 	}
+	out = append(out, ghostRoots()...)
 	return out
 }
 

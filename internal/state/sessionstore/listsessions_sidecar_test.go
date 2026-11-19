@@ -315,3 +315,34 @@ func TestListSessionsKeepsUnreadableNonEmptySessionsVisible(t *testing.T) {
 		})
 	}
 }
+
+// Subagent transcripts live in their own tree and belong to the session that
+// spawned them: a listing of the user's own conversations never rows them,
+// whichever layout filed them under.
+func TestListSessionsSkipsTheSubagentTree(t *testing.T) {
+	dir := testenv.TempDir(t)
+	writeSessionFile(t, filepath.Join(dir, "lead.jsonl"), []provider.Message{{Role: provider.RoleUser, Content: "hi"}})
+	if err := os.MkdirAll(filepath.Join(dir, "subagents"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeSessionFile(t, filepath.Join(dir, "subagents", "sa_nested.jsonl"), []provider.Message{{Role: provider.RoleUser, Content: "spawned"}})
+	if err := os.MkdirAll(filepath.Join(dir, "2026", "11", "20"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeSessionFile(t, filepath.Join(dir, "2026", "11", "20", "dated.jsonl"), []provider.Message{{Role: provider.RoleUser, Content: "task"}})
+
+	infos, err := ListSessions(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths := map[string]bool{}
+	for _, si := range infos {
+		paths[filepath.Base(si.Path)] = true
+	}
+	if !paths["lead.jsonl"] || !paths["dated.jsonl"] {
+		t.Fatalf("listed = %v, want the session and the dated task folder", paths)
+	}
+	if paths["sa_nested.jsonl"] {
+		t.Fatal("a subagent transcript was listed as one of the user's conversations")
+	}
+}

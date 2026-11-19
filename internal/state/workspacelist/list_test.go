@@ -159,13 +159,16 @@ func TestUpdateWithoutADeadlineStillGivesUp(t *testing.T) {
 
 // A removal is the user's last word about a folder: it round-trips through the
 // file, survives a duplicate, and a restore is the one thing that lifts it.
+// The folder path rides along — the ghost row needs it — and goes with the
+// removal it belongs to.
 func TestRemovalRoundTripsAndRestoreLiftsIt(t *testing.T) {
 	path := filepath.Join(testenv.TempDir(t), FileName)
 	if err := Update(context.Background(), path, false, func(l *List) error {
 		l.Paths = []string{"kept"}
-		l.Remove("gone")
-		l.Remove("gone")
-		l.Remove(" ")
+		l.Remove("gone", `D:\gone folder`)
+		l.Remove("gone", "a later spelling is ignored")
+		l.Remove(" ", "no identity")
+		l.Remove("pathless", "")
 		return nil
 	}); err != nil {
 		t.Fatal(err)
@@ -174,8 +177,14 @@ func TestRemovalRoundTripsAndRestoreLiftsIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Removed) != 1 || list.Removed[0] != "gone" {
-		t.Fatalf("removed = %+v, want [gone]", list.Removed)
+	if len(list.Removed) != 2 || list.Removed[0] != "gone" || list.Removed[1] != "pathless" {
+		t.Fatalf("removed = %+v, want [gone pathless]", list.Removed)
+	}
+	if list.RemovedPaths["gone"] != `D:\gone folder` {
+		t.Fatalf("removedPaths = %+v, want the folder the removal saw", list.RemovedPaths)
+	}
+	if _, ok := list.RemovedPaths["pathless"]; ok {
+		t.Error("a removal without a path recorded one anyway")
 	}
 	if err := Update(context.Background(), path, false, func(l *List) error {
 		l.Restore("gone")
@@ -183,17 +192,21 @@ func TestRemovalRoundTripsAndRestoreLiftsIt(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if list, err = Read(path); err != nil || len(list.Removed) != 0 {
-		t.Fatalf("after a restore removed = %+v (%v), want none", list.Removed, err)
+	if list, err = Read(path); err != nil || len(list.Removed) != 1 {
+		t.Fatalf("after a restore removed = %+v (%v), want [pathless]", list.Removed, err)
+	}
+	if _, ok := list.RemovedPaths["gone"]; ok {
+		t.Error("the restored removal kept its path")
 	}
 }
 
 // The tombstones stay bounded: the oldest gives way, so a session of adding
-// and removing projects cannot grow the file without end.
+// and removing projects cannot grow the file without end. The paths go with
+// the tombstones they were recorded for.
 func TestRemovalsStayBounded(t *testing.T) {
 	var list List
 	for i := range maxRemoved + 16 {
-		list.Remove(fmt.Sprintf("r%d", i))
+		list.Remove(fmt.Sprintf("r%d", i), fmt.Sprintf(`D:\r%d`, i))
 	}
 	if len(list.Removed) != maxRemoved {
 		t.Fatalf("kept %d removals, want %d", len(list.Removed), maxRemoved)
@@ -201,18 +214,33 @@ func TestRemovalsStayBounded(t *testing.T) {
 	if list.Removed[0] != "r16" || list.Removed[len(list.Removed)-1] != fmt.Sprintf("r%d", maxRemoved+15) {
 		t.Fatalf("the oldest removal did not give way: %+v", list.Removed)
 	}
+	for _, gone := range []string{"r0", "r15"} {
+		if _, ok := list.RemovedPaths[gone]; ok {
+			t.Errorf("the evicted removal %s kept its path", gone)
+		}
+	}
+	if list.RemovedPaths["r16"] == "" {
+		t.Error("a kept removal lost its path")
+	}
 }
 
 // A file written with empty or duplicated removal entries reads clean, so a
-// hand-edited list cannot wedge the reads below.
+// hand-edited list cannot wedge the reads below. A path whose tombstone did
+// not survive the read serves no ghost row and is dropped with it.
 func TestReadCleansRemovalEntries(t *testing.T) {
 	path := filepath.Join(testenv.TempDir(t), FileName)
-	put(t, path, `{"paths":["a"],"removed":["x"," x ","",null]}`)
+	put(t, path, `{"paths":["a"],"removed":["x"," x ","",null],"removedPaths":{"x":"D:\\x","y":"D:\\y"}}`)
 	list, err := Read(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(list.Removed) != 1 || list.Removed[0] != "x" {
 		t.Fatalf("removed = %+v, want [x]", list.Removed)
+	}
+	if list.RemovedPaths["x"] != `D:\x` {
+		t.Fatalf("removedPaths = %+v, want x kept", list.RemovedPaths)
+	}
+	if _, ok := list.RemovedPaths["y"]; ok {
+		t.Error("a path without a tombstone survived the read")
 	}
 }

@@ -12,8 +12,8 @@
     "doc-owner": 27,
     "doc-prose": 1468,
     "error-text": 9,
-    "essay": 2541,
-    "file-size": 18454,
+    "essay": 2540,
+    "file-size": 18369,
     "flat-view": 0,
     "frontend-parity": 13,
     "function-size": 2349,
@@ -21,7 +21,7 @@
     "layering": 0,
     "marker": 0,
     "narrative": 0,
-    "orphan": 63,
+    "orphan": 61,
     "process-input": 96,
     "refusal-path": 0,
     "release-note": 752,
@@ -86,7 +86,7 @@
       "css-size": 3665
     },
     "desktop/frontend-next/src/ui/Workspaces.tsx": {
-      "file-size": 311
+      "file-size": 313
     },
     "desktop/internal/winuninstall/registry_windows.go": {
       "essay": 1
@@ -760,9 +760,6 @@
     "internal/frontend/serve/auth.go": {
       "essay": 2
     },
-    "internal/frontend/serve/hub_tree.go": {
-      "file-size": 87
-    },
     "internal/frontend/serve/hub_tree_page.go": {
       "essay": 3
     },
@@ -784,9 +781,6 @@
     },
     "internal/frontend/serve/switch_recovery_test.go": {
       "essay": 2
-    },
-    "internal/frontend/serve/workspace_archive.go": {
-      "essay": 1
     },
     "internal/frontend/termrender/mathnode.go": {
       "essay": 1
@@ -1376,7 +1370,7 @@
     },
     "internal/state/sessionstore/branch.go": {
       "essay": 10,
-      "orphan": 5
+      "orphan": 3
     },
     "internal/state/sessionstore/migrate.go": {
       "complexity": 15,

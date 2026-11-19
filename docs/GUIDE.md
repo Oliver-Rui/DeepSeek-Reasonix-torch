@@ -1093,6 +1093,13 @@ Archived conversations stay in **Archived**. Recent respects the saved
 hide-legacy preference; an explicit search can still find legacy history.
 Deleted files or unavailable folders report the normal opening error.
 
+Removing a project archives its conversations; nothing on disk is deleted.
+The removed project shows as a dimmed ghost row in the **Archived** scope —
+and in search results — and it leaves the sidebar once its archive is emptied.
+
+Live work in that folder keeps the row in the everyday list. 「放回列表」 in
+its menu, or adding the folder again, lists the project whole.
+
 The environment selector starts with this machine. Selecting a remote host
 reads its recent history through the existing connection flow; hidden or disabled
 hosts are not offered. Older kernels ask for an update rather than showing a

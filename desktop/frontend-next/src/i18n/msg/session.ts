@@ -114,7 +114,7 @@ export const SESSION: Messages = {
   "session.n_unread_sessions": { zh: "{n} 个会话未读", en: "{n} unread sessions" },
   "session.naming": { zh: "命名中…", en: "Naming…" },
   "session.needs_you": { zh: "等你确认", en: "Needs you" },
-  "session.no_files_are_deleted": { zh: "不会删除任何文件", en: "No files are deleted" },
+  "session.no_files_are_deleted": { zh: "不会删除任何文件；会话归档后在项目下仍可见", en: "No files are deleted; conversations stay archived under the project" },
   "session.no_folders_yet": { zh: "尚无文件夹", en: "No folders yet" },
   "session.no_projects_yet": { zh: "暂无项目", en: "No projects yet" },
   "session.no_tasks_yet": { zh: "暂无任务", en: "No tasks yet" },

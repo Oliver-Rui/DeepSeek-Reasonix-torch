@@ -358,24 +358,3 @@ func TestSessionModelRoundTripPreservesActivity(t *testing.T) {
 		t.Fatalf("model write refreshed activity: before=%s after=%s", meta.UpdatedAt, updated.UpdatedAt)
 	}
 }
-
-func TestBranchRoleTextRoundTripAndClear(t *testing.T) {
-	dir := testenv.TempDir(t)
-	path := filepath.Join(dir, "session.jsonl")
-	if err := SetBranchRoleText(path, "  reviewer  "); err != nil {
-		t.Fatal(err)
-	}
-	if got := LoadBranchRoleText(path); got != "reviewer" {
-		t.Fatalf("LoadBranchRoleText = %q, want reviewer", got)
-	}
-	meta, ok, err := LoadBranchMeta(path)
-	if err != nil || !ok || meta.RoleText != "reviewer" {
-		t.Fatalf("meta = %+v ok=%v err=%v, want RoleText reviewer", meta, ok, err)
-	}
-	if err := SetBranchRoleText(path, ""); err != nil {
-		t.Fatal(err)
-	}
-	if got := LoadBranchRoleText(path); got != "" {
-		t.Fatalf("cleared role = %q, want empty", got)
-	}
-}
