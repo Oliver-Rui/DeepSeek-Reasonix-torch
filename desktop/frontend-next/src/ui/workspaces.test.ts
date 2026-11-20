@@ -27,7 +27,9 @@ describe("the tree's two groups", () => {
 
 describe("removeHint", () => {
   it("says only what is true when nothing is open", () => {
-    expect(removeHint(0, 0)).toBe("不会删除任何文件");
+    // The archive outlives the row, so the hint names both halves of the deal:
+    // no file is deleted, and the conversations stay visible under the project.
+    expect(removeHint(0, 0)).toBe("不会删除任何文件；会话归档后在项目下仍可见");
   });
 
   it("counts the panes the removal will close", () => {
