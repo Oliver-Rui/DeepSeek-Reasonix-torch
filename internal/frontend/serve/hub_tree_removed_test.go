@@ -410,10 +410,12 @@ func TestAnArchiveOfOnlySubagentTranscriptsIsNotAGhost(t *testing.T) {
 // A tombstone written before removals carried the folder path — every record
 // this build's predecessor left behind — still names a ghost row: the
 // identity is the folder's canonical path, and it answers on disk as one.
+// The conversation is filed under that spelling, since the legacy record is
+// all the ghost has; a folder spelled differently falls back to silence.
 func TestALegacyTombstoneWithoutAPathStillShowsItsArchive(t *testing.T) {
 	t.Setenv("REASONIX_HOME", testenv.TempDir(t))
 	dir := testenv.TempDir(t)
-	writeSessionAt(t, filepath.Join(SessionDirFor(dir), "held.jsonl"))
+	writeSessionAt(t, filepath.Join(SessionDirFor(projectIdentity(dir)), "held.jsonl"))
 	list, err := readWorkspaceList(workspacesPath())
 	if err != nil {
 		t.Fatal(err)

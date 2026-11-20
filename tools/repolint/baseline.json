@@ -29,7 +29,7 @@
     "struct-state": 30,
     "temp-dir": 0,
     "window-state": 0,
-    "wire-parity": 6
+    "wire-parity": 2
   },
   "files": {
     ".github/pull_request_template.md": {
@@ -1257,17 +1257,8 @@
     "internal/session/control/memory_command.go": {
       "essay": 2
     },
-    "internal/session/control/peer_mail.go": {
-      "wire-parity": 1
-    },
-    "internal/session/control/peer_mail_send.go": {
-      "wire-parity": 2
-    },
     "internal/session/control/peer_settings.go": {
       "wire-parity": 2
-    },
-    "internal/session/control/peer_threads.go": {
-      "wire-parity": 1
     },
     "internal/session/control/plan_todos.go": {
       "essay": 6

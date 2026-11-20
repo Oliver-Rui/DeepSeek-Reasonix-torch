@@ -27,7 +27,7 @@ const (
 // line's. Pinned here rather than read from the contract: this guard exists to
 // catch the contract being widened, and a guard that reads its own answer out
 // of the file it is checking cannot.
-var expectedBranches = []string{"studio"}
+var expectedBranches = []string{"torch"}
 
 type releaseSigningContract struct {
 	Version                 int      `yaml:"version"`
