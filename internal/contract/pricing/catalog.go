@@ -66,7 +66,10 @@ var chineseStatutoryHolidays = []string{
 }
 
 // checkedOn is when the tables below were last read off the vendors' pages.
-const checkedOn = "2026-08-22"
+// Read again on 2026-11-20: longcat's two currencies agree with its page by
+// the automatic reader, and mimo's page matches the rows kept for the models
+// it retired on 2026-10-21 — those rows stay on purpose (see rates.go).
+const checkedOn = "2026-11-20"
 
 // deepseekCheckedOn is when the DeepSeek rows were last read off that vendor's
 // page. Separate from checkedOn, because confirming one vendor's prices says
