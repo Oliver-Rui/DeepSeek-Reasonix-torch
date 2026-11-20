@@ -479,3 +479,16 @@
 .page-index .pi-label { margin-right: 2px; color: var(--faint); font: var(--w-reg) var(--fs-meta) var(--ui); }
 .page-index .spill { height: 26px; }
 :root:not([data-fold~="phone"]) .prefs-found { top: 0; left: 240px; right: 0; bottom: 0; width: auto; max-height: none; padding: 58px 22px 14px; border: 0; border-left: 1px solid var(--hair); border-radius: 0 var(--r-lg) var(--r-lg) 0; background: var(--surface); box-shadow: none; }
+
+/* These three carry settings prose and inputs across several cards. They
+   predate the settings surface — the names came from the session-chat panel
+   that once owned them — and the wrapping they rely on went with that panel's
+   stylesheet: a long path or an unbroken word then pushed the row wider than
+   its card, 39px at the narrowest phone width. */
+.peernote { margin: 0; padding: 6px 12px; font: var(--w-reg) var(--fs-meta) var(--ui); color: var(--muted); overflow-wrap: anywhere; }
+.peernote code { font-family: var(--mono); color: var(--text); }
+.peerform { display: grid; gap: 6px; }
+.peernote + .peerform { margin-top: 6px; padding: 10px 12px 4px; border-top: 1px solid var(--hair); }
+.peerfield { width: 100%; }
+textarea.peerfield { min-height: 4.5em; resize: vertical; }
+.peerform .acts { display: flex; justify-content: flex-end; margin: 0; }
