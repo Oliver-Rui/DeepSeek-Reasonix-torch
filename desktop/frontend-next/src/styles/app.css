@@ -1344,7 +1344,10 @@
   .pane[data-intake="reject"] .compose { transform: none; box-shadow: none }
 
   .intake {
-    margin: 0 0 7px; padding: 0 2px; font: var(--w-med) var(--fs-ui) var(--ui);
+    /* The composer's other rows sit 16px inside the card (fmain), so the
+       drag hint lines up with them instead of hugging the border, and keeps
+       a breath of air under the pill row that floats above it. */
+    margin: 6px 14px 7px; padding: 0 2px; font: var(--w-med) var(--fs-ui) var(--ui);
     animation: m-card var(--m-line) both;
   }
   .intake[data-tone="attach"] { color: var(--accent-ink) }
