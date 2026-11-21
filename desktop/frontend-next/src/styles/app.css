@@ -1360,10 +1360,10 @@
     /* The cards line up with the drag hint and the text rows (14px + the
        shot's own 1px border ≈ the 16px text inset), and carry the same 6px
        breath above that the hint keeps under the pill row. */
-    /* 14px above and 13px + the card's own 1px border on the sides: the two
-       gaps read equal, which is what a dropped card floating between the
-       pill row and the composer text owes the eye. */
-    padding: 14px 13px 10px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin;
+    /* 19px above and 13px + the card's own 1px border on the sides: the card
+       floats centered between the fold chevron above (22px away) and the
+       composer text below, and the two gaps the reader sees read equal. */
+    padding: 18px 13px 10px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin;
   }
   .shot {
     display: inline-flex; align-items: center; gap: 8px; flex: none; max-width: min(310px, 78vw);
