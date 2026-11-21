@@ -1,4 +1,4 @@
-VERSION := $(shell git describe --tags --always 2>/dev/null | sed 's/^studio-//' || echo dev)
+VERSION := $(shell git describe --tags --always 2>/dev/null | sed -e 's/^studio-//' -e 's/^torch-//' || echo dev)
 BUILD_TIME_UTC := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 GIT_COMMIT := $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 LDFLAGS := -s -w \
@@ -9,7 +9,7 @@ GOEXE := $(shell go env GOEXE)
 # One pin for the Makefile and the CI lint job; see .github/workflows/ci.yml.
 GOLANGCI_VERSION := $(shell cat .golangci-version)
 
-.PHONY: build vet fmt lint lint-go lint-install lint-cross lint-update coverage-gate coverage-gate-update pricecheck acp-conformance check test studio-test sdk-test sdk-test-race hooks cross clean studio
+.PHONY: build vet fmt lint lint-go lint-install lint-cross lint-update coverage-gate coverage-gate-update pricecheck acp-conformance check test studio-test sdk-test sdk-test-race hooks cross clean studio branch-for branch-check
 
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/reasonix$(GOEXE) ./cmd/reasonix
@@ -52,6 +52,17 @@ lint-install:
 # evidence that the standards gate passed.
 check:
 	go run ./tools/repolint -changed
+
+# Which module branch a working-tree change belongs to. The tool owns the path
+# table; this target is the one-command answer for a person or an agent.
+branch-for:
+	go run ./tools/branchmap --changed
+
+# A change that spans modules belongs on torch as one reviewed commit, or on
+# area/core after the shared part is split out. This target makes that visible
+# before the commit is made.
+branch-check:
+	go run ./tools/branchmap --check --changed
 
 lint-update:
 	go run ./tools/repolint -update

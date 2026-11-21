@@ -22,6 +22,8 @@
 /covergate
 /pricecheck
 /repolint
+/branchmap
+/branchmap.exe
 /workgroupassay
 /write_heartbeat
 /catalog-detector

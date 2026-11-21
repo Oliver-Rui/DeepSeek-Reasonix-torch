@@ -3,7 +3,7 @@
 </p>
 
 > [!NOTE]
-> **DeepSeek-Reasonix-torch** — a personal fork of [DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) on the `studio` (2.x) line.
+> **DeepSeek-Reasonix-torch** — a personal fork of [DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) on the `torch` (2.x) line.
 >
 > QQ group: **1821170167**
 >
@@ -51,9 +51,17 @@ This fork is **DeepSeek-Reasonix-torch**. The engine is kept as upstream left it
 
 ## Versions
 
-This fork continues from upstream's **v2.61.0** — the point where upstream declared maintenance stopped. Releases move along the `studio` line: **2.62.0** is the first fork release.
+This fork continues from upstream's **v2.61.0** — the point where upstream declared maintenance stopped. Releases move along the `torch` line: **2.62.0** is the first fork release.
 
 Releases are published from this repository's own [releases page](https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued/releases). v2.61.0 remains the last upstream release.
+
+## Branches
+
+- `torch` is the integration and release branch.
+- `studio` is a read-only snapshot of upstream 2.61.0.
+- Each `area/*` branch is a module workstream cut from the `torch` tip, so pulling any of them gives a complete buildable application.
+- Run `make branch-for` to see which area a working-tree change belongs to.
+- Read [docs/BRANCHES.md](./docs/BRANCHES.md) for the path table and workflow.
 
 ## Install
 
@@ -64,7 +72,7 @@ Build it from source:
 ```sh
 git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued.git
 cd DeepSeek-Reasonix-continued
-git switch studio
+git switch torch
 ```
 
 ### CLI

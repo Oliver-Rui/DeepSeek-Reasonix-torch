@@ -3,7 +3,7 @@
 </p>
 
 > [!NOTE]
-> **DeepSeek-Reasonix-torch** —— [DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) `studio`（2.x）分支的个人 fork。上游停在 v2.61.0；本仓库从这里继续：重建的导航外壳、会话互相派活，以及修个不停的细节。
+> **DeepSeek-Reasonix-torch** —— [DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) `torch`（2.x）分支的个人 fork。上游停在 v2.61.0；本仓库从这里继续：重建的导航外壳、会话互相派活，以及修个不停的细节。
 >
 > QQ 交流群：**1821170167**
 
@@ -48,9 +48,16 @@
 
 ## 版本
 
-本 fork 从上游的 **v2.61.0** 接手——上游在这一点声明停止维护。发布沿 `studio` 线往上走：**2.62.0** 是本 fork 的第一个发布。
+本 fork 从上游的 **v2.61.0** 接手——上游在这一点声明停止维护。发布沿 `torch` 线往上走：**2.62.0** 是本 fork 的第一个发布。
 
 版本发布在本仓库自己的[发布页](https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued/releases)。上游最后一个版本仍是 v2.61.0。
+
+## 分支
+
+`torch` 是集成与发布分支。`studio` 是上游 2.61.0 的只读快照。每条 `area/*`
+是一条模块工作分支，从 `torch` 当前 tip 起，因此拉任意一条都能得到完整可构建
+的应用。改完文件跑 `make branch-for` 看属于哪个模块；路径表与工作流见
+[docs/BRANCHES.md](./docs/BRANCHES.md)。
 
 ## 安装
 
@@ -61,7 +68,7 @@
 ```sh
 git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued.git
 cd DeepSeek-Reasonix-continued
-git switch studio
+git switch torch
 ```
 
 ### CLI
