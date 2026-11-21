@@ -3,7 +3,7 @@
 </p>
 
 > [!NOTE]
-> **DeepSeek-Reasonix-torch** —— [DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) `torch`（2.x）分支的个人 fork。上游停在 v2.61.0；本仓库从这里继续：重建的导航外壳、会话互相派活，以及修个不停的细节。
+> **DeepSeek-Reasonix-torch** —— [DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix) `torch`（2.x）分支的个人 fork。上游停在 v2.61.0；本仓库从这里继续：重建的导航外壳、删了项目也留得住的归档，以及修个不停的细节。
 >
 > QQ 交流群：**1821170167**
 
@@ -25,7 +25,7 @@
 
 ## 这个分支改了什么
 
-本 fork 名为 **DeepSeek-Reasonix-torch**。引擎部分保持上游原样，改动落在 Reasonix Studio 上：
+本 fork 名为 **DeepSeek-Reasonix-torch**。引擎部分保持上游原样，改动落在 Reasonix Studio 上。本 fork 曾自带的会话互聊（跨会话派活）在 2.67.0 移除，会话只在自己的窗口里跑子智能体：
 
 ### 导航外壳重做成一张表
 
@@ -35,29 +35,29 @@
 - 会话树分成两组：「项目」是记住的项目，「任务」是窗口自己打开的文件夹。
 - 「最近」是会话筛选菜单里的一种排序，不再是一个页面。
 
-### 会话互相派活
+### 会话先选项目，删掉的项目留得住归档
 
-- 派活时可以给目标会话起名字；`peers.incoming`（ask / dispatch / always）决定别的会话发来的消息要不要弹授权卡。
 - 「新建会话」先弹「选择项目」：搜索、本地与远程项目、创建项目，以及「不在项目中工作」——会话开在内核自己的非项目文件夹里。项目行上的「新建」不走弹窗。
+- 删除项目后归档仍可达：「归档」范围和搜索结果里留着一条暗色的 ghost 行，行菜单提供「放回列表」；删掉最后一条会话时，行与记录一并退役。
 
 ### 修个不停的细节
 
 - 打开设置后，右上角的最小化、最大化、关闭照常能按。
 - 项目药丸的下拉箭头和下拉列表在任意缩放下都守得住排版。
 - 1400px 宽的窗口里，文件面板从布局真正有的那个入口打开。
+- 往输入框里拖文件夹：提示行和落下的引用卡与邻居的间距在三种视口高度下都量过，删掉引用时卡片一并退役。
 
 ## 版本
 
-本 fork 从上游的 **v2.61.0** 接手——上游在这一点声明停止维护。发布沿 `torch` 线往上走：**2.62.0** 是本 fork 的第一个发布。
+本 fork 从上游的 **v2.61.0** 接手——上游在这一点声明停止维护。发布沿 `torch` 线往上走：**2.62.0** 是第一个发布，**2.67.0** 是最新。
 
-版本发布在本仓库自己的[发布页](https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued/releases)。上游最后一个版本仍是 v2.61.0。
+版本发布在本仓库自己的[发布页](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases)。上游最后一个版本仍是 v2.61.0。
 
 ## 分支
 
-`torch` 是集成与发布分支。`studio` 是上游 2.61.0 的只读快照。每条 `area/*`
-是一条模块工作分支，从 `torch` 当前 tip 起，因此拉任意一条都能得到完整可构建
-的应用。改完文件跑 `make branch-for` 看属于哪个模块；路径表与工作流见
-[docs/BRANCHES.md](./docs/BRANCHES.md)。
+只有一条分支：`torch`——完整应用、发布线与默认分支。`studio` 快照和各条
+`area/*` 工作分支已并入其中，逐条验证包含后删除。改完文件跑 `make branch-for`
+看这次改动该用哪个提交前缀；工作流见 [docs/BRANCHES.md](./docs/BRANCHES.md)。
 
 ## 安装
 
@@ -66,8 +66,8 @@
 从源码构建：
 
 ```sh
-git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued.git
-cd DeepSeek-Reasonix-continued
+git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch.git
+cd DeepSeek-Reasonix-torch
 git switch torch
 ```
 

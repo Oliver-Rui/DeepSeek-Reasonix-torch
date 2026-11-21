@@ -8,7 +8,7 @@
 > QQ group: **1821170167**
 >
 > Upstream stopped at v2.61.0; this fork continues from there: a navigation shell rebuilt as
-> one table, sessions that hand each other work, and fixes that keep landing.
+> one table, project archives that outlive a removed project, and fixes that keep landing.
 
 <p align="center">
   <strong>English</strong>
@@ -28,7 +28,9 @@
 
 ## What this fork changes
 
-This fork is **DeepSeek-Reasonix-torch**. The engine is kept as upstream left it; the work lands in Reasonix Studio:
+This fork is **DeepSeek-Reasonix-torch**. The engine is kept as upstream left it; the work lands
+in Reasonix Studio. The cross-session dispatch this fork shipped (会话互聊) was removed in
+2.67.0 — a session runs its subagents in place:
 
 ### A navigation shell rebuilt as one table
 
@@ -38,30 +40,30 @@ This fork is **DeepSeek-Reasonix-torch**. The engine is kept as upstream left it
 - The session tree reads as two named groups — 项目 over the remembered projects, 任务 over the window's own folder.
 - 最近 is an ordering in the session filter menu, not a page.
 
-### Sessions that hand each other work
+### Sessions start from a project, and a removed one keeps its archive
 
-- A dispatch may name the session it opens, and `peers.incoming` (ask / dispatch / always) decides what another of your sessions may send without a card.
 - 新建会话 opens 选择项目 first: search, local and remote projects, 创建项目, and 不在项目中工作 — which opens the session in the kernel's own non-project folder. The 新建 on a project row bypasses the picker.
+- Removing a project keeps its archive reachable: the row stays as a dimmed ghost in the Archived scope and in search results, its menu offers 放回列表, and deleting the last conversation retires the row and its record together.
 
 ### Fixes that keep landing
 
 - The settings windowbar's 最小化 / 最大化 / 关闭 stay clickable while 设置 is open.
 - The scope pill and its dropdown rows hold their layout at any zoom.
 - The files panel opens from whichever entry the layout has on a 1400px window.
+- Dragging a folder over the composer: the hint line and the dropped card keep their spacing at three viewport heights, and the card retires when its reference is deleted.
 
 ## Versions
 
-This fork continues from upstream's **v2.61.0** — the point where upstream declared maintenance stopped. Releases move along the `torch` line: **2.62.0** is the first fork release.
+This fork continues from upstream's **v2.61.0** — the point where upstream declared maintenance stopped. Releases move along the `torch` line: **2.62.0** was the first fork release, **2.67.0** the latest.
 
-Releases are published from this repository's own [releases page](https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued/releases). v2.61.0 remains the last upstream release.
+Releases are published from this repository's own [releases page](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases). v2.61.0 remains the last upstream release.
 
 ## Branches
 
-- `torch` is the integration and release branch.
-- `studio` is a read-only snapshot of upstream 2.61.0.
-- Each `area/*` branch is a module workstream cut from the `torch` tip, so pulling any of them gives a complete buildable application.
-- Run `make branch-for` to see which area a working-tree change belongs to.
-- Read [docs/BRANCHES.md](./docs/BRANCHES.md) for the path table and workflow.
+There is one branch: `torch` — the complete application, the release line and the default branch. The `studio` snapshot and the `area/*` module workstreams were folded into it and deleted once each was verified contained.
+
+- Run `make branch-for` to see which commit-subject prefix a working-tree change wants.
+- Read [docs/BRANCHES.md](./docs/BRANCHES.md) for the workflow.
 
 ## Install
 
@@ -70,8 +72,8 @@ Reasonix Studio is the desktop app; the CLI, Studio and the editor integrations 
 Build it from source:
 
 ```sh
-git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-continued.git
-cd DeepSeek-Reasonix-continued
+git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch.git
+cd DeepSeek-Reasonix-torch
 git switch torch
 ```
 
