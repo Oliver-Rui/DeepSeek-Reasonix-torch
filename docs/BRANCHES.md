@@ -2,32 +2,32 @@
 owner: @SivanCola
 backup: @esengine
 status: active
-reviewed: 2026-11-19
+reviewed: 2026-11-21
 ---
 
 # Branches
 
-There is one branch: `torch`. It holds the complete application, the release
+There is one branch: `main`. It holds the complete application, the release
 line, and every change. Nothing is split by module any more — a module branch
 that carries only its own files cannot build, and a reader who pulls it gets a
 partial tree.
 
 ```
-torch    the complete application, releases, and the default branch
+main     the complete application, releases, and the default branch
 ```
 
 ## Workflow
 
 ```bash
-git switch torch
+git switch main
 git pull --ff-only
 # edit, test
 git commit -m "<area>: ..."
 git push
 ```
 
-Work directly on `torch`. When a change is too large to review as one commit,
-use a short-lived topic branch off `torch` and merge it back; do not leave the
+Work directly on `main`. When a change is too large to review as one commit,
+use a short-lived topic branch off `main` and merge it back; do not leave the
 topic branch on the remote once it has landed.
 
 ## Commit messages
@@ -50,7 +50,7 @@ as a map of the tree:
 ## Commit rule
 
 One commit expresses one complete final behavior. Squash incremental fixes
-before pushing; never leave a `fix the previous commit` chain on `torch`. A
+before pushing; never leave a `fix the previous commit` chain on `main`. A
 layout change must arrive with its styles, tests and translations in the same
 commit, so a person who pulls that commit does not get half a change.
 
@@ -70,10 +70,13 @@ says the rest in the body.
 
 ## History
 
-`torch` is a rebuilt line: a 2.61.0 snapshot commit, then one final-state commit
+`main` is a rebuilt line: a 2.61.0 snapshot commit, then one final-state commit
 per module through 2.66.1, then the work since. Those module commits are review
 snapshots, not standalone builds — the shared `port` contract changed, so a
-final core tree beside a 2.61 UI cannot type-check. Check out `torch` to build.
+final core tree beside a 2.61 UI cannot type-check. Check out `main` to build.
+
+The line was named `torch` until 2026-11-21, when it returned to `main`. Old
+clones follow the rename with `git branch -m torch main && git fetch --prune`.
 
 The pre-rebuild incremental history is not part of the public line; a local
 bundle and mirror hold it for rollback, and the upstream repository remains the

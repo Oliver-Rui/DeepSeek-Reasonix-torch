@@ -1,20 +1,20 @@
 name: CI
 
-# torch is the one line — the complete application, releases included — so it
+# main is the one line — the complete application, releases included — so it
 # carries the kernel gates and Studio's own surface (desktop/next,
 # desktop/frontend-next, covered by studio.yml) on the same branch.
 on:
   push:
-    branches: [torch]
+    branches: [main]
   pull_request:
-    branches: [torch]
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/torch' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
 
 jobs:
   # Cheap path gate for pull requests. PRs confined to docs/release-notes

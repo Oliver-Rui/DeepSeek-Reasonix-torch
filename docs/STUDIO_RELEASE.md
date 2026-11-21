@@ -20,8 +20,8 @@ Workflow: `.github/workflows/release-studio.yml`. Trigger: push of a `studio-vX.
 
 | ID | Check | Command |
 | --- | --- | --- |
-| P1 | The release commit is the fetched head of `origin/torch`. | `git fetch origin torch && git rev-parse origin/torch` |
-| P2 | Every job of `CI` and `Studio` succeeded on that commit. A flaky job is rerun, not ignored. | `gh run list --branch torch --commit <sha> --json name,conclusion` |
+| P1 | The release commit is the fetched head of `origin/main`. | `git fetch origin main && git rev-parse origin/main` |
+| P2 | Every job of `CI` and `Studio` succeeded on that commit. A flaky job is rerun, not ignored. | `gh run list --branch main --commit <sha> --json name,conclusion` |
 | P3 | `release-notes/studio/X.Y.Z.md` is in that commit and passes `make check`. | `git cat-file -e <sha>:release-notes/studio/X.Y.Z.md` |
 | P4 | The version is valid semver and above the latest tag. | `git tag -l 'studio-v*' --sort=-v:refname \| head -1` |
 | P5 | The Windows signing mode is known. `true` signs with Certum and blocks the release if signing fails; anything else ships unsigned and the body says so. | `gh variable list \| grep STUDIO_SIGNING` |
@@ -29,15 +29,15 @@ Workflow: `.github/workflows/release-studio.yml`. Trigger: push of a `studio-vX.
 
 ## 3. Steps
 
-1. Gather `release-notes/studio/unreleased/*.md` (one file per pull request, named by its number, items named after it) into `release-notes/studio/X.Y.Z.md` (format in section 6), `git rm` the fragments in the same commit, push to `torch`.
+1. Gather `release-notes/studio/unreleased/*.md` (one file per pull request, named by its number, items named after it) into `release-notes/studio/X.Y.Z.md` (format in section 6), `git rm` the fragments in the same commit, push to `main`.
 2. Wait until P2 holds for the commit that contains the notes.
 3. Tag the verified commit and push the tag:
 
    ```bash
-   git fetch origin torch
-   SHA=$(git rev-parse origin/torch)
+   git fetch origin main
+   SHA=$(git rev-parse origin/main)
    git tag studio-vX.Y.Z "$SHA"
-   git fetch origin torch && test "$(git rev-parse origin/torch)" = "$SHA"
+   git fetch origin main && test "$(git rev-parse origin/main)" = "$SHA"
    git push origin studio-vX.Y.Z
    ```
 
@@ -52,7 +52,7 @@ Jobs in the run:
 
 | Job | Does | Gate |
 | --- | --- | --- |
-| `resolve` | Validates the tag shape and that the commit is on `studio`. | fails on any other ref |
+| `resolve` | Validates the tag shape and that the commit is on `main`. | fails on any other ref |
 | `signing-contract` | Validates `.signpath/contracts/release-signing.yml` against the workflows that reach the Certum credentials and prints its fingerprint. | fails on an undeclared signing workflow |
 | `build` | Builds windows/amd64, windows/arm64 (on a native `windows-11-arm` runner), darwin/amd64, darwin/arm64, linux/amd64, linux/arm64 (on a native `ubuntu-22.04-arm` runner, with a system-installed fpm because electron-builder's own is x86_64-only); signs macOS. Windows PE images and all Linux ELF images must match the package architecture. Linux packages pass installed-shell acceptance before upload. With signing on, each Windows leg uploads its bundle instead of packaging it. | Apple secrets are required |
 | `windows-sign-payload` | Only with `STUDIO_SIGNING_ENABLED=true`. One leg per architecture, run one after the other (`max-parallel: 1`). Refuses a bundle whose PE files differ from the declared list or are not all the leg's architecture, signs the release PE files, verifies them and the two Microsoft-signed DLLs, and records a digest of the whole signed tree as a job output. Installs no toolchain. | shared concurrency group `certum-signing`, environment `studio-release` |

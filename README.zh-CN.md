@@ -49,13 +49,13 @@
 
 ## 版本
 
-本 fork 从上游的 **v2.61.0** 接手——上游在这一点声明停止维护。发布沿 `torch` 线往上走：**2.62.0** 是第一个发布，**2.67.0** 是最新。
+本 fork 从上游的 **v2.61.0** 接手——上游在这一点声明停止维护。发布沿单分支往上走——2.67.0 及之前叫 `torch`，之后叫 `main`：**2.62.0** 是第一个发布，**2.67.0** 是最新。
 
 版本发布在本仓库自己的[发布页](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases)。上游最后一个版本仍是 v2.61.0。
 
 ## 分支
 
-只有一条分支：`torch`——完整应用、发布线与默认分支。`studio` 快照和各条
+只有一条分支：`main`——完整应用、发布线与默认分支。`studio` 快照和各条
 `area/*` 工作分支已并入其中，逐条验证包含后删除。改完文件跑 `make branch-for`
 看这次改动该用哪个提交前缀；工作流见 [docs/BRANCHES.md](./docs/BRANCHES.md)。
 
@@ -68,7 +68,7 @@
 ```sh
 git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch.git
 cd DeepSeek-Reasonix-torch
-git switch torch
+git switch main
 ```
 
 ### CLI

@@ -7,8 +7,9 @@ reviewed: 2026-11-21
 
 # torch handoff — 2.67.0 shipped
 
-The state of the `torch` line after the 2.67.0 release: what shipped, how it was verified, and
-what is still open. The fork's first revision is described in `docs/STUDIO_TWEAKS_HANDOFF.md`;
+The state of the fork after the 2.67.0 release: what shipped, how it was verified, and
+what is still open. The line was named `torch` through 2.67.0 and returned to `main`
+on 2026-11-21. The fork's first revision is described in `docs/STUDIO_TWEAKS_HANDOFF.md`;
 this document supersedes it.
 
 ## 1. Where things stand
@@ -16,7 +17,7 @@ this document supersedes it.
 | Item | State |
 | --- | --- |
 | Release | [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) published 2026-11-20, 21 assets (2.49 GB), six platforms built and install-smoked |
-| Branches | `torch` only, and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained in `torch` first |
+| Branches | `main` only (renamed from `torch` on 2026-11-21), and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained first |
 | CI | 45/45 green on the release commit `11c59e4d4`; five UI commits landed after it |
 | Working tree | Two deliberate local changes, not committed: `xiaomimimo.svg` (vendor mark touched) and `dist-local2/` (a local electron build) |
 
@@ -30,11 +31,11 @@ this document supersedes it.
   the row and its record together; the row's menu offers 放回列表.
 - The presentation was chosen by the user from two candidates; the everyday list stays clean.
 
-## 3. The release line follows torch
+## 3. The release line follows main
 
-`release-studio.yml` now validates that a `studio-v*` tag sits on `torch` history; CI, CodeQL,
-Studio, acp-conformance and the certum smoke run on torch; the signing contract allows the torch
-branch; `docs/STUDIO_RELEASE.md` fetches torch. The tag namespace is unchanged.
+`release-studio.yml` now validates that a `studio-v*` tag sits on `main` history; CI, CodeQL,
+Studio, acp-conformance and the certum smoke run on main; the signing contract allows the main
+branch; `docs/STUDIO_RELEASE.md` fetches main. The tag namespace is unchanged.
 
 ## 4. How 2.67.0 was verified
 
@@ -63,7 +64,7 @@ measured on three viewport heights → card retired on delete.
   G5) are met. 2.67.0 was tagged at the user's explicit request; a fork release moves no npm
   pointer, but the gate note stands for anyone reading the runbook.
 - Five UI commits (spacing, ghost-row polish) ride the **next** tag; cutting 2.67.1 is a repeat
-  of the runbook on torch.
+  of the runbook on main.
 - `checkedOn` in `internal/contract/pricing/catalog.go` is 2026-11-20; the 90-day gate goes red
   again around 2027-02.
 - The 30-minute release-progress automation created for this handover was deleted on completion.

@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   sign:
-    if: github.repository == 'esengine/DeepSeek-Reasonix' && github.ref == 'refs/heads/torch'
+    if: github.repository == 'esengine/DeepSeek-Reasonix' && github.ref == 'refs/heads/main'
     runs-on: windows-2022
     environment: studio-release
     timeout-minutes: 20

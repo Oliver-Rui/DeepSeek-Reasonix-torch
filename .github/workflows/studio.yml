@@ -1,22 +1,22 @@
 name: Studio
 
 # Studio's own surface — desktop/frontend-next (the SPA) and the Electron shell
-# that serves it — exists only on the torch branch, so it cannot live in ci.yml
+# that serves it — exists only on the main branch, so it cannot live in ci.yml
 # without dragging the kernel gates along. ci.yml covers
 # the kernel; this file covers the frontend build, the desktop module's Go side,
 # and the packaging contract on real artifacts.
 on:
   push:
-    branches: [torch]
+    branches: [main]
   pull_request:
-    branches: [torch]
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
   group: studio-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/torch' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
 
 jobs:
   frontend:

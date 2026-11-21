@@ -54,13 +54,13 @@ in Reasonix Studio. The cross-session dispatch this fork shipped (会话互聊) 
 
 ## Versions
 
-This fork continues from upstream's **v2.61.0** — the point where upstream declared maintenance stopped. Releases move along the `torch` line: **2.62.0** was the first fork release, **2.67.0** the latest.
+This fork continues from upstream's **v2.61.0** — the point where upstream declared maintenance stopped. Releases move along the single branch — `torch` through 2.67.0, `main` since: **2.62.0** was the first fork release, **2.67.0** the latest.
 
 Releases are published from this repository's own [releases page](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases). v2.61.0 remains the last upstream release.
 
 ## Branches
 
-There is one branch: `torch` — the complete application, the release line and the default branch. The `studio` snapshot and the `area/*` module workstreams were folded into it and deleted once each was verified contained.
+There is one branch: `main` — the complete application, the release line and the default branch. The `studio` snapshot and the `area/*` module workstreams were folded into it and deleted once each was verified contained.
 
 - Run `make branch-for` to see which commit-subject prefix a working-tree change wants.
 - Read [docs/BRANCHES.md](./docs/BRANCHES.md) for the workflow.
@@ -74,7 +74,7 @@ Build it from source:
 ```sh
 git clone https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch.git
 cd DeepSeek-Reasonix-torch
-git switch torch
+git switch main
 ```
 
 ### CLI

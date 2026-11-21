@@ -3,7 +3,7 @@ project_slug: DeepSeek-Reasonix
 signing_policy_slug: release-signing
 repository_url: https://github.com/esengine/DeepSeek-Reasonix.git
 allowed_branch_names:
-  - torch
+  - main
 allowed_build_definitions:
   - .github/workflows/release-studio.yml
   - .github/workflows/studio-certum-signing-smoke.yml

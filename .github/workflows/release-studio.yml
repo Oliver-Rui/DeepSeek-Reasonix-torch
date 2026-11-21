@@ -68,10 +68,10 @@ jobs:
           fi
           # A dispatch recovers an existing tag; it must not invent one.
           sha="$(git rev-parse --verify "refs/tags/$tag^{commit}")"
-          # The tag has to be on the torch line. Publishing a commit that is
+          # The tag has to be on the main line. Publishing a commit that is
           # not the release line's would produce a build nobody asked for.
-          if ! git merge-base --is-ancestor "$sha" origin/torch; then
-            echo "::error::$tag is not on torch history"
+          if ! git merge-base --is-ancestor "$sha" origin/main; then
+            echo "::error::$tag is not on main history"
             exit 1
           fi
           version="${tag#studio-}"
@@ -1404,8 +1404,8 @@ jobs:
           [ "$CLI_PUBLISH_FROZEN" = true ] || { echo "::error::CLI_PUBLISH_FROZEN must be true"; exit 1; }
           [ "$GITHUB_REPOSITORY" = "$repo" ] || { echo "::error::the release tag identity is only used in $repo"; exit 1; }
           case "$GITHUB_REF" in
-            refs/tags/studio-v* | refs/heads/torch) ;;
-            *) echo "::error::the release tag identity is only used on a studio tag or the torch branch, not $GITHUB_REF"; exit 1 ;;
+            refs/tags/studio-v* | refs/heads/main) ;;
+            *) echo "::error::the release tag identity is only used on a studio tag or the main branch, not $GITHUB_REF"; exit 1 ;;
           esac
           [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::approved SHA is not a full commit SHA"; exit 1; }
           [[ "$STUDIO_TAG" == "studio-$CLI_VERSION" ]] || { echo "::error::studio tag does not match the version"; exit 1; }
