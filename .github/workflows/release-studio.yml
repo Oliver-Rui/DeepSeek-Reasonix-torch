@@ -1006,8 +1006,19 @@ jobs:
     needs: [resolve, build, cli, windows-sign-payload, windows-package, windows-verify-package, windows-sign-installer, windows-install-smoke, publish-gate]
     # The gate above carries the run-condition logic; the Sign step inside
     # refuses to publish what this repository cannot sign, so this job reads
-    # only its verdict.
-    if: needs.publish-gate.outputs.publish == 'true'
+    # only its verdict. The Certum jobs skip while the switch is off, and an
+    # implicit success() would skip this job with them, so the skipped branch
+    # is spelled out exactly as the gate spells it.
+    if: >-
+      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
+      needs.cli.result == 'success' && needs.windows-install-smoke.result == 'success' &&
+      needs.publish-gate.outputs.publish == 'true' &&
+      ((needs.windows-sign-payload.result == 'success' &&
+      needs.windows-package.result == 'success' && needs.windows-verify-package.result == 'success' &&
+      needs.windows-sign-installer.result == 'success') ||
+      (vars.STUDIO_SIGNING_ENABLED != 'true' && needs.windows-sign-payload.result == 'skipped' &&
+      needs.windows-package.result == 'skipped' && needs.windows-verify-package.result == 'skipped' &&
+      needs.windows-sign-installer.result == 'skipped')) }}
     runs-on: ubuntu-latest
     # Owner approval for the whole line. The gate sits here rather than before
     # build so the approval is given with the artifacts already proven to build.
