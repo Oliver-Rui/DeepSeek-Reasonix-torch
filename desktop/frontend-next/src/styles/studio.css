@@ -2001,8 +2001,7 @@ button, input, textarea { font-size: var(--fs-ui); }
 
 @container conversation (max-width: 720px) {
   .studio-branch-pop .studio-branch { width: 30px; justify-content: center; padding-inline: 0; }
-  .studio-branch-pop .studio-branch .lb,
-  .studio-branch-pop .studio-branch small,
+  .studio-branch-pop .studio-branch .lb, .studio-branch-pop .studio-branch small,
   .studio-branch-pop .studio-branch > .studio-icon:last-child { display: none; }
   .studio-model-control { max-width: clamp(84px, 28cqw, 142px); }
     .studio-mode-picker > span:not(.studio-sr-label),

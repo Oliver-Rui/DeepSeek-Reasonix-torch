@@ -2001,8 +2001,7 @@
     grid-template-columns: var(--nav-w) var(--rail-w) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto auto;
   }
-  [data-fold~="side"] .side { grid-column: 1 / -1 }
-  [data-fold~="side"] .side { border-top: 0 }
+  [data-fold~="side"] .side { grid-column: 1 / -1; border-top: 0 }
   [data-fold~="side"] .flow { padding-inline: 14px }
   [data-fold~="side"] .compose { width: calc(100% - 28px) }
   [data-fold~="side"] .composer-top { width: calc(100% - 28px) }
