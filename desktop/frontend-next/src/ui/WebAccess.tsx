@@ -113,10 +113,10 @@ export function WebAccess({ port }: { port: AgentPort }) {
             const enabled = idx >= 0;
             const paid = state.paid_backends.includes(id);
             return (
-              <li key={id}>
+              <li key={id} className="lrow">
                 <span className="tx"><span className="lb">{said(kind, id)}</span><span className="ds">{NOTE[kind][id] ? t(NOTE[kind][id]) : ""}</span></span>
                 {enabled && (
-                  <span className="acts">
+                  <span className="sa">
                     <button className="act" data-action="web-access.move" data-value="up" disabled={locked || idx === 0} aria-label={t("common.move_name_up", { name: said(kind, id) })}
                       onClick={() => void order(on.map((x, i) => (i === idx - 1 ? id : i === idx ? on[idx - 1] : x)))}><StudioIcon name="arrow" /></button>
                     <button className="act" data-action="web-access.move" data-value="down" disabled={locked || idx === on.length - 1} aria-label={t("common.move_name_down", { name: said(kind, id) })}
@@ -165,7 +165,7 @@ export function WebAccess({ port }: { port: AgentPort }) {
         <div className="wa-sec" role="group" aria-label={t("models.video_addresses")}>
           <div className="peernote"><b>{t("models.video_addresses")}</b>{" "}{t("models.the_model_can_hand_a")}</div>
           <ul className="wa-list">
-            <li>
+            <li className="lrow">
               <span className="tx">
                 <span className="lb">{t("models.hand_video_addresses_to_the")}</span>
                 <span className="ds">{t("models.when_on_the_address_is")}</span>

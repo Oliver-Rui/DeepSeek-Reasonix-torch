@@ -61,3 +61,4 @@
 @import "./mods.css" layer(legacy);
 @import "./memory.css" layer(legacy);
 @import "./compaction-live.css" layer(legacy);
+@import "./webaccess.css" layer(legacy);

@@ -252,3 +252,27 @@ describe("handing a video address to the vendor", () => {
     expect(await screen.findByText(/只读/)).toBeTruthy();
   });
 });
+
+describe("the web access rows speak the settings row language", () => {
+  it("lays each backend on an lrow with its controls at the end, consent on its own indented line", async () => {
+    const { port } = portWith(settings({
+      search_backends: ["searxng", "deepseek_api"],
+      search_paid_allowed: ["deepseek_api"],
+      fetch_backends: ["local"],
+    }));
+    render(<WebAccess port={port} />);
+    await screen.findByRole("switch", { name: "启用 SearXNG" });
+    const list = search().querySelector("ul");
+    expect(list?.className).toContain("wa-list");
+    if (!list) return;
+    for (const li of list.querySelectorAll(":scope > li")) {
+      expect(li.className).toContain("lrow");
+    }
+    const searxng = [...list.querySelectorAll("li")].find((li) => li.textContent?.includes("SearXNG"));
+    expect(searxng?.querySelector(".acts")).toBeNull();
+    expect(searxng?.querySelector(".sa .act")).toBeTruthy();
+    const consent = list.querySelector(".wa-consent");
+    expect(consent?.className).toContain("wa-consent");
+    expect(consent?.querySelector(".tx")).toBeTruthy();
+  });
+});
