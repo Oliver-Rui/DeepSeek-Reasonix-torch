@@ -33,17 +33,20 @@ this document supersedes it.
 
 ## 2.5 What 2.67.1 ships
 
-- **The narrow fold keeps every control inside the pane.** Three roots: twelve viewport
-  clamps across six sheets divided by nothing (100vw is visual while the shell lays out at
-  100vw / --zoom, so panels escaped a zoomed narrow window by exactly the zoom factor);
-  the design layer's `flex: none` on the model group and control outranked every legacy
-  squeeze rule by layer order regardless of specificity, so the model pill overflowed its
-  pane by 40px at 320px until the shrink chain moved into the design layer itself; and the
-  collapsed pill kept two 14px icons in a 30px box. Fixed with: the division everywhere +
-  a contract test banning bare viewport subtractions, the name truncating across the whole
-  squeezed range with the shrink chain in `phone.css`, the chevron hidden like its sibling
-  collapses, the pill row paired to the card's exact fold width, tips clamped by cqw, the
-  drawer sized against the zoomed viewport, and the model menu capped.
+- **The narrow fold keeps every control inside the pane.** Three roots, and the fixes
+  that answered each:
+  - Viewport clamps divided by nothing: the twelve clamps across six sheets used bare
+    100vw while the shell lays out at 100vw / --zoom, so panels escaped a zoomed narrow
+    window by exactly the zoom factor. Fixed with the division everywhere plus a contract
+    test banning bare viewport subtractions.
+  - Layer order outranked specificity: the design layer's `flex: none` on the model group
+    and control beat every legacy squeeze rule, so the pill overflowed its pane by 40px
+    at 320px until the shrink chain moved into the design layer itself, with the name
+    truncating across the whole squeezed range in `phone.css`.
+  - The collapsed pill kept two 14px icons in a 30px box. Fixed with the chevron hidden
+    like its sibling collapses and the pill row paired to the card's exact fold width;
+    tips are clamped by cqw, the drawer is sized against the zoomed viewport, and the
+    model menu is capped.
 - **The web access panel speaks the settings row language.** It shipped with no stylesheet
   at all — native bullets, the reorder buttons and the switch each on their own line. The
   rows adopt `lrow` (the class names already matched) and `webaccess.css` fills in the
@@ -76,13 +79,16 @@ measured on three viewport heights → card retired on delete.
 
 ### How 2.67.1 was verified
 
-Frontend `tsc` clean and `vitest` 42/42 — three contract files pin the fold's structure:
-`narrow-fold.test.ts` (the 30px collapse, the squeeze-range truncation, the design-layer
-shrink chain, the drawer and menu caps, the pill-row pairing), `zoom-safe-viewport.test.ts`
-(every viewport subtraction divides by --zoom), and the web-access interaction suite (the
-row structure). The fixes were then measured on the production build in the running app:
-a DOM sweep at 320/360/480/720 found zero viewport escapes, the pill row aligned to the
-card at Δ2–4px, and the model menu computed to its viewport cap.
+Frontend `tsc` clean and `vitest` 42/42. Three contract files pin the fold's structure:
+`narrow-fold.test.ts` pins the 30px collapse, the squeeze-range truncation, the
+design-layer shrink chain, the drawer and menu caps, and the pill-row pairing.
+
+`zoom-safe-viewport.test.ts` requires every viewport subtraction to divide by --zoom,
+and the web-access interaction suite pins the row structure.
+
+The fixes were then measured on the production build in the running app: a DOM sweep at
+320/360/480/720 found zero viewport escapes, the pill row aligned to the card at Δ2–4px,
+and the model menu computed to its viewport cap.
 
 The lesson worth keeping: specificity does not cross layer order. The design layer's
 `flex: none` beat a (0,3,0) legacy rule; only a rule inside the design layer wins there.
@@ -90,10 +96,10 @@ The lesson worth keeping: specificity does not cross layer order. The design lay
 ## 5. Open items
 
 - The release is **unsigned**: `MINISIGN_PRIVATE_KEY` is not configured, so the workflow's
-  publish job skips by design. 2.67.0's assets were published by hand from the run's
-  `studio-build-*` artifacts; 2.67.1's by an automated hand-publish pipeline (curl with
-  resume, because the network to the artifact CDN resets under load). Configure the key
-  (and `STUDIO_SIGNING_ENABLED`) for CI to publish and sign itself.
+  publish job skips by design and the run stays green with its artifacts downloadable.
+  Configure the key (and `STUDIO_SIGNING_ENABLED`) for CI to publish and sign itself.
+- 2.67.0's assets were published by hand from the run's `studio-build-*` artifacts, with
+  curl resuming because the network to the artifact CDN resets under load.
 - `ROADMAP.md` R5 blocks the next **stable** `studio-v2.*` tag until the GA gates (G1, G3, G4,
   G5) are met. 2.67.0 and 2.67.1 were tagged at the user's explicit request; a fork release
   moves no npm pointer, but the gate note stands for anyone reading the runbook.
