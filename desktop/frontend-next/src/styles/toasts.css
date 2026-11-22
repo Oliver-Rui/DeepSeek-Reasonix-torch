@@ -1,4 +1,4 @@
-.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 21; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; width: min(760px, calc(100vw - 32px)); pointer-events: none; }
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 21; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; width: min(760px, calc(100vw / var(--zoom, 1) - 32px)); pointer-events: none; }
 .toast { pointer-events: auto; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--raised); font: var(--w-reg) var(--fs-ui)/1.5 var(--ui); color: var(--text); animation: m-card var(--t-card) var(--ease-out) both; }
 .toast-icon { display: flex; flex: none; color: var(--muted); }
 .toast-icon[data-tone="ok"] { color: var(--ok-ink); }

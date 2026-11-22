@@ -17,7 +17,7 @@
 .session-batch button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .session-batch .wsconfirm { margin: 8px 0 0; flex-wrap: wrap; gap: 8px; }
 .session-batch .wsconfirm-t { flex-basis: 100%; }
-.session-batch-pick { position: fixed; z-index: 93; right: 18px; bottom: 90px; min-width: 220px; max-width: calc(100vw - 36px); max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 6px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--float); box-shadow: var(--shadow-float); }
+.session-batch-pick { position: fixed; z-index: 93; right: 18px; bottom: 90px; min-width: 220px; max-width: calc(100vw / var(--zoom, 1) - 36px); max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 6px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--float); box-shadow: var(--shadow-float); }
 .session-batch-pick button { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .session-batch-pick button:hover, .session-batch-pick button:focus-visible { background: var(--accent-wash); }
 .session-batch-pick button .studio-icon { width: 15px; height: 15px; flex: none; color: var(--faint); }

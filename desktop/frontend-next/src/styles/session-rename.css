@@ -1,5 +1,5 @@
 .session-rename-dialog {
-  width: min(524px, calc(100vw - 32px));
+  width: min(524px, calc(100vw / var(--zoom, 1) - 32px));
   box-sizing: border-box;
   margin: auto;
   padding: 24px;
