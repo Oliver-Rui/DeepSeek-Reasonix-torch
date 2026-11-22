@@ -24,9 +24,7 @@
 
 .wa-url { display: grid; gap: 6px; margin-top: 12px; }
 .peerfield {
-  width: 100%; max-width: 460px; padding: 7px 9px;
-  border: 1px solid var(--border); border-radius: var(--r-sm);
-  background: var(--raised); color: var(--text); outline: none;
+  width: 100%; max-width: 460px; color: var(--text);
   font: var(--w-reg) var(--fs-ui)/1.6 var(--mono);
 }
 .peerfield:focus-visible { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in oklab, var(--focus) 26%, transparent); }
