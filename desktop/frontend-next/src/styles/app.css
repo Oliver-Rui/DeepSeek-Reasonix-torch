@@ -516,7 +516,7 @@
 
   .ovf {
     position: fixed; z-index: 70;
-    max-width: min(52ch, calc(100vw - 24px));
+    max-width: min(52ch, calc(100vw / var(--zoom, 1) - 24px));
     max-height: min(calc(30vh / var(--zoom, 1)), 220px);
     padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--r-sm);
     background: var(--float); box-shadow: var(--shadow-float); color: var(--text);
@@ -2005,6 +2005,7 @@
   [data-fold~="side"] .side { border-top: 0 }
   [data-fold~="side"] .flow { padding-inline: 14px }
   [data-fold~="side"] .compose { width: calc(100% - 28px) }
+  [data-fold~="side"] .composer-top { width: calc(100% - 28px) }
 
   [data-fold~="rail"][data-fold~="side"] .pane { --srail-w: 24px }
   [data-fold~="side"] .chrome .goal,
@@ -3427,7 +3428,7 @@
   .cmpalert > .errbar,
   .composenotes > .errbar {
     position: fixed; right: 16px; bottom: 16px; z-index: 20;
-    max-width: min(460px, calc(100vw - 32px)); pointer-events: auto;
+    max-width: min(460px, calc(100vw / var(--zoom, 1) - 32px)); pointer-events: auto;
   }
   .main > .errbar { position: absolute; right: 16px; bottom: 16px; z-index: 6 }
   .errbar button {
@@ -4163,7 +4164,7 @@
 
   .pickveil { z-index: 92 }
   .askcard {
-    width: min(440px, calc(100vw - 48px)); padding: 20px 22px;
+    width: min(440px, calc(100vw / var(--zoom, 1) - 48px)); padding: 20px 22px;
     border: 1px solid var(--border); border-radius: var(--r-md);
     background: var(--surface); box-shadow: var(--shadow-float);
   }
@@ -4196,7 +4197,7 @@
 
   .pickcard {
     display: flex; flex-direction: column;
-    width: min(520px, calc(100vw - 48px)); max-height: min(560px, calc(100vh - 96px));
+    width: min(520px, calc(100vw / var(--zoom, 1) - 48px)); max-height: min(560px, calc(100vh / var(--zoom, 1) - 96px));
     padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--r-md);
     background: var(--surface); box-shadow: var(--shadow-float);
   }
@@ -4463,7 +4464,7 @@
   .phone-action[aria-expanded="true"] { background: var(--overlay); color: var(--text) }
   .phonecard {
     position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
-    width: min(318px, calc(100vw - 24px)); max-height: calc(100dvh - var(--chrome-h, 45px) - 24px); overflow: auto;
+    width: min(318px, calc(100vw / var(--zoom, 1) - 24px)); max-height: calc(100dvh / var(--zoom, 1) - var(--chrome-h, 45px) - 24px); overflow: auto;
     display: grid; grid-template-columns: minmax(0, 1fr); gap: 11px; padding: 13px;
     border: 1px solid var(--border); border-radius: var(--r-md);
     background: var(--raised); box-shadow: 0 20px 50px -20px var(--shade);

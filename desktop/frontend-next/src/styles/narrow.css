@@ -3,7 +3,9 @@
   .turntools { flex-wrap: nowrap; }
   .studio-model-group { flex: 1 1 0; }
   .studio-model-control { flex: 0 1 auto; min-width: 0; }
-  .studio-model-control .model-picker .nm { max-width: none; }
+  .studio-model-control .model-picker .nm { max-width: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .turntools .studio-model-group .studio-model-control,
+  .turntools .studio-model-group .studio-model-control > .model-picker { flex-shrink: 1; min-width: 0; }
 }
 .chrome .r-fold { display: contents; }
 .chrome .crumb-context { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }

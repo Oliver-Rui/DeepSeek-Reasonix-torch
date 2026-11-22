@@ -1127,9 +1127,9 @@ body { background: var(--page) !important; }
 }
 .studio-context-anchor .studio-context-summary {
   top: auto; right: auto; bottom: calc(100% + 8px); left: 0;
-  width: min(326px, calc(100vw - 32px)); transform: translateY(4px) scale(.985); transform-origin: bottom left;
+  width: min(326px, calc(100vw / var(--zoom, 1) - 32px)); transform: translateY(4px) scale(.985); transform-origin: bottom left;
 }
-.studio-context-anchor:is(:hover, [data-open])::before { content: ""; position: absolute; left: 0; bottom: 100%; width: min(360px, calc(100vw - 32px)); height: 10px; }
+.studio-context-anchor:is(:hover, [data-open])::before { content: ""; position: absolute; left: 0; bottom: 100%; width: min(360px, calc(100vw / var(--zoom, 1) - 32px)); height: 10px; }
 .studio-context-anchor[data-open] .studio-context-summary {
   opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s;
 }
@@ -1337,7 +1337,7 @@ body { background: var(--page) !important; }
 }
 
 @media (max-width: 680px) {
-  .app { --rail-open: min(84vw, 300px) !important; }
+  .app { --rail-open: min(calc(100vw / var(--zoom, 1) * 0.84), 300px) !important; }
     .rail { box-shadow: 18px 0 50px -28px var(--shade); }
   .app[data-rail="off"] .rail { pointer-events: none; }
   .flow,
@@ -1707,7 +1707,7 @@ button, input, textarea { font-size: var(--fs-ui); }
    the detail behind it stay one object rather than two places to look. */
 .studio-deck-anchor {
   position: relative; height: 25px; display: flex; align-items: center;
-  --deck-gap: 8px; --deck-w: min(320px, calc(100vw - 32px));
+  --deck-gap: 8px; --deck-w: min(320px, calc(100vw / var(--zoom, 1) - 32px));
 }
 .studio-deck-pop {
   position: absolute; z-index: 1; right: 0; bottom: calc(100% + var(--deck-gap));
@@ -1961,7 +1961,7 @@ button, input, textarea { font-size: var(--fs-ui); }
   left: 0;
   bottom: calc(100% + 8px);
   width: max-content;
-  max-width: 220px;
+  max-width: min(220px, calc(100cqw - 48px));
   white-space: normal;
   overflow-wrap: anywhere;
   display: grid;
@@ -2002,7 +2002,8 @@ button, input, textarea { font-size: var(--fs-ui); }
 @container conversation (max-width: 720px) {
   .studio-branch-pop .studio-branch { width: 30px; justify-content: center; padding-inline: 0; }
   .studio-branch-pop .studio-branch .lb,
-  .studio-branch-pop .studio-branch small { display: none; }
+  .studio-branch-pop .studio-branch small,
+  .studio-branch-pop .studio-branch > .studio-icon:last-child { display: none; }
   .studio-model-control { max-width: clamp(84px, 28cqw, 142px); }
     .studio-mode-picker > span:not(.studio-sr-label),
   .studio-mode-picker > .studio-icon:last-child { display: none; }
@@ -2049,7 +2050,7 @@ button, input, textarea { font-size: var(--fs-ui); }
   box-shadow: 0 20px 48px -20px var(--shade);
 }
 .studio-model-menu,
-.studio-effort-menu { width: 310px; max-width: calc(100vw - 24px); }
+.studio-effort-menu { width: 310px; max-width: calc(100vw / var(--zoom, 1) - 24px); }
 .studio-model-menu { width: 340px; max-height: min(calc((100vh - 160px) / var(--zoom, 1)), 640px); }
 .studio-effort-menu {
   width: 350px;
@@ -2133,7 +2134,7 @@ button, input, textarea { font-size: var(--fs-ui); }
 
 .polmenu {
   width: 310px;
-  max-width: calc(100vw - 24px);
+  max-width: calc(100vw / var(--zoom, 1) - 24px);
   padding: 8px;
   /* This card belongs to the permission trigger, not the generic anchored
      picker geometry. Opening to the right keeps it inside the conversation
@@ -3484,7 +3485,7 @@ button, input, textarea { font-size: var(--fs-ui); }
   display: flex;
   align-items: center;
   gap: 11px;
-  width: min(420px, calc(100vw - 32px));
+  width: min(420px, calc(100vw / var(--zoom, 1) - 32px));
   box-sizing: border-box;
   padding: 13px 14px;
   border: 1px solid var(--border);
@@ -3511,7 +3512,7 @@ button, input, textarea { font-size: var(--fs-ui); }
 }
 .remote-closed button:hover { background: var(--hover); }
 @media (max-width: 560px) {
-  .remote-closed { right: 12px; bottom: 12px; width: calc(100vw - 24px); }
+  .remote-closed { right: 12px; bottom: 12px; width: calc(100vw / var(--zoom, 1) - 24px); }
 }
 .portmenu .studio-item-switch {
   position: relative;
