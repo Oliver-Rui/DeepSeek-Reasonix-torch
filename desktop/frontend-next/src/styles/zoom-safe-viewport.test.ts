@@ -4,9 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // The shell lays out at 100vw / --zoom and scales by --zoom, so a viewport
-// subtraction that skips the division is --zoom times too wide: the context
-// card, the model menu foot and the error bars each escaped narrow windows
-// by exactly the zoom factor before this contract existed.
+// subtraction that skips the division is --zoom times too wide — the context
+// card, the model menu foot and the error bars each escaped a narrow window.
 const dir = fileURLToPath(new URL(".", import.meta.url));
 const offenders: string[] = [];
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".css"))) {

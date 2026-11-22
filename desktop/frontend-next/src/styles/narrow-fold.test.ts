@@ -7,10 +7,9 @@ const app = readFileSync(new URL("./app.css", import.meta.url), "utf8");
 const phone = readFileSync(new URL("../design/phone.css", import.meta.url), "utf8");
 const composerDesign = readFileSync(new URL("../design/composer.css", import.meta.url), "utf8");
 
-// The conversation fold narrows composer controls onto a 30px icon grid. Two
-// 14px icons need 34px, so a pill the fold collapses to 30px must also drop
-// its chevron — the policy pill's fold already does, and the project pill's
-// left the pair in place, overflowing its own rounded box by arithmetic.
+// The fold narrows composer controls onto a 30px icon grid: two 14px icons
+// need 34px, so a pill the fold collapses to 30px must also drop its chevron
+// — the policy pill's fold already does; the project pill's left the pair in.
 const fold = (width: string) =>
   css.match(new RegExp(`@container conversation \\(max-width: ${width}\\) \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
 const squeeze = (width: string) =>
@@ -78,10 +77,9 @@ describe("the conversation fold's 30px collapse", () => {
   });
 
   it("lets the phone-fold model row shrink inside the design layer", () => {
-    // The design layer's flex:none on the group and control outranks every
-    // legacy squeeze rule by layer order, so the phone fold — where the row
-    // squeezes onto one line — must carry the shrink chain in the design
-    // layer itself.
+    // The design layer's flex:none outranks every legacy squeeze rule by
+    // layer order regardless of specificity, so the phone fold must carry
+    // the shrink chain here.
     expect(phone).toMatch(
       /\[data-fold~="phone"\] \.compose \.turntools > \.studio-model-group \{[^}]*flex:\s*0 1 auto[^}]*min-width:\s*0/,
     );
