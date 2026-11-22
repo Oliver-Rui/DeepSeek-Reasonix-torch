@@ -154,9 +154,16 @@ func signFiles(files []string) error {
 	if strings.TrimSpace(keyText) == "" {
 		return fmt.Errorf("sign: MINISIGN_PRIVATE_KEY is empty")
 	}
-	priv, err := minisign.DecryptKey(os.Getenv("MINISIGN_PASSWORD"), []byte(keyText))
-	if err != nil {
-		return fmt.Errorf("sign: decrypt private key: %w", err)
+	keyBytes := []byte(keyText)
+	var priv minisign.PrivateKey
+	if minisign.IsEncrypted(keyBytes) {
+		var err error
+		priv, err = minisign.DecryptKey(os.Getenv("MINISIGN_PASSWORD"), keyBytes)
+		if err != nil {
+			return fmt.Errorf("sign: decrypt private key: %w", err)
+		}
+	} else if err := priv.UnmarshalText(keyBytes); err != nil {
+		return fmt.Errorf("sign: read private key: %w", err)
 	}
 	for _, f := range files {
 		data, err := os.ReadFile(f)

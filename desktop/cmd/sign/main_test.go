@@ -48,6 +48,43 @@ func TestSignFiles(t *testing.T) {
 	}
 }
 
+// TestSignFilesUnencryptedKey signs with a key stored unencrypted — the shape
+// the fork's release key ships in — where DecryptKey refuses the text outright
+// and the key must parse as-is.
+func TestSignFilesUnencryptedKey(t *testing.T) {
+	pub, priv, err := minisign.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := priv.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if minisign.IsEncrypted(text) {
+		t.Fatal("MarshalText produced an encrypted key")
+	}
+	t.Setenv("MINISIGN_PRIVATE_KEY", string(text))
+	t.Setenv("MINISIGN_PASSWORD", "")
+
+	dir := testenv.TempDir(t)
+	artifact := filepath.Join(dir, "Reasonix-linux-amd64.tar.gz")
+	payload := []byte("pretend this is a release tarball")
+	if err := os.WriteFile(artifact, payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := signFiles([]string{artifact}); err != nil {
+		t.Fatalf("signFiles: %v", err)
+	}
+	sig, err := os.ReadFile(artifact + ".minisig")
+	if err != nil {
+		t.Fatalf("read signature: %v", err)
+	}
+	if !minisign.Verify(pub, payload, sig) {
+		t.Fatal("produced signature does not verify under the signing key")
+	}
+}
+
 // TestGenManifest builds a manifest from a directory of fake artifacts and checks
 // every platform is listed with a download URL, a parallel .minisig URL, and a
 // non-empty digest. The .minisig and latest.json files must be ignored.
