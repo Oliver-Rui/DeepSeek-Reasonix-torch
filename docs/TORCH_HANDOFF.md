@@ -16,10 +16,10 @@ this document supersedes it.
 
 | Item | State |
 | --- | --- |
-| Release | [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) published 2026-11-22 from the release run's artifacts by the automated hand-publish pipeline (see §5); 2.67.0 remains at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, 2.49 GB, six platforms) |
+| Release | [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) published 2026-11-22 by the release workflow's own publish job — the fork's first release signed with its own key, 35 assets including a `.minisig` beside every Studio package; 2.67.0 remains at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, unsigned, six platforms) |
 | Branches | `main` only (renamed from `torch` on 2026-11-21), and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained first |
 | History | One continuous line from `baseline: upstream 2.61.0` through the 2.66.1 fork work and every change since; the pre-rewrite full history (13,451 commits, upstream + fork through 2.66.1) lives in the `archive/pre-reset-2.66.1` tag on GitHub, alongside `upstream-v2.61.0` |
-| CI | frontend `tsc` clean and `vitest` 42/42 on the release commit; the CI and Studio failures on the tagged commit were the comment-budget lint (fixed in the release commit itself) and a CI-only test flap (rerun green locally; confirm on the rerun) |
+| CI | CI, Studio, CodeQL and the release workflow are all green on the release commit; the failures the original tag carried were the rotated-key test, two style contract tests and the lint budget, each repaired before the tag moved |
 | Working tree | Two deliberate local changes, not committed: `xiaomimimo.svg` (vendor mark touched) and `dist-local2/` (a local electron build) |
 
 ## 2. What 2.67.0 ships
@@ -95,9 +95,11 @@ The lesson worth keeping: specificity does not cross layer order. The design lay
 
 ## 5. Open items
 
-- The release is **unsigned**: `MINISIGN_PRIVATE_KEY` is not configured, so the workflow's
-  publish job skips by design and the run stays green with its artifacts downloadable.
-  Configure the key (and `STUDIO_SIGNING_ENABLED`) for CI to publish and sign itself.
+- The release is signed by CI: `MINISIGN_PRIVATE_KEY` was set from the fork keypair and
+  the publish path needed two repairs it surfaced — the publish job's bare `if` skipped
+  past the skipped Certum signers, and `cmd/sign` refused the unencrypted key text.
+- `STUDIO_SIGNING_ENABLED` stays unset, so the Windows packages carry minisign
+  signatures but no Authenticode signature; SmartScreen still warns on first install.
 - 2.67.0's assets were published by hand from the run's `studio-build-*` artifacts, with
   curl resuming because the network to the artifact CDN resets under load.
 - `ROADMAP.md` R5 blocks the next **stable** `studio-v2.*` tag until the GA gates (G1, G3, G4,
