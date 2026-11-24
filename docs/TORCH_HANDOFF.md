@@ -123,7 +123,7 @@ The tag was first pushed a commit ahead of the fixes, so its run failed the chec
 was re-dispatched with `tag=studio-v2.67.1`, which rebuilt every platform and published
 from that run.
 
-Seven repairs came out of the round, and each carries a guard:
+Eight repairs came out of the round, and each carries a guard:
 
 - **The embedded-key test** (`internal/platform/update/update_test.go`) asserts the key ID
   embedded in `verify.go`; a rotation that skips it fails every CI leg.
@@ -145,6 +145,10 @@ Seven repairs came out of the round, and each carries a guard:
 - **The sandbox comment** (`internal/contract/config/render.go`) names `windows_integrity`
   as the switch that turns Windows bash on; the save/reload guard reads the assignment
   and reloads its own output, so a comment may name the key.
+- **The vulnerability gate**: `govulncheck` began flagging GO-2026-6278 in
+  `github.com/gorilla/websocket` v1.5.3 (weak PRNG for the client mask key), so the
+  module moves to its fix commit. That commit carries no tag; the next upgrade should
+  prefer a tagged release once one exists.
 
-The round's commits run from `1164342aa` (the key test) to `ab5127ffa` (the sandbox
-comment); this handoff closes it.
+The round's commits run from `1164342aa` (the key test) to this handoff; the dependency
+bump for the vulnerability gate rides behind the document.
