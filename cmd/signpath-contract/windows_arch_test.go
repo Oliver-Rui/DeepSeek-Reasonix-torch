@@ -44,10 +44,9 @@ func TestEveryWindowsSigningStageCoversEveryArchitecture(t *testing.T) {
 			t.Errorf("%s covers %v, want %v", name, got, windowsArchitectures)
 		}
 	}
-	build := mappingValue(mappingValue(mappingValue(mappingValue(jobs, "build"), "strategy"), "matrix"), "include")
 	var built []string
-	for _, entry := range build.Content {
-		if goarch := mappingScalar(entry, "goarch"); goarch != "" {
+	for _, entry := range releaseBuildLegs(t, "all") {
+		if goarch := entry["goarch"]; goarch != "" {
 			built = append(built, goarch)
 		}
 	}

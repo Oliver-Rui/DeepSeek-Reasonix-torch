@@ -15,20 +15,19 @@ func TestLinuxReleaseBuildsAndCollectsBothNativeArchitectures(t *testing.T) {
 	root := parseWorkflowFile(t, "../../.github/workflows/release-studio.yml")
 	jobs := jobsOf(t, root)
 	build := mappingValue(jobs, "build")
-	entries := mappingValue(mappingValue(mappingValue(build, "strategy"), "matrix"), "include")
 	want := map[string]string{"amd64": "ubuntu-22.04", "arm64": "ubuntu-22.04-arm"}
 	seen := map[string]bool{}
-	for _, entry := range entries.Content {
-		platform := mappingScalar(entry, "platform")
+	for _, entry := range releaseBuildLegs(t, "all") {
+		platform := entry["platform"]
 		if !strings.HasPrefix(platform, "linux/") {
 			continue
 		}
 		arch := strings.TrimPrefix(platform, "linux/")
-		if seen[arch] || mappingScalar(entry, "runner") != want[arch] {
+		if seen[arch] || entry["runner"] != want[arch] {
 			t.Fatalf("Linux %s does not have one native runner", arch)
 		}
 		seen[arch] = true
-		artifact := mappingScalar(entry, "artifact")
+		artifact := entry["artifact"]
 		if artifact != "studio-build-linux-"+arch {
 			t.Fatalf("unexpected Linux artifact %q", artifact)
 		}

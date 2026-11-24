@@ -1259,7 +1259,7 @@ jobs:
             printf '%s\n\n' '---'
             [ "$PLATFORMS" = windows ] || printf '%s' '**macOS** 已用 Developer ID 签名并公证，打开时不需要清除隔离属性。'
             printf '%s' "$windows"
-            [ "$PLATFORMS" = windows ] || printf '%s' '**Linux** Debian 系从 `.deb` 安装，Fedora、RHEL、openSUSE 等从 `.rpm` 安装（`sudo dnf install ./ReasonixStudio-linux-amd64.rpm`）。x86_64 用文件名带 amd64 的包，aarch64（统信 UOS、麒麟等）用带 arm64 的包。也提供 `.AppImage`（只提供下载，不会自更新；需要 FUSE 2，或用 `--appimage-extract-and-run` 启动）。'
+            [ "$PLATFORMS" = windows ] || printf '%s' "**Linux** Debian 系从 \`.deb\` 安装，Fedora、RHEL、openSUSE 等从 \`.rpm\` 安装（\`sudo dnf install ./ReasonixStudio-linux-amd64.rpm\`）。x86_64 用文件名带 amd64 的包，aarch64（统信 UOS、麒麟等）用带 arm64 的包。也提供 \`.AppImage\`（只提供下载，不会自更新；需要 FUSE 2，或用 \`--appimage-extract-and-run\` 启动）。"
             printf '\n\n'
             if [ "$PLATFORMS" = windows ]; then
               printf '%s\n' '本版只发布 Windows 包，macOS 与 Linux 的安装包不在其中；需要的话请从上一个版本取。'
