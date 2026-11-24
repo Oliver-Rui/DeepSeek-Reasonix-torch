@@ -20,7 +20,14 @@ function fixture(t) {
   return dir;
 }
 
-const run = (dir) => spawnSync("bash", [verify, dir], { encoding: "utf8" });
+const run = (dir, ...platforms) => spawnSync("bash", [verify, dir, ...platforms], { encoding: "utf8" });
+
+function fixtureWith(t, list) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "studio-artifacts-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  for (const name of list) fs.writeFileSync(path.join(dir, name), "package fixture");
+  return dir;
+}
 
 test("all fourteen platform artifacts are required before publication", (t) => {
   assert.equal(run(fixture(t)).status, 0);
@@ -50,4 +57,28 @@ test("an empty AppImage is a failed publication", (t) => {
   const result = run(dir);
   assert.notEqual(result.status, 0);
   assert.ok(result.stderr.includes("ReasonixStudio-linux-amd64.AppImage"));
+});
+
+const windowsNames = names.filter((name) => name.startsWith("ReasonixStudio-windows-"));
+
+test("a release that claims only Windows is checked against the Windows set", (t) => {
+  assert.equal(run(fixtureWith(t, windowsNames), "windows").status, 0);
+});
+
+test("a Windows-only release is not complete without either architecture", (t) => {
+  const dir = fixtureWith(t, windowsNames);
+  fs.unlinkSync(path.join(dir, "ReasonixStudio-windows-arm64.zip"));
+  const result = run(dir, "windows");
+  assert.notEqual(result.status, 0);
+  assert.ok(result.stderr.includes("ReasonixStudio-windows-arm64.zip"));
+});
+
+test("an unnamed platform set still means every platform the line claims", (t) => {
+  assert.notEqual(run(fixtureWith(t, windowsNames)).status, 0);
+});
+
+test("a platform the line does not know is refused rather than quietly skipped", (t) => {
+  const result = run(fixture(t), "solaris");
+  assert.notEqual(result.status, 0);
+  assert.ok(result.stderr.includes("solaris"));
 });

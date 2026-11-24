@@ -2,7 +2,7 @@
 owner: @esengine
 backup: @SivanCola
 status: active
-reviewed: 2026-09-30
+reviewed: 2026-11-24
 ---
 
 # Studio release runbook
@@ -54,7 +54,7 @@ Jobs in the run:
 | --- | --- | --- |
 | `resolve` | Validates the tag shape and that the commit is on `main`. | fails on any other ref |
 | `signing-contract` | Validates `.signpath/contracts/release-signing.yml` against the workflows that reach the Certum credentials and prints its fingerprint. | fails on an undeclared signing workflow |
-| `build` | Builds windows/amd64, windows/arm64 (on a native `windows-11-arm` runner), darwin/amd64, darwin/arm64, linux/amd64, linux/arm64 (on a native `ubuntu-22.04-arm` runner, with a system-installed fpm because electron-builder's own is x86_64-only); signs macOS. Windows PE images and all Linux ELF images must match the package architecture. Linux packages pass installed-shell acceptance before upload. With signing on, each Windows leg uploads its bundle instead of packaging it. | Apple secrets are required |
+| `build` | Builds windows/amd64, windows/arm64 (on a native `windows-11-arm` runner), darwin/amd64, darwin/arm64, linux/amd64, linux/arm64 (on a native `ubuntu-22.04-arm` runner, with a system-installed fpm because electron-builder's own is x86_64-only); signs macOS. Windows PE images and all Linux ELF images must match the package architecture. Linux packages pass installed-shell acceptance before upload. With signing on, each Windows leg uploads its bundle instead of packaging it. A `platforms=windows` dispatch skips the darwin and linux legs; a leg that ran and failed still stops the release. | Apple secrets are required |
 | `windows-sign-payload` | Only with `STUDIO_SIGNING_ENABLED=true`. One leg per architecture, run one after the other (`max-parallel: 1`). Refuses a bundle whose PE files differ from the declared list or are not all the leg's architecture, signs the release PE files, verifies them and the two Microsoft-signed DLLs, and records a digest of the whole signed tree as a job output. Installs no toolchain. | shared concurrency group `certum-signing`, environment `studio-release` |
 | `windows-package` | Builds each architecture's installer and zip from its signed tree as it came; the arm64 installer is packed with `ELECTRON_BUILDER_7Z_FILTER=BCJ`. Holds no secrets. | none |
 | `windows-verify-package` | Per architecture: checks the payload against the recorded digest, unpacks the zip and the installer, requires both trees to match the payload file for file and the installer to carry exactly its architecture's application archive, and outputs the SHA-256 of both packages. Holds no secrets and no environment. | none |
@@ -68,7 +68,24 @@ Jobs in the run:
 | `cli-channels` | Only with `STUDIO_PUBLISHES_CLI=true` (unset today; 1.x owns the channels). Publishes `reasonix` and `@reasonix/cli-*` to npm with `--provenance`, then updates the Homebrew cask (not for a candidate). | no environment and no approval; `id-token: write` on this job only; runs after `publish`, `cli-gate` and `cli-tag` |
 | `cli-pointer` | Only with `STUDIO_PUBLISHES_CLI=true`. Creates the GitHub release `vX.Y.Z` holding the CLI archives, writes `cli/releases/vX.Y.Z/latest.json`, then moves `cli/stable/latest.json` (a `-preview.N` version moves `cli/preview/latest.json`; any other prerelease publishes nothing). | runs after `publish`, `cli-gate` and `cli-tag`; serialized per channel by the `studio-cli-pointer-<channel>` lock |
 
-The `studio-release` environment allows the `studio-v*` tag and the `studio` branch. It has no required reviewer.
+The `studio-release` environment carries no deployment branch restriction and no required reviewer, so any ref — a `studio-v*` tag or `main` — may run the jobs that use it.
+
+### Publishing only Windows
+
+Pushing a `studio-v*` tag always builds and publishes every platform. When one platform's runners are not answering, the release can be dispatched with a narrower platform set instead:
+
+```bash
+gh workflow run release-studio.yml --ref main -f tag=studio-vX.Y.Z -f platforms=windows
+```
+
+The tag must already exist: a dispatch recovers a tag, it does not create one. `platforms` takes `all` (the default, what a tag push builds) or `windows`. What the narrower set changes:
+
+- `build` skips the darwin and linux legs instead of failing on a runner that is not coming back. The gates read the build job's conclusion as `success` or `skipped`, so a skipped leg is not a failed one and a leg that ran and failed still stops the release.
+- `publish` stages only the artifacts that exist, checks the release against the platform set it claimed, and the standing paragraph names only the platforms the release carries — no `.dmg` nobody uploaded.
+- The CLI archives are unaffected: the `cli` job builds all six targets from one Linux runner and touches no macOS or Windows runner, so a Windows-only Studio release still carries the full CLI set.
+- Signing, the install smoke, the manifest, the Windows delta and the release itself are unchanged.
+
+The set is decided once in `resolve` and every later job reads it, so no leg can publish a platform the release never built.
 
 Publishing to the CLI channels needs no human approval. Three controls stand in for it:
 
@@ -129,7 +146,7 @@ Every website build synchronizes missing published Studio releases before render
 
 | ID | Expected | Command |
 | --- | --- | --- |
-| V1 | The release exists with 25 assets (per-platform packages, `.minisig` files, CLI archives, `SHA256SUMS`; no `latest.json`). A stable tag is not a prerelease and is GitHub latest when it is the highest stable tag; a candidate is a prerelease. | `gh release view studio-vX.Y.Z --json isPrerelease,assets --jq '.isPrerelease, (.assets \| length)'` |
+| V1 | The release exists with 35 assets (per-platform packages, `.minisig` files, CLI archives, `SHA256SUMS`; no `latest.json`). A stable tag is not a prerelease and is GitHub latest when it is the highest stable tag; a candidate is a prerelease. A `platforms=windows` release carries 15: the four Windows packages, their four `.minisig` files, and the CLI archives with `SHA256SUMS`. | `gh release view studio-vX.Y.Z --json isPrerelease,assets --jq '.isPrerelease, (.assets \| length)'` |
 | V2 | The catalog lists the new version first. | `curl -s https://dl.reasonix.io/studio/versions.json \| jq -r '.versions[0].tag'` |
 | V3 | The manifest is served from the mirror, and, once a Studio release is GitHub latest, the path 1.x updaters fall back to answers 404. | `curl -sI https://dl.reasonix.io/studio-vX.Y.Z/latest.json \| head -1`; `curl -sI https://github.com/esengine/DeepSeek-Reasonix/releases/latest/download/latest.json \| head -1` |
 | V4 | The body contains the version notes and the standing install text. | `gh release view studio-vX.Y.Z --json body --jq .body` |
@@ -142,12 +159,13 @@ Every website build synchronizes missing published Studio releases before render
 
 | Symptom | Cause | Action |
 | --- | --- | --- |
-| No run appears, or a rerun ends in `startup_failure` with no jobs. | GitHub Actions runner outage. | Wait for queued runs to drain, then `gh workflow run release-studio.yml --ref studio -f tag=studio-vX.Y.Z`. |
-| A build or publish step failed. | Workflow or runner fault. | Fix on `studio` if needed, then dispatch as above. The dispatch rebuilds from the tag's commit with the workflow from `studio`. |
+| No run appears, or a rerun ends in `startup_failure` with no jobs. | GitHub Actions runner outage. | Wait for queued runs to drain, then `gh workflow run release-studio.yml --ref main -f tag=studio-vX.Y.Z`. |
+| A platform's build leg was cancelled by the runner. The macOS legs have been: one leg is cancelled about fifteen minutes after queueing while the rest of the run stays green. | GitHub reclaimed the runner; the gate needs every leg the release claims. | Dispatch the same tag with `-f platforms=windows` (section 3). The legs that built stay downloadable for seven days, but the dispatch rebuilds them from the tag's commit with the workflow from `main`. |
+| A build or publish step failed. | Workflow or runner fault. | Fix on `main` if needed, then dispatch as above. The dispatch rebuilds from the tag's commit with the workflow from `main`. |
 | A signing job fails with an error titled `studio-signing.*`. | A credential or an expected-signer variable is missing or malformed; the title names which. | Fix it (section 7), then dispatch the same tag. |
 | A signing job fails at `Connect to Certum` or `Sign the executables`. | SimplySign login, OTP or certificate problem. | Run the smoke test (section 7). To ship unsigned instead, set `STUDIO_SIGNING_ENABLED=false` and dispatch. |
 | A signing job fails with `Unexpected signer subject` or `thumbprint`. | The certificate changed, or a value was copied wrong. | Compare with the smoke test's summary; correct `STUDIO_SIGNING_SUBJECT` or `CERTUM_KEY_ID`. |
-| One architecture's signing leg failed. | The legs of `windows-sign-payload` and `windows-sign-installer` are independent and serial. | Rerun the failed jobs only (`gh run rerun <run> --failed`): the other architecture's legs keep their results, and the failed leg's dependents run again. The unsigned bundle, signed payload and packaged artifacts are kept for one day, so a rerun the next day fails on an expired artifact: start the whole run again instead (`gh workflow run release-studio.yml --ref studio -f tag=studio-vX.Y.Z`, section 5). |
+| One architecture's signing leg failed. | The legs of `windows-sign-payload` and `windows-sign-installer` are independent and serial. | Rerun the failed jobs only (`gh run rerun <run> --failed`): the other architecture's legs keep their results, and the failed leg's dependents run again. The unsigned bundle, signed payload and packaged artifacts are kept for one day, so a rerun the next day fails on an expired artifact: start the whole run again instead (`gh workflow run release-studio.yml --ref main -f tag=studio-vX.Y.Z`, section 5). |
 | A signing job waits before starting. | A Studio or 1.x smoke test or release holds `certum-signing`. | Wait. A second run queued behind the same group cancels the earlier queued one; dispatch again if that happens. |
 | Signing is restored after an unsigned release. | Artifacts were published unsigned. | Set `STUDIO_SIGNING_ENABLED=true` and dispatch the same tag; `publish` replaces the assets. |
 | The body is missing or wrong. | Notes are read from the tag's commit, not the branch. | `gh release edit studio-vX.Y.Z --notes-file <file>`; append the standing text from the previous body. |
@@ -230,7 +248,7 @@ To enable signing:
 2. Run the smoke test. It signs two probes, publishes nothing, and writes the signer's subject, issuer, thumbprint and timestamp to the job summary:
 
    ```bash
-   gh workflow run studio-certum-signing-smoke.yml --ref studio
+   gh workflow run studio-certum-signing-smoke.yml --ref main
    ```
 
 3. Copy the subject from that summary, character for character: `gh variable set STUDIO_SIGNING_SUBJECT --body '<subject>'`.

@@ -30,6 +30,17 @@ on:
         description: "Existing studio tag to recover (for example studio-v0.1.0)"
         required: true
         type: string
+      # A dispatch may narrow a release to the platforms whose runners answer.
+      # A tag push has no input to read and always builds the whole line, so the
+      # default is the full set and only an explicit dispatch says otherwise.
+      platforms:
+        description: "Studio platforms to build and publish: all (the default, what a tag push builds) or windows"
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - windows
 
 permissions:
   contents: write # create the release and upload artifacts
@@ -49,6 +60,7 @@ jobs:
       version: ${{ steps.release.outputs.version }}
       sha: ${{ steps.release.outputs.sha }}
       candidate: ${{ steps.release.outputs.candidate }}
+      platforms: ${{ steps.release.outputs.platforms }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -59,6 +71,7 @@ jobs:
         env:
           IN_TAG: ${{ inputs.tag }}
           REF_NAME: ${{ github.ref_name }}
+          IN_PLATFORMS: ${{ inputs.platforms }}
         run: |
           tag="${IN_TAG:-$REF_NAME}"
           semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+)(\.[0-9A-Za-z-]+)*)?$'
@@ -81,9 +94,17 @@ jobs:
           if [[ "${version#v}" =~ $semver ]] && [ -n "${BASH_REMATCH[4]}" ]; then
             candidate=true
           fi
+          # Which platforms this release claims. Decided once here and read by
+          # every later job, so no leg can publish a platform the release never
+          # built and no gate can be asked about a leg that was never started.
+          platforms="${IN_PLATFORMS:-all}"
+          case "$platforms" in
+            all | windows) ;;
+            *) echo "::error::platforms must be all or windows, got: $platforms"; exit 1 ;;
+          esac
           { echo "tag=$tag"; echo "version=$version"; echo "sha=$sha"
-            echo "candidate=$candidate"; } >> "$GITHUB_OUTPUT"
-          echo "resolved $tag -> $version at $sha (candidate=$candidate)"
+            echo "candidate=$candidate"; echo "platforms=$platforms"; } >> "$GITHUB_OUTPUT"
+          echo "resolved $tag -> $version at $sha (candidate=$candidate, platforms=$platforms)"
 
       - name: Require versioned release notes
         env:
@@ -133,6 +154,13 @@ jobs:
   build:
     name: build (${{ matrix.platform }})
     needs: [resolve, signing-contract]
+    # A Windows-only release leaves the legs it never claimed skipped rather
+    # than failing on a runner that is not coming back. A skipped leg is not a
+    # failed one, but the aggregate conclusion of a partly skipped matrix job
+    # is not documented, so the gates below read 'skipped' beside 'success' and
+    # a leg that ran and failed still stops the release.
+    if: >-
+      ${{ needs.resolve.outputs.platforms != 'windows' || startsWith(matrix.platform, 'windows/') }}
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -848,7 +876,7 @@ jobs:
     name: install the Windows package (${{ matrix.arch }})
     needs: [resolve, build, windows-sign-installer]
     if: >-
-      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
+      ${{ !cancelled() && needs.resolve.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') &&
       (needs.windows-sign-installer.result == 'success' ||
       (vars.STUDIO_SIGNING_ENABLED != 'true' && needs.windows-sign-installer.result == 'skipped')) }}
     runs-on: ${{ matrix.runner }}
@@ -974,7 +1002,7 @@ jobs:
     name: decide whether CI publishes this release
     needs: [resolve, build, cli, windows-sign-payload, windows-package, windows-verify-package, windows-sign-installer, windows-install-smoke]
     if: >-
-      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
+      ${{ !cancelled() && needs.resolve.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') &&
       needs.cli.result == 'success' && needs.windows-install-smoke.result == 'success' &&
       ((needs.windows-sign-payload.result == 'success' &&
       needs.windows-package.result == 'success' && needs.windows-verify-package.result == 'success' &&
@@ -1010,7 +1038,7 @@ jobs:
     # implicit success() would skip this job with them, so the skipped branch
     # is spelled out exactly as the gate spells it.
     if: >-
-      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
+      ${{ !cancelled() && needs.resolve.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') &&
       needs.cli.result == 'success' && needs.windows-install-smoke.result == 'success' &&
       needs.publish-gate.outputs.publish == 'true' &&
       ((needs.windows-sign-payload.result == 'success' &&
@@ -1057,22 +1085,29 @@ jobs:
       # Every package by its exact name, never a pattern: any job without
       # secrets can upload an artifact, and a pattern would publish it. Windows
       # comes from the installer signing job when it ran, else the build leg.
+      # A release that never built a platform has no artifact to stage, and a
+      # download that finds nothing only warns — which is how a platform the
+      # release never claimed would reach the verifier as a warning nobody read.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.resolve.outputs.platforms != 'windows'
         with:
           name: studio-build-darwin-amd64
           path: staging/studio-build-darwin-amd64
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.resolve.outputs.platforms != 'windows'
         with:
           name: studio-build-darwin-arm64
           path: staging/studio-build-darwin-arm64
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.resolve.outputs.platforms != 'windows'
         with:
           name: studio-build-linux-amd64
           path: staging/studio-build-linux-amd64
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.resolve.outputs.platforms != 'windows'
         with:
           name: studio-build-linux-arm64
           path: staging/studio-build-linux-arm64
@@ -1144,8 +1179,17 @@ jobs:
           path: staging/cli-archives
 
       - name: Collect artifacts
+        env:
+          PLATFORMS: ${{ needs.resolve.outputs.platforms }}
         run: |
           mkdir -p dist
+          # The verifier is told which platforms this release claimed, so a
+          # Windows-only dispatch is checked against the Windows set rather than
+          # against a set it never built. A tag push names all three.
+          case "$PLATFORMS" in
+            windows) claimed=(windows) ;;
+            *) claimed=(linux windows darwin) ;;
+          esac
           # The packages, from the build and signing jobs, then the CLI archives
           # and their digest list. Two artifacts carrying one file name fail the
           # release rather than letting move order pick.
@@ -1159,7 +1203,7 @@ jobs:
           done < <(find staging/studio-* -type f -name 'ReasonixStudio-*' -print0
             find staging/cli-archives -type f -print0)
           ls -la dist
-          bash scripts/verify-studio-artifacts.sh dist
+          bash scripts/verify-studio-artifacts.sh dist "${claimed[@]}"
 
       # The same minisign key the desktop line uses, because the public key that
       # verifies it is compiled into the client (update.PublicKey).
@@ -1212,6 +1256,7 @@ jobs:
           CANDIDATE: ${{ needs.resolve.outputs.candidate }}
           VERSION: ${{ needs.resolve.outputs.version }}
           SIGNED_WINDOWS: ${{ needs.windows-sign-installer.result == 'success' }}
+          PLATFORMS: ${{ needs.resolve.outputs.platforms }}
         run: |
           # A version's own notes live in release-notes/studio/<semver>.md, named
           # without the v the tag carries, and were rendered with their authors
@@ -1245,10 +1290,20 @@ jobs:
           else
             windows='**Windows 包未签名**，SmartScreen 会告警：选「更多信息」，再选「仍要运行」。'
           fi
+          # The standing paragraph names the platforms this release carries, so a
+          # Windows-only dispatch does not describe a .dmg nobody uploaded.
           {
             printf '%s\n\n' '---'
-            printf "**macOS** 已用 Developer ID 签名并公证，打开时不需要清除隔离属性。%s**Linux** Debian 系从 \`.deb\` 安装，Fedora、RHEL、openSUSE 等从 \`.rpm\` 安装（\`sudo dnf install ./ReasonixStudio-linux-amd64.rpm\`）。x86_64 用文件名带 amd64 的包，aarch64（统信 UOS、麒麟等）用带 arm64 的包。也提供 \`.AppImage\`（只提供下载，不会自更新；需要 FUSE 2，或用 \`--appimage-extract-and-run\` 启动）。\n\n" "$windows"
-            printf "%s\n" "三个平台都能自更新：Linux 的 \`.deb\` 走自己的包（\`.rpm\` 的自更新尚未提供，请手动下载新包），Windows 运行下一个安装器，macOS 替换自身 bundle。"
+            [ "$PLATFORMS" = windows ] || printf '%s' '**macOS** 已用 Developer ID 签名并公证，打开时不需要清除隔离属性。'
+            printf '%s' "$windows"
+            [ "$PLATFORMS" = windows ] || printf '%s' '**Linux** Debian 系从 `.deb` 安装，Fedora、RHEL、openSUSE 等从 `.rpm` 安装（`sudo dnf install ./ReasonixStudio-linux-amd64.rpm`）。x86_64 用文件名带 amd64 的包，aarch64（统信 UOS、麒麟等）用带 arm64 的包。也提供 `.AppImage`（只提供下载，不会自更新；需要 FUSE 2，或用 `--appimage-extract-and-run` 启动）。'
+            printf '\n\n'
+            if [ "$PLATFORMS" = windows ]; then
+              printf '%s\n' '本版只发布 Windows 包，macOS 与 Linux 的安装包不在其中；需要的话请从上一个版本取。'
+              printf '%s\n' 'Windows 运行下一个安装器即可自更新。'
+            else
+              printf "%s\n" "三个平台都能自更新：Linux 的 \`.deb\` 走自己的包（\`.rpm\` 的自更新尚未提供，请手动下载新包），Windows 运行下一个安装器，macOS 替换自身 bundle。"
+            fi
           } >> "$notes"
           assets=()
           for f in dist/*; do
