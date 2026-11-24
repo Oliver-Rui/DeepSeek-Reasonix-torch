@@ -2,15 +2,17 @@
 owner: @SivanCola
 backup: @esengine
 status: active
-reviewed: 2026-11-22
+reviewed: 2026-11-24
 ---
 
 # main handoff — 2.67.1 shipped
 
-The state of the fork after the 2.67.1 release: what shipped, how it was verified, and
-what is still open. The line was named `torch` through 2.67.0 and returned to `main`
-on 2026-11-21. The fork's first revision is described in `docs/STUDIO_TWEAKS_HANDOFF.md`;
-this document supersedes it.
+The state of the fork after the 2.67.1 release and the round that got it published:
+what shipped, how it was verified, and what is still open.
+
+The line was named `torch` through 2.67.0 and returned to `main` on 2026-11-21. The
+fork's first revision is described in `docs/STUDIO_TWEAKS_HANDOFF.md`; this document
+supersedes it.
 
 ## 1. Where things stand
 
@@ -19,7 +21,9 @@ this document supersedes it.
 | Release | [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) published 2026-11-22 by the release workflow's own publish job — the fork's first release signed with its own key, 35 assets including a `.minisig` beside every Studio package; 2.67.0 remains at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, unsigned, six platforms) |
 | Branches | `main` only (renamed from `torch` on 2026-11-21), and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained first |
 | History | One continuous line from `baseline: upstream 2.61.0` through the 2.66.1 fork work and every change since; the pre-rewrite full history (13,451 commits, upstream + fork through 2.66.1) lives in the `archive/pre-reset-2.66.1` tag on GitHub, alongside `upstream-v2.61.0` |
-| CI | CI, Studio, CodeQL and the release workflow are all green on the release commit; the failures the original tag carried were the rotated-key test, two style contract tests and the lint budget, each repaired before the tag moved |
+| CI | CI, Studio, CodeQL and the release workflow are green on `540014a1c` (the release commit) and on `ab5127ffa` (the comment follow-up); the failures the original tag carried were the rotated-key test, two style contract tests and the lint budget, each repaired before the tag moved |
+| Tag | `studio-v2.67.1` points at `540014a1c`, the commit the published assets were built from; `main` has moved past it with documentation and comment commits, and the tag does not follow them |
+| This machine | Sandbox on (`[sandbox] windows_integrity = true`), so Git Bash exits at start under the write-restricted token and the shell tool runs `pwsh`; `[tools.shell] prefer = "pwsh"` in the user config names that interpreter and stops the per-boot warning — commands here are PowerShell, so `head` and `grep` are not available |
 | Working tree | Two deliberate local changes, not committed: `xiaomimimo.svg` (vendor mark touched) and `dist-local2/` (a local electron build) |
 
 ## 2. What 2.67.0 ships
@@ -95,16 +99,52 @@ The lesson worth keeping: specificity does not cross layer order. The design lay
 
 ## 5. Open items
 
-- The release is signed by CI: `MINISIGN_PRIVATE_KEY` was set from the fork keypair and
-  the publish path needed two repairs it surfaced — the publish job's bare `if` skipped
-  past the skipped Certum signers, and `cmd/sign` refused the unencrypted key text.
-- `STUDIO_SIGNING_ENABLED` stays unset, so the Windows packages carry minisign
-  signatures but no Authenticode signature; SmartScreen still warns on first install.
-- 2.67.0's assets were published by hand from the run's `studio-build-*` artifacts, with
-  curl resuming because the network to the artifact CDN resets under load.
+- **The Studio catalog still names 2.67.0.** No `R2_*` secrets are configured, so the
+  publish job skips the mirror and the catalog write, and a running install is never
+  offered 2.67.1. Configure the four R2 secrets to resume mirror and in-app updates.
+- **Installs older than 2.67.1 cannot self-update.** The signing key rotated, so an
+  install at 2.67.0 or earlier fails verification against the key embedded in 2.67.1
+  and has to download the package from the release page by hand.
+- **Windows packages are minisign-signed, not Authenticode-signed.**
+  `STUDIO_SIGNING_ENABLED` stays unset, so SmartScreen warns on first install; the
+  release notes say so and name the click-through.
 - `ROADMAP.md` R5 blocks the next **stable** `studio-v2.*` tag until the GA gates (G1, G3, G4,
   G5) are met. 2.67.0 and 2.67.1 were tagged at the user's explicit request; a fork release
   moves no npm pointer, but the gate note stands for anyone reading the runbook.
 - `checkedOn` in `internal/contract/pricing/catalog.go` is 2026-11-20; the 90-day gate goes red
   again around 2027-02.
-- The 30-minute release-progress automation created for this handover was deleted on completion.
+- 2.67.0's assets were published by hand from the run's `studio-build-*` artifacts, with
+  curl resuming because the network to the artifact CDN resets under load.
+
+## 6. What the publish round repaired
+
+The tag was first pushed a commit ahead of the fixes, so its run failed the check that a
+`studio-v*` tag sits on `main`. The tag then moved to the repaired commit and the workflow
+was re-dispatched with `tag=studio-v2.67.1`, which rebuilt every platform and published
+from that run.
+
+Seven repairs came out of the round, and each carries a guard:
+
+- **The embedded-key test** (`internal/platform/update/update_test.go`) asserts the key ID
+  embedded in `verify.go`; a rotation that skips it fails every CI leg.
+- **The publish job's condition** (`release-studio.yml`) spells the skipped-Certum branch
+  out itself. A bare `needs.publish-gate.outputs.publish == 'true'` still applies an
+  implicit `success()` over skipped needs and skips the publish the gate approved.
+- **`cmd/sign`** (`desktop/cmd/sign/main.go`) reads an unencrypted key with
+  `UnmarshalText` when `minisign.IsEncrypted` is false. The live key is stored
+  unencrypted (KDF none, the comment still saying "encrypted"), so `DecryptKey` alone
+  refused it; `MINISIGN_PASSWORD` stays unset and a test pins that shape.
+- **The two style contracts**: `.peerfield` keeps only its width cap and type because the
+  kit draws the box, and the narrow model name carries `line-height: 1.2` beside its
+  ellipsis (`field.test.ts`, `linebox.test.ts`).
+- **The budgets**: each layered sheet merged one line back to its recorded length and the
+  handoff prose splits where a block passed 320 columns; `repolint -update` was not used.
+- **`v1-maintenance-schedule.yml` is deleted**: it dispatched the 1.x monitors on
+  `main-v2`, which no longer exists, so every scheduled run failed with a 404. Restore it
+  with the branch and those monitors if the 1.x line returns.
+- **The sandbox comment** (`internal/contract/config/render.go`) names `windows_integrity`
+  as the switch that turns Windows bash on; the save/reload guard reads the assignment
+  and reloads its own output, so a comment may name the key.
+
+The round's commits run from `1164342aa` (the key test) to `ab5127ffa` (the sandbox
+comment); this handoff closes it.
