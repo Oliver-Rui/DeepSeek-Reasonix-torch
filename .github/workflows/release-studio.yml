@@ -61,6 +61,7 @@ jobs:
       sha: ${{ steps.release.outputs.sha }}
       candidate: ${{ steps.release.outputs.candidate }}
       platforms: ${{ steps.release.outputs.platforms }}
+      matrix: ${{ steps.release.outputs.matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -94,16 +95,15 @@ jobs:
           if [[ "${version#v}" =~ $semver ]] && [ -n "${BASH_REMATCH[4]}" ]; then
             candidate=true
           fi
-          # Which platforms this release claims. Decided once here and read by
-          # every later job, so no leg can publish a platform the release never
-          # built and no gate can be asked about a leg that was never started.
+          # Which platforms this release claims, and the legs that claim builds
+          # for them. The script owns both, so a platform nobody asked for has
+          # no leg at all rather than one that fails on a runner nobody waits
+          # for — and a leg that ran and failed still stops the release.
           platforms="${IN_PLATFORMS:-all}"
-          case "$platforms" in
-            all | windows) ;;
-            *) echo "::error::platforms must be all or windows, got: $platforms"; exit 1 ;;
-          esac
+          matrix="$(bash scripts/studio-build-matrix.sh "$platforms")" || exit 1
           { echo "tag=$tag"; echo "version=$version"; echo "sha=$sha"
-            echo "candidate=$candidate"; echo "platforms=$platforms"; } >> "$GITHUB_OUTPUT"
+            echo "candidate=$candidate"; echo "platforms=$platforms"
+            echo "matrix=$matrix"; } >> "$GITHUB_OUTPUT"
           echo "resolved $tag -> $version at $sha (candidate=$candidate, platforms=$platforms)"
 
       - name: Require versioned release notes
@@ -154,13 +154,6 @@ jobs:
   build:
     name: build (${{ matrix.platform }})
     needs: [resolve, signing-contract]
-    # A Windows-only release leaves the legs it never claimed skipped rather
-    # than failing on a runner that is not coming back. A skipped leg is not a
-    # failed one, but the aggregate conclusion of a partly skipped matrix job
-    # is not documented, so the gates below read 'skipped' beside 'success' and
-    # a leg that ran and failed still stops the release.
-    if: >-
-      ${{ needs.resolve.outputs.platforms != 'windows' || startsWith(matrix.platform, 'windows/') }}
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -171,41 +164,11 @@ jobs:
       SIGN_WINDOWS: ${{ vars.STUDIO_SIGNING_ENABLED == 'true' }}
     strategy:
       fail-fast: false
-      matrix:
-        # ebarch is electron-builder's spelling of the same architecture, stated
-        # beside the release one rather than mapped in a step: the two
-        # vocabularies disagree (x64 / amd64) and a reviewer has to see both.
-        # Absent means the runner's own, which is what Windows and Linux build.
-        # artifact is the exact name publish downloads this leg's packages by.
-        # goarch and unpacked belong to the Windows legs: the release
-        # architecture the package is named for, and the directory
-        # electron-builder leaves its bundle in (win-unpacked for x64 alone).
-        include:
-          - platform: windows/amd64
-            runner: windows-latest
-            goarch: amd64
-            unpacked: win-unpacked
-            artifact: studio-build-windows-amd64
-          - platform: windows/arm64
-            runner: windows-11-arm
-            ebarch: arm64
-            goarch: arm64
-            unpacked: win-arm64-unpacked
-            artifact: studio-build-windows-arm64
-          - platform: darwin/amd64
-            runner: macos-latest
-            ebarch: x64
-            artifact: studio-build-darwin-amd64
-          - platform: darwin/arm64
-            runner: macos-latest
-            ebarch: arm64
-            artifact: studio-build-darwin-arm64
-          - platform: linux/amd64
-            runner: ubuntu-22.04
-            artifact: studio-build-linux-amd64
-          - platform: linux/arm64
-            runner: ubuntu-22.04-arm
-            artifact: studio-build-linux-arm64
+      # The legs come from resolve, so a release that claims only Windows
+      # expands two legs and the platforms it does not claim have no leg at
+      # all: a leg nobody asked for would otherwise be queued on a runner that
+      # may never answer, and a cancelled leg stops the whole release.
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
     steps:
       # Real-time scanning inspects every file the job writes, and packaging
       # writes a quarter of a gigabyte twice. The runner is thrown away after
@@ -876,7 +839,7 @@ jobs:
     name: install the Windows package (${{ matrix.arch }})
     needs: [resolve, build, windows-sign-installer]
     if: >-
-      ${{ !cancelled() && needs.resolve.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
       (needs.windows-sign-installer.result == 'success' ||
       (vars.STUDIO_SIGNING_ENABLED != 'true' && needs.windows-sign-installer.result == 'skipped')) }}
     runs-on: ${{ matrix.runner }}
@@ -1002,7 +965,7 @@ jobs:
     name: decide whether CI publishes this release
     needs: [resolve, build, cli, windows-sign-payload, windows-package, windows-verify-package, windows-sign-installer, windows-install-smoke]
     if: >-
-      ${{ !cancelled() && needs.resolve.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
       needs.cli.result == 'success' && needs.windows-install-smoke.result == 'success' &&
       ((needs.windows-sign-payload.result == 'success' &&
       needs.windows-package.result == 'success' && needs.windows-verify-package.result == 'success' &&
@@ -1038,7 +1001,7 @@ jobs:
     # implicit success() would skip this job with them, so the skipped branch
     # is spelled out exactly as the gate spells it.
     if: >-
-      ${{ !cancelled() && needs.resolve.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      ${{ !cancelled() && needs.resolve.result == 'success' && needs.build.result == 'success' &&
       needs.cli.result == 'success' && needs.windows-install-smoke.result == 'success' &&
       needs.publish-gate.outputs.publish == 'true' &&
       ((needs.windows-sign-payload.result == 'success' &&
