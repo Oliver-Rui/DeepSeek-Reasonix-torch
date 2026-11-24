@@ -324,7 +324,6 @@ export const EN: Record<string, string> = {
   "切换浅色主题": "Switch to light theme",
   "切换深色主题": "Switch to dark theme",
   "沙盒": "Sandbox",
-  "沙盒与运行边界": "Sandbox and runtime boundary",
   "更多与设置": "More and settings",
   "收起度量栏": "Collapse the metrics rail",
   "展开度量栏": "Show the metrics rail",

@@ -728,7 +728,7 @@ export function Composer({ port, status, running, queued = false, quote, restore
             <span className="lb">{t("composer.executing_plan")}</span>
           </span>
         )}
-        <Policy port={port} status={status} onChanged={onChanged} onBoundary={() => onSettings("tools:sandbox")} />
+        <Policy port={port} status={status} onChanged={onChanged} />
         <div className="studio-model-group">
           <Picker
             wrapClassName="studio-model-control"

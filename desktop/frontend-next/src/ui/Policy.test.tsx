@@ -13,10 +13,10 @@ afterEach(cleanup);
 const status = (mode: ApprovalMode = "ask") =>
   ({ preset: "balanced", effort: "auto", toolApprovalMode: mode } as SessionStatus);
 
-function draw(mode: ApprovalMode = "ask", onBoundary?: () => void) {
+function draw(mode: ApprovalMode = "ask") {
   const onChanged = vi.fn();
   const port = new MockPort() as unknown as AgentPort;
-  const view = render(<Policy port={port} status={status(mode)} onChanged={onChanged} onBoundary={onBoundary} />);
+  const view = render(<Policy port={port} status={status(mode)} onChanged={onChanged} />);
   return { ...view, port, onChanged };
 }
 
@@ -66,12 +66,12 @@ describe("execution permission control", () => {
     expect(group.textContent).not.toMatch(/高级执行设置|均衡|交付|思考强度/);
   });
 
-  it("opens the sandbox boundary from the same layer", async () => {
-    const onBoundary = vi.fn();
-    draw("ask", onBoundary);
+  it("keeps the sandbox out of the mode menu, leaving the note to explain it", async () => {
+    draw();
     await userEvent.click(screen.getByRole("button", { name: "执行权限：询问" }));
-    await userEvent.click(screen.getByRole("button", { name: /沙盒与运行边界/ }));
-    expect(onBoundary).toHaveBeenCalledTimes(1);
+    const group = screen.getByRole("group", { name: "执行权限" });
+    expect(group.querySelector('[data-action="settings.section"]')).toBeNull();
+    expect(group.textContent).toContain("审批决定何时询问");
   });
 
   it("draws nothing before the kernel has answered", () => {

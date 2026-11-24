@@ -12,10 +12,9 @@ interface Props {
   port: AgentPort;
   status: SessionStatus | null;
   onChanged: () => void;
-  onBoundary?: () => void;
 }
 
-export function Policy({ port, status, onChanged, onBoundary }: Props) {
+export function Policy({ port, status, onChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [asking, setAsking] = useState("");
   const [refused, setRefused] = useState("");
@@ -83,10 +82,6 @@ export function Policy({ port, status, onChanged, onBoundary }: Props) {
           {refused && <div className="note bad studio-policy-error" role="alert">{refused}</div>}
         </div>
         <div className="studio-policy-note">{t("safety.approvals_decide_when_to_ask")}</div>
-        <button className="studio-policy-boundary" data-action="settings.section" data-value="tools:sandbox" onClick={onBoundary} disabled={!onBoundary}>
-          <span><b>{t("safety.sandbox_and_runtime_boundary")}</b><small>{t("safety.view_current_isolation_and_network")}</small></span>
-          <span aria-hidden="true"><StudioIcon name="chevron" /></span>
-        </button>
       </div>
     </div>
   );

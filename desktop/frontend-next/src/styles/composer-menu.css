@@ -26,8 +26,8 @@
 :root .composer-menu :is(.studio-picker-title b, .studio-policy-head b), :root .composer-menu > .mi.head:first-child .lb { color: var(--muted); font: inherit; letter-spacing: 0; }
 :root .composer-menu :is(.studio-picker-title small, .studio-policy-head small), :root .composer-menu > .mi.head:first-child .rt { margin-left: auto; color: var(--muted); font: var(--w-reg) var(--fs-micro)/1.4 var(--ui); text-align: right; }
 :root .composer-menu :is(button.mi, .studio-permission-option, .worktree-row, .worktree-sources button) { min-height: 36px; padding: 8px 10px; gap: 8px; border-radius: var(--r-sm); color: var(--text); font: var(--w-reg) var(--choice-size)/1.4 var(--ui); }
-:root .composer-menu :is(.mi .lb, .studio-permission-option b, .studio-policy-boundary b, .worktree-toggle span) { color: inherit; font: var(--w-reg) var(--choice-size)/1.4 var(--ui); }
-:root .composer-menu :is(.mi .ds, .studio-permission-option small, .studio-policy-boundary small, .worktree-toggle small) { display: block; margin-top: 2px; color: var(--muted); font: var(--w-reg) var(--choice-note)/1.45 var(--ui); }
+:root .composer-menu :is(.mi .lb, .studio-permission-option b, .worktree-toggle span) { color: inherit; font: var(--w-reg) var(--choice-size)/1.4 var(--ui); }
+:root .composer-menu :is(.mi .ds, .studio-permission-option small, .worktree-toggle small) { display: block; margin-top: 2px; color: var(--muted); font: var(--w-reg) var(--choice-note)/1.45 var(--ui); }
 :root .composer-menu .studio-permission-option > span:first-child { gap: 0; }
 :root .composer-menu :is(button.mi, .studio-permission-option, .worktree-sources button):is([data-on], [aria-selected="true"]) { background: var(--overlay); color: var(--text); }
 :root .composer-menu :is(button.mi, .studio-permission-option, button.worktree-row, .worktree-sources button):not(:disabled):hover { background: var(--float-hi); }
@@ -37,8 +37,6 @@
 :root .composer-menu .studio-policy-primary { padding: 0; }
 :root .composer-menu .studio-policy-risk { padding: 8px 10px 2px; color: var(--warn-ink); font: var(--w-reg) var(--fs-micro)/1.4 var(--ui); }
 :root .composer-menu .studio-permission-option.studio-permission-yolo b { color: var(--warn-ink); }
-:root .composer-menu .studio-policy-boundary { min-height: 36px; padding: 8px 10px; border-top-color: var(--hair); border-radius: 0 0 var(--r-sm) var(--r-sm); }
-:root .composer-menu .studio-policy-boundary > span:first-child { gap: 0; }
 :root .composer-menu .worktree-toggle { padding: 8px 10px; gap: 8px; margin: 0; border-bottom: 0; }
 :root .composer-menu .worktree-toggle > .studio-icon, :root .composer-menu .worktree-row > .studio-icon { width: 16px; height: 16px; }
 :root .composer-menu .worktree-value { font-size: var(--fs-meta); }
