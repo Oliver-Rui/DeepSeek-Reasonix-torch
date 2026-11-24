@@ -34,6 +34,7 @@ import { startUpdateWatch } from "../state/updatewatch";
 import { StopHint } from "./StopHint";
 import { useFindAsk } from "./usefindask";
 import { folded as roomGaveUp, onRoomWidth } from "./viewport";
+import { useFoldAway } from "./foldaway";
 import { useDrawerCloses } from "./drawer";
 import { RenameSession } from "./RenameSession";
 import { RemoteAsk } from "./RemoteAsk";
@@ -371,6 +372,7 @@ export function App({ hub }: { hub: HubPort }) {
     focusPane, setRail, addFolder: () => adder.add(), showPrefs, setFeedback, runtimes, openPane, fail,
   });
 
+  useFoldAway("rail", setRail);
   const navRail = useNavRail(rail);
   const hidesAmounts = useHidesAmounts();
   const [palette, setPalette] = useState(false);
