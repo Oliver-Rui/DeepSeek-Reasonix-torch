@@ -5,10 +5,10 @@ status: active
 reviewed: 2026-11-24
 ---
 
-# main handoff — 2.67.1 shipped
+# main handoff — 2.67.2 published (Windows only)
 
-The state of the fork after the 2.67.1 release and the round that got it published:
-what shipped, how it was verified, and what is still open.
+The state of the fork after the 2.67.2 release: what shipped, how it was verified,
+and what is still open.
 
 The line was named `torch` through 2.67.0 and returned to `main` on 2026-11-21. The
 fork's first revision is described in `docs/STUDIO_TWEAKS_HANDOFF.md`; this document
@@ -18,11 +18,11 @@ supersedes it.
 
 | Item | State |
 | --- | --- |
-| Release | [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) published 2026-11-22 by the release workflow's own publish job — the fork's first release signed with its own key, 35 assets including a `.minisig` beside every Studio package; 2.67.0 remains at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, unsigned, six platforms) |
+| Release | [`studio-v2.67.2`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.2) published 2026-11-24 23:13 by a `platforms=windows` dispatch, and it is GitHub latest. 15 assets: the four Windows packages, a `.minisig` beside each, and the six CLI archives with `SHA256SUMS`. No macOS or Linux Studio package is in it, and the release's standing paragraph says so in as many words. The packages are minisign-signed but not Authenticode-signed (`STUDIO_SIGNING_ENABLED` stays unset), so SmartScreen still warns on first install. 2.67.1 remains at [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) (35 assets, six platforms); 2.67.0 at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, unsigned) |
 | Branches | `main` only (renamed from `torch` on 2026-11-21), and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained first |
 | History | One continuous line from `baseline: upstream 2.61.0` through the 2.66.1 fork work and every change since; the pre-rewrite full history (13,451 commits, upstream + fork through 2.66.1) lives in the `archive/pre-reset-2.66.1` tag on GitHub, alongside `upstream-v2.61.0` |
-| CI | green on `540014a1c` and `ab5127ffa`; from 2026-11-24 the macOS runners were cancelled about fifteen minutes after queueing, which failed CI, Studio and the 2.67.2 release runs on their macOS jobs while every other leg passed |
-| Tag | `studio-v2.67.1` at `540014a1c`, the commit the published assets were built from. `studio-v2.67.2` exists **locally only**, at `d2b741752`: its remote tag was withdrawn after the first release attempt failed on a cancelled macOS build, and nothing was published |
+| CI | green on `540014a1c` and `ab5127ffa`; from 2026-11-24 the macOS runners were cancelled about fifteen minutes after queueing, which failed CI, Studio and the first 2.67.2 release run on their macOS jobs while every other leg passed. The Windows-only release path in section 7 exists because of it |
+| Tag | `studio-v2.67.1` at `540014a1c`, the commit its assets were built from. `studio-v2.67.2` is on the remote at `0917fd6ea`, the main tip its assets were built from: it was first placed at `d2b741752` and then moved, because the publish job checks out the tag's commit and a release-path script added afterwards would not be there to run. No application code differs between the two commits |
 | This machine | Sandbox on (`[sandbox] windows_integrity = true`), so Git Bash exits at start under the write-restricted token and the shell tool runs `pwsh`; `[tools.shell] prefer = "pwsh"` names that interpreter and stops the per-boot warning — commands here are PowerShell. pnpm 12 is installed globally for local packaging, and `dist/ReasonixStudio-windows-amd64-installer.exe` (2.67.2, unsigned) is the untracked local build |
 | Working tree | Two deliberate local changes, not committed: `xiaomimimo.svg` (vendor mark touched) and `dist-local2/` (a local electron build) |
 
@@ -97,11 +97,27 @@ and the model menu computed to its viewport cap.
 The lesson worth keeping: specificity does not cross layer order. The design layer's
 `flex: none` beat a (0,3,0) legacy rule; only a rule inside the design layer wins there.
 
+### How 2.67.2 was verified
+
+The release path itself was checked before it was trusted: the matrix script's five
+cases, the artifact verifier's seven behaviours (all platforms, the Windows set, a
+missing architecture, an unnamed set, an unknown platform, an empty file), and the
+resolve step end to end.
+
+With `platforms=windows`, `GITHUB_OUTPUT` holds two legs and nothing else, and the
+standing paragraph was run for both platform sets and read.
+
+In the run, `resolve`, the signing contract, both Windows build legs, both install
+smokes, the gate and `publish` all succeeded. The manifest carries exactly
+`windows-amd64` and `windows-arm64`, and the release holds 15 assets with a `.minisig`
+beside each Windows package.
+
 ## 5. Open items
 
 - **The Studio catalog still names 2.67.0.** No `R2_*` secrets are configured, so the
-  publish job skips the mirror and the catalog write, and a running install is never
-  offered 2.67.1. Configure the four R2 secrets to resume mirror and in-app updates.
+  publish job skips the mirror and the catalog write, and a running install is offered
+  neither 2.67.1 nor 2.67.2 — the 2.67.2 run logged exactly that warning. Configure the
+  four R2 secrets to resume mirror and in-app updates.
 - **Installs older than 2.67.1 cannot self-update.** The signing key rotated, so an
   install at 2.67.0 or earlier fails verification against the key embedded in 2.67.1
   and has to download the package from the release page by hand.
@@ -109,13 +125,16 @@ The lesson worth keeping: specificity does not cross layer order. The design lay
   `STUDIO_SIGNING_ENABLED` stays unset, so SmartScreen warns on first install; the
   release notes say so and name the click-through.
 - `ROADMAP.md` R5 blocks the next **stable** `studio-v2.*` tag until the GA gates (G1, G3, G4,
-  G5) are met. 2.67.0 and 2.67.1 were tagged at the user's explicit request; a fork release
+  G5) are met. 2.67.0, 2.67.1 and 2.67.2 were tagged at the user's explicit request; a fork release
   moves no npm pointer, but the gate note stands for anyone reading the runbook.
 - `checkedOn` in `internal/contract/pricing/catalog.go` is 2026-11-20; the 90-day gate goes red
   again around 2027-02.
-- **2.67.2 is tagged locally and unpublished.** The release run stopped at one cancelled
-  `build (darwin/amd64)`; every other platform built. Push `studio-v2.67.2` again when the
-  macOS runners answer, since the gate needs every platform before it publishes.
+- **A release whose tag predates a release-path change cannot be dispatched.** The first
+  2.67.2 dispatch failed in `Collect artifacts`: the publish job checks out the tag's
+  commit, so the verifier it called there was the one from before the change.
+- **Move the tag instead.** A tag recovered by a newer workflow has to sit at or after
+  the commit that carries the release path, which is why 2.67.2 now points at the main
+  tip rather than the commit it was first placed on.
 - 2.67.0's assets were published by hand from the run's `studio-build-*` artifacts, with
   curl resuming because the network to the artifact CDN resets under load.
 
@@ -161,4 +180,34 @@ Eight repairs came out of the round, and each carries a guard:
   `538dd7ed9` and `d2b741752`; the width-driven fold stands.
 
 The round's commits run from `1164342aa` (the key test) to `d2b741752` (the revert). The
-2.67.2 notes sit in `release-notes/studio/2.67.2.md`, ready for the tag's next push.
+2.67.2 notes sit in `release-notes/studio/2.67.2.md`.
+
+## 7. The Windows-only release path
+
+The macOS runners were being cancelled about fifteen minutes after queueing, and one
+cancelled `build (darwin/amd64)` leg was enough to stop the gate from publishing
+anything — the Windows packages included. So a release can now be dispatched with a
+narrower platform set.
+
+- `platforms` is a `workflow_dispatch` input — `all` by default, `windows` the other
+  value — so pushing a tag still builds and publishes the whole line, and only an
+  explicit dispatch narrows one.
+- `resolve` decides the set once and hands `build` a matrix built by
+  `scripts/studio-build-matrix.sh`, which holds the six legs with their runners,
+  architectures and artifact names. A release that claims only Windows expands two
+  legs; the platforms it does not claim have no leg at all.
+- `publish` stages, verifies and describes only what the release claimed: the standing
+  paragraph names the platforms the release carries instead of a `.dmg` nobody
+  uploaded. The CLI job is untouched — it builds all six targets from one Linux
+  runner, so a Windows-only Studio release still carries the full CLI set.
+- A job-level `if` cannot read `matrix`: the first cut put the platform claim there
+  and GitHub refused the workflow outright (`Unrecognized named-value: 'matrix'`).
+  `studio.yml` already expands its packaging matrix from a job output, which is the
+  pattern used here.
+
+Two things cost a run each and neither was the change. A Windows runner's
+electron-builder cache held a truncated 7zip (`ENOENT ... electron-builder\Cache\7zip@1.0.0`),
+cleared by rerunning the failed job.
+
+And creating or moving a tag ref through the API fires a `push` event, which starts a
+full-line run in the same concurrency group; cancel it before dispatching.
