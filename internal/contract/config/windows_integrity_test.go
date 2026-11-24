@@ -50,8 +50,14 @@ func TestWindowsIntegritySurvivesASaveAndReload(t *testing.T) {
 		t.Fatalf("the rendered user file lost the switch:\n%s", text)
 	}
 	off := Default()
-	if strings.Contains(RenderTOMLForScope(off, RenderScopeUser), "windows_integrity") {
+	rendered := RenderTOMLForScope(off, RenderScopeUser)
+	// The sandbox comment names the key, so the guard reads the assignment
+	// rather than the word appearing anywhere in the file.
+	if strings.Contains(rendered, "windows_integrity =") {
 		t.Fatal("an unset switch was written out")
+	}
+	if reloaded, _ := loadScoped(t, rendered, ""); reloaded.Sandbox.WindowsIntegrity {
+		t.Fatal("an unset switch read back as on")
 	}
 }
 

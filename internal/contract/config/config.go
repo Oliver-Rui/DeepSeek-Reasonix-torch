@@ -1349,7 +1349,7 @@ func Default() *Config {
 		// deny/allow rules to harden or quiet specific tools.
 		Permissions: PermissionsConfig{Mode: "ask"},
 		// Sandbox uses platform defaults: macOS/Linux jail bash by default;
-		// Windows has no OS-level Bash sandbox and always forces bash off.
+		// Windows enforces only when the user's windows_integrity is on.
 		// Network=true here so an absent [sandbox] in a user's file keeps egress
 		// (zero value would wrongly deny it).
 		Sandbox: SandboxConfig{Network: true, HostAuthorities: []string{"ssh_agent"}},
