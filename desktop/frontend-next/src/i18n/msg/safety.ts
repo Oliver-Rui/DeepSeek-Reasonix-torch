@@ -13,7 +13,6 @@ export const SAFETY: Messages = {
   "safety.allow_network_inside_the_sandbox": { zh: "沙箱里允许联网", en: "Allow network inside the sandbox" },
   "safety.also_writable": { zh: "额外可写目录", en: "Also writable" },
   "safety.an_operation_that_declares_no": { zh: "没声明写入范围的操作（bash、MCP、没写 write_paths 的子代理）不再占住整个工作区，所以同一个项目里的多个会话可以同时工作，不必互相等待。代价：声明了路径的写入（如编辑文件）仍按路径互斥（落在工作区之外的路径只和同一路径的写入互斥），但 bash 和 MCP 的写入没有事前的路径围栏，只在事后观察，两个会话用它们改同一个文件时可能互相覆盖。默认开启；关闭后为严格模式，没声明范围的操作会占住整个工作区。只对之后新开的会话生效。", en: "An operation that declares no write scope (bash, MCP, a sub-agent with no write_paths) no longer holds the whole workspace, so several sessions in one project can work at the same time without waiting. The cost: writes that declare a path (such as editing a file) still exclude each other by path (a path outside the workspace only excludes writes to that same path), but bash and MCP writes have no path fence beforehand and are only observed afterwards, so two sessions using them on one file can overwrite each other. On by default; turning it off gives strict mode, where an operation with no declared scope holds the whole workspace. Applies only to sessions opened afterwards." },
-  "safety.approvals_decide_when_to_ask": { zh: "审批决定何时询问；沙盒限定实际访问范围。", en: "Approvals decide when to ask; the sandbox limits actual access." },
   "safety.ask": { zh: "询问", en: "Ask" },
   "safety.ask_for_confirmation": { zh: "请求确认", en: "Ask for confirmation" },
   "safety.asks_before_every_action": { zh: "每次执行操作前请求确认", en: "Asks before every action" },

@@ -81,7 +81,6 @@ export function Policy({ port, status, onChanged }: Props) {
           ))}
           {refused && <div className="note bad studio-policy-error" role="alert">{refused}</div>}
         </div>
-        <div className="studio-policy-note">{t("safety.approvals_decide_when_to_ask")}</div>
       </div>
     </div>
   );

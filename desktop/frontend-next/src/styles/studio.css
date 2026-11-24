@@ -2162,7 +2162,6 @@ button, input, textarea { font-size: var(--fs-ui); }
 .studio-permission-check { color: var(--text); font: var(--w-med) var(--fs-micro)/1 var(--ui); }
 .studio-policy-error { margin: 6px 8px 2px; }
 .studio-policy-risk { padding: 8px 9px 3px; color: #a98a55; font: var(--w-med) var(--fs-micro)/1 var(--ui); }
-.studio-policy-note { margin: 5px 0 0; padding: 9px 7px; border-top: 1px solid var(--border); color: var(--ghost); font: var(--w-reg) var(--fs-micro)/1.55 var(--ui); }
 .studio-control-chevron { margin-left: 1px; color: var(--ghost); }
 
 :root[data-theme="light"] .studio-new-task > span,
@@ -2203,14 +2202,12 @@ button, input, textarea { font-size: var(--fs-ui); }
 :root[data-theme="light"] .studio-policy-head b,
 :root[data-theme="light"] .studio-permission-option { color: var(--text); }
 :root[data-theme="light"] .studio-policy-head small,
-:root[data-theme="light"] .studio-permission-option small,
-:root[data-theme="light"] .studio-policy-note { color: var(--faint); }
+:root[data-theme="light"] .studio-permission-option small { color: var(--faint); }
 :root[data-theme="light"] .studio-permission-option:not(:disabled):hover,
 :root[data-theme="light"] .studio-permission-option[data-on] { background: var(--overlay); }
 :root[data-theme="light"] .studio-permission-check { color: var(--muted); }
 :root[data-theme="light"] .studio-permission-yolo b { color: var(--warn-ink); }
 :root[data-theme="light"] .studio-policy-risk { color: #8a651d; }
-:root[data-theme="light"] .studio-policy-note { border-color: var(--border); }
 
 /* Transcript widgets use one quiet shell: identity and state stay visible,
    while arguments and results remain one disclosure away. */
@@ -2512,7 +2509,6 @@ button, input, textarea { font-size: var(--fs-ui); }
 .session-pop-divider,
 .studio-picker-title,
 .studio-policy-head,
-.studio-policy-note,
 .chrome-context-card header,
 .chrome-context-card section { border-color: var(--hair); }
 .session-pop-group > button,
@@ -2530,7 +2526,6 @@ button, input, textarea { font-size: var(--fs-ui); }
 .studio-picker-title small,
 .studio-policy-head small,
 .studio-permission-option small,
-.studio-policy-note,
 .studio-branch-card small,
 .studio-control-tip span,
 .chrome-context-card header small,

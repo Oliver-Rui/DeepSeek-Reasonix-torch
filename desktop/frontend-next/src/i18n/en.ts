@@ -1688,7 +1688,6 @@ export const EN: Record<string, string> = {
   "更多操作": "More actions",
   "执行权限": "Execution permissions",
   "禁止审批": "Deny approvals",
-  "审批决定何时询问；沙盒限定实际访问范围。": "Approvals decide when to ask; the sandbox limits actual access.",
   "高级执行设置": "Advanced execution settings",
   "会话操作：{title}": "Session actions: {title}",
   "项目操作：{name}": "Project actions: {name}",

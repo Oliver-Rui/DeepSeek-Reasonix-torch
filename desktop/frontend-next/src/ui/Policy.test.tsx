@@ -66,12 +66,12 @@ describe("execution permission control", () => {
     expect(group.textContent).not.toMatch(/高级执行设置|均衡|交付|思考强度/);
   });
 
-  it("keeps the sandbox out of the mode menu, leaving the note to explain it", async () => {
+  it("keeps the sandbox out of the mode menu entirely", async () => {
     draw();
     await userEvent.click(screen.getByRole("button", { name: "执行权限：询问" }));
     const group = screen.getByRole("group", { name: "执行权限" });
     expect(group.querySelector('[data-action="settings.section"]')).toBeNull();
-    expect(group.textContent).toContain("审批决定何时询问");
+    expect(group.querySelector(".studio-policy-note")).toBeNull();
   });
 
   it("draws nothing before the kernel has answered", () => {
