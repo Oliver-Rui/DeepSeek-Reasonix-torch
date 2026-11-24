@@ -13,12 +13,12 @@ Yolo today means "stop asking". It does not mean "may edit anything": the file w
 path outside `[sandbox] workspace_root`, `allow_write` and granted roots, and on Windows an enforcing
 sandbox also holds bash inside a write-restricted token.
 
-A user who picks 全部放行 and then asks an edit outside the project meets a refusal, and the note under
-the picker ("approvals decide when to ask; the sandbox limits actual access") is the only thing that
-explains why.
+A user who picks 全部放行 and then asks an edit outside the project meets a refusal with nothing in the
+picker to explain it: the menu now lists only the four modes.
 
 The menu row that pointed at the sandbox was removed because it drew a chevron and then left the menu:
-it promised a submenu and delivered navigation. Removing it fixed the lie, not the need. The need is a
+it promised a submenu and delivered navigation. Its note went with it for the same reason — the picker
+answers one question. Removing both fixed the lie, not the need. The need is a
 way to say "this session may write the whole disk", whose consequence is visible where it is chosen.
 
 ## What other agents do
