@@ -21,9 +21,9 @@ supersedes it.
 | Release | [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) published 2026-11-22 by the release workflow's own publish job — the fork's first release signed with its own key, 35 assets including a `.minisig` beside every Studio package; 2.67.0 remains at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, unsigned, six platforms) |
 | Branches | `main` only (renamed from `torch` on 2026-11-21), and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained first |
 | History | One continuous line from `baseline: upstream 2.61.0` through the 2.66.1 fork work and every change since; the pre-rewrite full history (13,451 commits, upstream + fork through 2.66.1) lives in the `archive/pre-reset-2.66.1` tag on GitHub, alongside `upstream-v2.61.0` |
-| CI | CI, Studio, CodeQL and the release workflow are green on `540014a1c` (the release commit) and on `ab5127ffa` (the comment follow-up); the failures the original tag carried were the rotated-key test, two style contract tests and the lint budget, each repaired before the tag moved |
-| Tag | `studio-v2.67.1` points at `540014a1c`, the commit the published assets were built from; `main` has moved past it with documentation and comment commits, and the tag does not follow them |
-| This machine | Sandbox on (`[sandbox] windows_integrity = true`), so Git Bash exits at start under the write-restricted token and the shell tool runs `pwsh`; `[tools.shell] prefer = "pwsh"` in the user config names that interpreter and stops the per-boot warning — commands here are PowerShell, so `head` and `grep` are not available |
+| CI | green on `540014a1c` and `ab5127ffa`; from 2026-11-24 the macOS runners were cancelled about fifteen minutes after queueing, which failed CI, Studio and the 2.67.2 release runs on their macOS jobs while every other leg passed |
+| Tag | `studio-v2.67.1` at `540014a1c`, the commit the published assets were built from. `studio-v2.67.2` exists **locally only**, at `d2b741752`: its remote tag was withdrawn after the first release attempt failed on a cancelled macOS build, and nothing was published |
+| This machine | Sandbox on (`[sandbox] windows_integrity = true`), so Git Bash exits at start under the write-restricted token and the shell tool runs `pwsh`; `[tools.shell] prefer = "pwsh"` names that interpreter and stops the per-boot warning — commands here are PowerShell. pnpm 12 is installed globally for local packaging, and `dist/ReasonixStudio-windows-amd64-installer.exe` (2.67.2, unsigned) is the untracked local build |
 | Working tree | Two deliberate local changes, not committed: `xiaomimimo.svg` (vendor mark touched) and `dist-local2/` (a local electron build) |
 
 ## 2. What 2.67.0 ships
@@ -113,6 +113,9 @@ The lesson worth keeping: specificity does not cross layer order. The design lay
   moves no npm pointer, but the gate note stands for anyone reading the runbook.
 - `checkedOn` in `internal/contract/pricing/catalog.go` is 2026-11-20; the 90-day gate goes red
   again around 2027-02.
+- **2.67.2 is tagged locally and unpublished.** The release run stopped at one cancelled
+  `build (darwin/amd64)`; every other platform built. Push `studio-v2.67.2` again when the
+  macOS runners answer, since the gate needs every platform before it publishes.
 - 2.67.0's assets were published by hand from the run's `studio-build-*` artifacts, with
   curl resuming because the network to the artifact CDN resets under load.
 
@@ -149,6 +152,13 @@ Eight repairs came out of the round, and each carries a guard:
   `github.com/gorilla/websocket` v1.5.3 (weak PRNG for the client mask key), so the
   module moves to its fix commit. That commit carries no tag; the next upgrade should
   prefer a tagged release once one exists.
+- **The permission menu** (`desktop/frontend-next/src/ui/Policy.tsx`) lists only the four
+  modes: the 沙盒与运行边界 row and the note beneath it are gone, and `Policy.test.tsx`
+  pins that the menu carries neither a settings entry nor a note.
+- **The side columns were tried and withdrawn.** One change made both immune to window
+  width — the rail's `foldaway` call and the workbench's 760px media rule — and the owner
+  cancelled it before release, so `a52e0c4fb` and its notes commit are reverted in
+  `538dd7ed9` and `d2b741752`; the width-driven fold stands.
 
-The round's commits run from `1164342aa` (the key test) to this handoff; the dependency
-bump for the vulnerability gate rides behind the document.
+The round's commits run from `1164342aa` (the key test) to `d2b741752` (the revert). The
+2.67.2 notes sit in `release-notes/studio/2.67.2.md`, ready for the tag's next push.
