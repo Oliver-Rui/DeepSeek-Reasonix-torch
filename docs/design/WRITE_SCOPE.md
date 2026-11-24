@@ -18,8 +18,10 @@ picker to explain it: the menu now lists only the four modes.
 
 The menu row that pointed at the sandbox was removed because it drew a chevron and then left the menu:
 it promised a submenu and delivered navigation. Its note went with it for the same reason — the picker
-answers one question. Removing both fixed the lie, not the need. The need is a
-way to say "this session may write the whole disk", whose consequence is visible where it is chosen.
+answers one question. Removing both fixed the lie, not the need.
+
+The need is a way to say "this session may write the whole disk", whose consequence is visible where it
+is chosen.
 
 ## What other agents do
 
