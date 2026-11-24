@@ -21,7 +21,7 @@ supersedes it.
 | Release | [`studio-v2.67.2`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.2) published 2026-11-24 23:13 by a `platforms=windows` dispatch, and it is GitHub latest. 15 assets: the four Windows packages, a `.minisig` beside each, and the six CLI archives with `SHA256SUMS`. No macOS or Linux Studio package is in it, and the release's standing paragraph says so in as many words. The packages are minisign-signed but not Authenticode-signed (`STUDIO_SIGNING_ENABLED` stays unset), so SmartScreen still warns on first install. 2.67.1 remains at [`studio-v2.67.1`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.1) (35 assets, six platforms); 2.67.0 at [`studio-v2.67.0`](https://github.com/Oliver-Rui/DeepSeek-Reasonix-torch/releases/tag/studio-v2.67.0) (21 assets, unsigned) |
 | Branches | `main` only (renamed from `torch` on 2026-11-21), and it is the default branch. `studio` and the nine `area/*` branches are deleted — each verified contained first |
 | History | One continuous line from `baseline: upstream 2.61.0` through the 2.66.1 fork work and every change since; the pre-rewrite full history (13,451 commits, upstream + fork through 2.66.1) lives in the `archive/pre-reset-2.66.1` tag on GitHub, alongside `upstream-v2.61.0` |
-| CI | green on `540014a1c` and `ab5127ffa`; from 2026-11-24 the macOS runners were cancelled about fifteen minutes after queueing, which failed CI, Studio and the first 2.67.2 release run on their macOS jobs while every other leg passed. The Windows-only release path in section 7 exists because of it |
+| CI | green on `540014a1c` and `ab5127ffa`, and green again on `d9b7388c8` — all 47 checks. From 2026-11-24 the macOS runners were cancelled about fifteen minutes after queueing, which failed CI, Studio and the first 2.67.2 release run on their macOS jobs while every other leg passed; the Windows-only release path in section 7 exists because of it. Every one of those legs passed on a later retry, so the cancellations were allocation, not the jobs |
 | Tag | `studio-v2.67.1` at `540014a1c`, the commit its assets were built from. `studio-v2.67.2` is on the remote at `0917fd6ea`, the main tip its assets were built from: it was first placed at `d2b741752` and then moved, because the publish job checks out the tag's commit and a release-path script added afterwards would not be there to run. No application code differs between the two commits |
 | This machine | Sandbox on (`[sandbox] windows_integrity = true`), so Git Bash exits at start under the write-restricted token and the shell tool runs `pwsh`; `[tools.shell] prefer = "pwsh"` names that interpreter and stops the per-boot warning — commands here are PowerShell. pnpm 12 is installed globally for local packaging, and `dist/ReasonixStudio-windows-amd64-installer.exe` (2.67.2, unsigned) is the untracked local build |
 | Working tree | Two deliberate local changes, not committed: `xiaomimimo.svg` (vendor mark touched) and `dist-local2/` (a local electron build) |
@@ -204,6 +204,10 @@ narrower platform set.
   and GitHub refused the workflow outright (`Unrecognized named-value: 'matrix'`).
   `studio.yml` already expands its packaging matrix from a job output, which is the
   pattern used here.
+- The contract tests in `cmd/signpath-contract` read the legs by running that script,
+  the way the workflow does. They used to read them out of the workflow's own matrix,
+  which panicked on a nil node the moment the legs moved — four CI legs red on one
+  nil. The `matrix` lesson is pinned there now.
 
 Two things cost a run each and neither was the change. A Windows runner's
 electron-builder cache held a truncated 7zip (`ENOENT ... electron-builder\Cache\7zip@1.0.0`),
